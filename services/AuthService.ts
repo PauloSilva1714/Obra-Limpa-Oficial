@@ -120,6 +120,22 @@ export class AuthService {
     }
   }
 
+  static async waitForFirebaseAuth(): Promise<FirebaseUser | null> {
+    return new Promise((resolve) => {
+      // Timeout de 10 segundos para evitar espera infinita
+      const timeout = setTimeout(() => {
+        console.log('[AuthService] Timeout ao aguardar Firebase Auth, usando estado atual');
+        resolve(auth.currentUser);
+      }, 10000);
+
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        clearTimeout(timeout);
+        unsubscribe();
+        resolve(user);
+      });
+    });
+  }
+
   static waitForAuthState(): Promise<FirebaseUser | null> {
     return new Promise((resolve) => {
       const unsubscribe = onAuthStateChanged(auth, (user) => {

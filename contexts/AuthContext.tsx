@@ -23,12 +23,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUser() {
     try {
-      const currentUser = await AuthService.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
+      console.log('[AuthContext] Carregando usuário...');
+      
+      // Aguarda o Firebase restaurar a sessão
+      const firebaseUser = await AuthService.waitForFirebaseAuth();
+      console.log('[AuthContext] Firebase Auth restaurado:', firebaseUser ? 'Usuário encontrado' : 'Nenhum usuário');
+      
+      if (firebaseUser) {
+        // Garante que o usuário está salvo no AsyncStorage
+        let userData = await AuthService.getCurrentUser();
+        console.log('[AuthContext] Usuário no AsyncStorage:', userData ? 'Encontrado' : 'Não encontrado');
+        
+        if (!userData) {
+          console.log('[AuthContext] Buscando dados do usuário no Firestore...');
+          // Busca do Firestore e salva no AsyncStorage
+          userData = await AuthService.getUserById(firebaseUser.uid);
+          if (userData) {
+            console.log('[AuthContext] Salvando usuário no AsyncStorage...');
+            await AuthService.saveUserToStorageStatic(userData);
+            console.log('[AuthContext] Usuário salvo no AsyncStorage com sucesso');
+          }
+        }
+        
+        if (userData) {
+          console.log('[AuthContext] Definindo usuário no contexto:', userData.name);
+          setUser(userData);
+        }
+      } else {
+        console.log('[AuthContext] Nenhum usuário autenticado');
+        setUser(null);
       }
     } catch (error) {
-      // console.error('Erro ao carregar usuário:', error);
+      console.error('[AuthContext] Erro ao carregar usuário:', error);
+      setUser(null);
     } finally {
       setLoading(false);
     }

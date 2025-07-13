@@ -7,18 +7,45 @@ export default function Index() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        const isAuthenticated = await AuthService.isAuthenticated();
+        console.log('[Index] Iniciando verificação de autenticação...');
         
-        if (isAuthenticated) {
-          // Usuário já está autenticado, redirecionar para as abas
-          router.replace('/(tabs)');
+        // Aguarda o Firebase restaurar a sessão
+        const firebaseUser = await AuthService.waitForFirebaseAuth();
+        console.log('[Index] Firebase Auth restaurado:', firebaseUser ? 'Usuário encontrado' : 'Nenhum usuário');
+
+        if (firebaseUser) {
+          // Garante que o usuário está salvo no AsyncStorage
+          let userData = await AuthService.getCurrentUser();
+          console.log('[Index] Usuário no AsyncStorage:', userData ? 'Encontrado' : 'Não encontrado');
+          
+          if (!userData) {
+            console.log('[Index] Buscando dados do usuário no Firestore...');
+            // Busca do Firestore e salva no AsyncStorage
+            userData = await AuthService.getUserById(firebaseUser.uid);
+            if (userData) {
+              console.log('[Index] Salvando usuário no AsyncStorage...');
+              await AuthService.saveUserToStorageStatic(userData);
+              console.log('[Index] Usuário salvo no AsyncStorage com sucesso');
+            } else {
+              console.log('[Index] Erro: Não foi possível buscar dados do usuário no Firestore');
+            }
+          }
+          
+          if (userData) {
+            console.log('[Index] Redirecionando para (tabs)...');
+            router.replace('/(tabs)');
+          } else {
+            console.log('[Index] Erro: Dados do usuário não encontrados, redirecionando para login');
+            await AuthService.clearAuthData();
+            router.replace('/(auth)/login');
+          }
         } else {
-          // Usuário não está autenticado, limpar dados e ir para login
+          console.log('[Index] Nenhum usuário autenticado, redirecionando para login');
           await AuthService.clearAuthData();
           router.replace('/(auth)/login');
         }
       } catch (error) {
-        // Em caso de erro, ir para login
+        console.error('[Index] Erro durante inicialização:', error);
         await AuthService.clearAuthData();
         router.replace('/(auth)/login');
       }
