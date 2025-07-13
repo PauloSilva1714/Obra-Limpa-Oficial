@@ -120,7 +120,11 @@ export default function ProfileScreen() {
     try {
       const photoURL = await uploadProfilePhoto(userData.id, uri);
       await AuthService.updateUserProfilePhoto(userData.id, photoURL);
-      setUserData({ ...userData, photoURL });
+      // Buscar usuário atualizado do Firestore
+      const updatedUser = await AuthService.getUserById(userData.id);
+      // Salvar no AsyncStorage
+      await AuthService.saveUserToStorageStatic(updatedUser);
+      setUserData(updatedUser);
       Alert.alert('Sucesso', 'Foto de perfil atualizada!');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível atualizar a foto de perfil.');

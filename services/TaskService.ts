@@ -92,7 +92,9 @@ export class TaskService {
             title: taskData.title,
             siteId: taskData.siteId,
             status: taskData.status,
-            createdAt: taskData.createdAt
+            createdAt: taskData.createdAt,
+            photos: taskData.photos?.length || 0,
+            photoUrls: taskData.photos || []
           });
           return {
             id: doc.id,
@@ -132,6 +134,7 @@ export class TaskService {
         videos: task.videos?.filter(url => TaskService.validateMediaUrlStatic(url)) || [],
         status: task.status || 'pending',
         priority: task.priority || 'medium',
+        comments: [], // Garantir que comments sempre seja um array
       };
       if (!newTask.completedAt) {
         delete newTask.completedAt;
@@ -158,7 +161,10 @@ export class TaskService {
   static async addTask(
     task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<Task> {
-    return this.createTask(task);
+    return TaskService.createTask({
+      ...task,
+      comments: [], // Garantir que comments sempre seja um array
+    });
   }
 
   static async updateTask(taskId: string, updates: Partial<Task>): Promise<void> {
@@ -197,11 +203,17 @@ export class TaskService {
 
   // Função utilitária estática para validação de URL
   static validateMediaUrlStatic(url: string): boolean {
-    if (!url) return false;
+    console.log('[TaskService] Validando URL:', url);
+    if (!url) {
+      console.log('[TaskService] URL vazia, retornando false');
+      return false;
+    }
     try {
       new URL(url);
+      console.log('[TaskService] URL válida:', url);
       return true;
     } catch {
+      console.log('[TaskService] URL inválida:', url);
       return false;
     }
   }
@@ -430,23 +442,35 @@ export class TaskService {
 
   static async addComment(taskId: string, comment: Comment): Promise<void> {
     try {
+      console.log('[TaskService] Iniciando adição de comentário:', { taskId, comment });
+      
       const taskRef = doc(db, 'tasks', taskId);
+      console.log('[TaskService] Referência da tarefa criada');
+      
       const taskDoc = await getDoc(taskRef);
+      console.log('[TaskService] Documento da tarefa obtido, existe:', taskDoc.exists());
       
       if (!taskDoc.exists()) {
         throw new Error('Tarefa não encontrada');
       }
       
       const taskData = taskDoc.data();
-      const currentComments = taskData.comments || [];
-      const updatedComments = [...currentComments, comment];
+      console.log('[TaskService] Dados da tarefa obtidos:', taskData);
       
+      const currentComments = taskData.comments || [];
+      console.log('[TaskService] Comentários atuais:', currentComments);
+      
+      const updatedComments = [...currentComments, comment];
+      console.log('[TaskService] Comentários atualizados:', updatedComments);
+      
+      console.log('[TaskService] Atualizando documento no Firestore...');
       await updateDoc(taskRef, {
         comments: updatedComments,
         updatedAt: serverTimestamp(),
       });
+      console.log('[TaskService] Documento atualizado com sucesso');
     } catch (error) {
-      console.error('Erro ao adicionar comentário:', error);
+      console.error('[TaskService] Erro ao adicionar comentário:', error);
       throw error;
     }
   }

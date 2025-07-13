@@ -48,8 +48,11 @@ import { TaskModal } from '@/components/TaskModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
+import { TaskQuickView } from '@/components/TaskQuickView';
 
 export default function TasksScreen() {
+  console.log('[DEBUG] TasksScreen - Componente montado');
+  
   const { colors } = useTheme();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,21 +81,47 @@ export default function TasksScreen() {
   const [selectedTaskForPhoto, setSelectedTaskForPhoto] = useState<Task | null>(null);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
+  // Estados para TaskQuickView e Theater Mode
+  const [quickViewVisible, setQuickViewVisible] = useState(false);
+  const [theaterVisible, setTheaterVisible] = useState(false);
+  const [quickViewTask, setQuickViewTask] = useState<Task | null>(null);
+
+  console.log('[DEBUG] TasksScreen - Estados iniciais:', { 
+    loading, 
+    refreshing, 
+    isInitialized, 
+    tasksLength: tasks.length,
+    filteredTasksLength: filteredTasks.length 
+  });
+
   useEffect(() => {
-    if (isInitialized) return;
+    console.log('[DEBUG] useEffect de inicialização executado - isInitialized:', isInitialized);
+    if (isInitialized) {
+      console.log('[DEBUG] Tela já inicializada, pulando...');
+      return;
+    }
 
     const initializeScreen = async () => {
       try {
+        console.log('[DEBUG] Iniciando inicialização da tela...');
+        console.log('[DEBUG] Estado atual - loading:', loading, 'refreshing:', refreshing);
+        
         await loadTasks();
+        console.log('[DEBUG] Tarefas carregadas na inicialização');
+        
         setIsInitialized(true);
+        console.log('[DEBUG] Tela inicializada com sucesso');
       } catch (error) {
+        console.error('[DEBUG] Erro ao inicializar tela:', error);
         Alert.alert(t('error'), 'Erro ao inicializar tela de tarefas.');
       } finally {
         setLoading(false);
         setRefreshing(false);
+        console.log('[DEBUG] Estados de loading/resfreshing finalizados');
       }
     };
 
+    console.log('[DEBUG] Chamando initializeScreen...');
     initializeScreen();
   }, [isInitialized]);
 
@@ -109,6 +138,22 @@ export default function TasksScreen() {
     fetchUserRole();
   }, []);
 
+  // Carregar usuário atual
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        console.log('[DEBUG] Carregando usuário atual...');
+        const user = await AuthService.getCurrentUser();
+        console.log('[DEBUG] Usuário carregado:', user);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('[DEBUG] Erro ao carregar usuário:', error);
+        setCurrentUser(null);
+      }
+    };
+    loadCurrentUser();
+  }, []);
+
   // Atualizar tarefas filtradas quando as tarefas mudarem
   useEffect(() => {
     if (searchQuery.trim()) {
@@ -120,10 +165,13 @@ export default function TasksScreen() {
 
   const loadTasks = async () => {
     try {
+      console.log('[DEBUG] Iniciando carregamento de tarefas...');
       const siteTasks = await taskService.getTasks();
+      console.log('[DEBUG] Tarefas carregadas:', siteTasks);
       setTasks(siteTasks);
       setFilteredTasks(siteTasks);
     } catch (error) {
+      console.error('[DEBUG] Erro ao carregar tarefas:', error);
       Alert.alert(t('error'), 'Erro ao carregar tarefas.');
     } finally {
       setLoading(false);
@@ -142,10 +190,10 @@ export default function TasksScreen() {
     setModalVisible(true);
   };
 
+  // Substituir handleTaskPress para abrir o QuickView
   const handleTaskPress = (task: Task) => {
-    setSelectedTask(task);
-    setDetailsMode(false);
-    setModalVisible(true);
+    setQuickViewTask(task);
+    setQuickViewVisible(true);
   };
 
   const handleCreateTask = () => {
@@ -339,9 +387,27 @@ export default function TasksScreen() {
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !selectedTaskForComments || !currentUser) return;
+    console.log('[DEBUG] handleAddComment chamado com:', { newComment, selectedTaskForComments, currentUser });
+    
+    if (!newComment.trim()) {
+      console.error('[DEBUG] newComment vazio');
+      return;
+    }
+    
+    if (!selectedTaskForComments) {
+      console.error('[DEBUG] selectedTaskForComments é null');
+      Alert.alert('Erro', 'Tarefa não encontrada');
+      return;
+    }
+    
+    if (!currentUser) {
+      console.error('[DEBUG] currentUser é null');
+      Alert.alert('Erro', 'Usuário não autenticado');
+      return;
+    }
 
     try {
+      console.log('[DEBUG] Criando comentário...');
       const comment: Comment = {
         id: Date.now().toString(),
         text: newComment.trim(),
@@ -349,15 +415,22 @@ export default function TasksScreen() {
         userName: currentUser.name,
         timestamp: new Date().toISOString(),
       };
+      
+      console.log('[DEBUG] Comentário criado:', comment);
+      console.log('[DEBUG] Adicionando comentário à tarefa:', selectedTaskForComments.id);
 
       await TaskService.addComment(selectedTaskForComments.id, comment);
+      console.log('[DEBUG] Comentário adicionado com sucesso');
       
+      console.log('[DEBUG] Recarregando tarefas...');
       await loadTasks();
+      console.log('[DEBUG] Tarefas recarregadas');
       
       setNewComment('');
       Alert.alert('Sucesso', 'Comentário adicionado!');
     } catch (error) {
-      Alert.alert('Erro', 'Erro ao adicionar comentário.');
+      console.error('[DEBUG] Erro ao adicionar comentário:', error);
+      Alert.alert('Erro', `Erro ao adicionar comentário: ${error.message}`);
     }
   };
 
@@ -423,151 +496,197 @@ export default function TasksScreen() {
     setCurrentPhotoIndex(index);
   };
 
-  const renderTaskItem = ({ item }: { item: Task }) => (
-    <View style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Header do Card */}
-      <View style={styles.cardHeader}>
-        <View style={styles.userInfo}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
-            <User size={16} color={colors.primary} />
-          </View>
-          <View style={styles.userDetails}>
-            <Text style={[styles.userName, { color: colors.text }]}>
-              {formatUserName(item.assignedTo || '')}
-            </Text>
-            <Text style={[styles.taskDate, { color: colors.textMuted }]}>
-              {formatCommentDateTime(item.createdAt)}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.statusContainer}>
-          {getStatusIcon(item.status)}
-          <Text style={[styles.statusText, { color: colors.textSecondary }]}>
-            {getStatusText(item.status)}
-          </Text>
-        </View>
-      </View>
+  // Função para abrir o modo teatro
+  const handleOpenTheater = () => {
+    setTheaterVisible(true);
+    setQuickViewVisible(false);
+  };
 
-      {/* Mídia em destaque */}
-      {item.photos && item.photos.length > 0 ? (
-        <Image
-          source={{ uri: item.photos[0] }}
-          style={styles.igCardMedia}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[styles.igCardMedia, { justifyContent: 'center', alignItems: 'center' }]}> 
-          <Text style={{ color: '#888' }}>Sem mídia</Text>
-        </View>
-      )}
+  // Função para fechar o modo teatro
+  const handleCloseTheater = () => {
+    setTheaterVisible(false);
+  };
 
-      {/* Ícones abaixo da mídia */}
-      <View style={styles.igCardActions}>
-        <TouchableOpacity onPress={() => handleOpenComments(item)}>
-          <MessageCircle size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleTaskDetails(item)} style={{ marginLeft: 16 }}>
-          <Eye size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+  // Função para adicionar comentário rápido
+  const handleQuickAddComment = async (text: string) => {
+    console.log('[DEBUG] handleQuickAddComment chamado com:', { text, quickViewTask, currentUser });
+    
+    if (!quickViewTask) {
+      console.error('[DEBUG] quickViewTask é null');
+      Alert.alert('Erro', 'Tarefa não encontrada');
+      return;
+    }
+    
+    if (!currentUser) {
+      console.error('[DEBUG] currentUser é null');
+      Alert.alert('Erro', 'Usuário não autenticado');
+      return;
+    }
+    
+    if (!text.trim()) {
+      console.error('[DEBUG] texto vazio');
+      return;
+    }
+    
+    try {
+      console.log('[DEBUG] Criando comentário...');
+      const comment: Comment = {
+        id: Date.now().toString(),
+        text,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        timestamp: new Date().toISOString(),
+      };
+      
+      console.log('[DEBUG] Comentário criado:', comment);
+      console.log('[DEBUG] Adicionando comentário à tarefa:', quickViewTask.id);
+      
+      await TaskService.addComment(quickViewTask.id, comment);
+      console.log('[DEBUG] Comentário adicionado com sucesso');
+      
+      console.log('[DEBUG] Recarregando tarefas...');
+      await loadTasks();
+      console.log('[DEBUG] Tarefas recarregadas');
+      
+      Alert.alert('Sucesso', 'Comentário adicionado!');
+    } catch (error) {
+      console.error('[DEBUG] Erro ao adicionar comentário:', error);
+      Alert.alert('Erro', `Erro ao adicionar comentário: ${error.message}`);
+    }
+  };
 
-      {/* Informações da Tarefa */}
-      <View style={styles.taskInfo}>
-        <Text style={[styles.taskTitle, { color: colors.text }]} numberOfLines={2}>
-          {item.title}
-        </Text>
-
-        {item.description && (
-          <Text style={[styles.taskDescription, { color: colors.textSecondary }]} numberOfLines={3}>
-            {item.description}
-          </Text>
-        )}
-
-        <View style={styles.taskDetails}>
-          {item.area && (
-            <View style={styles.detailItem}>
-              <MapPin size={14} color={colors.textMuted} />
-              <Text style={[styles.detailText, { color: colors.textMuted }]} numberOfLines={1}>
-                {item.area}
+  const renderTaskItem = ({ item }: { item: Task }) => {
+    console.log('[DEBUG] Renderizando tarefa:', { id: item.id, title: item.title, photos: item.photos?.length });
+    return (
+      <TouchableOpacity activeOpacity={0.9} onPress={() => handleTaskPress(item)}>
+        <View style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {/* Header do Card */}
+          <View style={styles.cardHeader}>
+            <View style={styles.userInfo}>
+              <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
+                <User size={16} color={colors.primary} />
+              </View>
+              <View style={styles.userDetails}>
+                <Text style={[styles.userName, { color: colors.text }]}>
+                  {formatUserName(item.assignedTo || '')}
+                </Text>
+                <Text style={[styles.taskDate, { color: colors.textMuted }]}>
+                  {formatCommentDateTime(item.createdAt)}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.statusContainer}>
+              {getStatusIcon(item.status)}
+              <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+                {getStatusText(item.status)}
               </Text>
             </View>
-          )}
-          
-          {item.dueDate && (
-            <View style={styles.detailItem}>
-              <Calendar size={14} color={colors.textMuted} />
-              <Text style={[styles.detailText, { color: colors.textMuted }]}>
-                {new Date(item.dueDate).toLocaleDateString('pt-BR')}
-              </Text>
+          </View>
+
+          {/* Mídia em destaque */}
+          {item.photos && item.photos.length > 0 ? (
+            <Image
+              source={{ uri: item.photos[0] }}
+              style={styles.igCardMedia}
+              resizeMode="cover"
+              onError={(error) => {
+                console.error('[DEBUG] Erro ao carregar imagem:', error.nativeEvent.error);
+                console.error('[DEBUG] URL da imagem:', item.photos[0]);
+              }}
+              onLoad={() => {
+                console.log('[DEBUG] Imagem carregada com sucesso:', item.photos[0]);
+              }}
+            />
+          ) : (
+            <View style={[styles.igCardMedia, { justifyContent: 'center', alignItems: 'center' }]}> 
+              <Text style={{ color: '#888' }}>Sem mídia</Text>
             </View>
           )}
-        </View>
 
-        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) + '20' }]}>
-          <Text style={[styles.priorityText, { color: getPriorityColor(item.priority) }]}>
-            {item.priority === 'high' ? t('high') : item.priority === 'medium' ? t('medium') : t('low')}
-          </Text>
-        </View>
-      </View>
+          {/* Ícones abaixo da mídia */}
+          <View style={styles.igCardActions}>
+            <TouchableOpacity onPress={() => handleOpenComments(item)}>
+              <MessageCircle size={24} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleTaskDetails(item)} style={{ marginLeft: 16 }}>
+              <Eye size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
 
-      {/* Seção de Comentários */}
-      <View style={styles.commentsSection}>
-        <View style={styles.commentsHeader}>
-          <Text style={[styles.commentsTitle, { color: colors.text }]}>
-            Comentários ({item.comments?.length || 0})
-          </Text>
-        </View>
-        
-        {item.comments && item.comments.length > 0 && (
-          <View style={styles.commentsPreview}>
-            {item.comments.slice(0, 2).map((comment, index) => {
-              const isOwnComment = currentUser && comment.userId === currentUser.id;
-              return (
-                <View key={comment.id} style={[
-                  styles.commentItem,
-                  isOwnComment ? styles.ownComment : styles.otherComment
-                ]}>
-                  <View style={[
-                    styles.commentBubble,
-                    isOwnComment ? styles.ownCommentBubble : styles.otherCommentBubble
-                  ]}>
-                    <Text style={[styles.commentText, { color: '#1F2937' }]} numberOfLines={2}>
-                      {comment.text}
-                    </Text>
-                    <Text style={[styles.commentTime, { color: '#6B7280' }]}>
-                      {formatCommentDateTime(comment.timestamp)}
+          {/* Informações da Tarefa */}
+          <View style={styles.taskInfo}>
+            <Text style={[styles.taskTitle, { color: colors.text }]} numberOfLines={2}>
+              {item.title}
+            </Text>
+
+            {item.description && (
+              <Text style={[styles.taskDescription, { color: colors.textSecondary }]} numberOfLines={3}>
+                {item.description}
+              </Text>
+            )}
+
+            <View style={styles.taskDetails}>
+              {item.area && (
+                <View style={styles.detailItem}>
+                  <MapPin size={14} color={colors.textMuted} />
+                  <Text style={[styles.detailText, { color: colors.textMuted }]} numberOfLines={1}>
+                    {item.area}
+                  </Text>
+                </View>
+              )}
+              
+              {item.dueDate && (
+                <View style={styles.detailItem}>
+                  <Calendar size={14} color={colors.textMuted} />
+                  <Text style={[styles.detailText, { color: colors.textMuted }]}>
+                    {new Date(item.dueDate).toLocaleDateString('pt-BR')}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) + '20' }]}>
+              <Text style={[styles.priorityText, { color: getPriorityColor(item.priority) }]}>
+                {item.priority === 'high' ? t('high') : item.priority === 'medium' ? t('medium') : t('low')}
+              </Text>
+            </View>
+          </View>
+
+          {/* Seção de Comentários */}
+          <View style={styles.commentsSection}>
+            <View style={styles.commentsHeader}>
+              <Text style={[styles.commentsTitle, { color: colors.text }]}>
+                Comentários ({item.comments?.length || 0})
+              </Text>
+            </View>
+            
+            {item.comments && item.comments.length > 0 && (
+              <View style={styles.commentsPreview}>
+                {item.comments.slice(0, 2).map((comment, index) => (
+                  <View key={comment.id} style={styles.commentItem}>
+                    <MessageCircle size={12} color={colors.textMuted} style={{ marginRight: 4 }} />
+                    <Text style={[styles.commentText, { color: colors.textSecondary }]} numberOfLines={1}>
+                      <Text style={styles.commentUser}>{comment.userName}:</Text> {comment.text}
                     </Text>
                   </View>
-                </View>
-              );
-            })}
-            {item.comments.length > 2 && (
-              <TouchableOpacity onPress={() => handleOpenComments(item)}>
-                <Text style={[styles.viewMoreComments, { color: colors.primary }]}>
-                  Ver mais {item.comments.length - 2} comentários
-                </Text>
-              </TouchableOpacity>
+                ))}
+                {item.comments.length > 2 && (
+                  <TouchableOpacity onPress={() => handleOpenComments(item)}>
+                    <Text style={[styles.viewMoreComments, { color: colors.primary }]}>
+                      Ver mais {item.comments.length - 2} comentários
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
           </View>
-        )}
-      </View>
-
-      {/* Botão de deletar permanece, se admin */}
-      {userRole === 'admin' && (
-        <TouchableOpacity
-          style={[styles.deleteButton, { backgroundColor: colors.error + '20', alignSelf: 'flex-end', marginTop: 8 }]}
-          onPress={() => {
-            setTaskToDelete(item.id);
-            setDeleteModalVisible(true);
-          }}
-        >
-          <Trash2 size={16} color={colors.error} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
+    console.log('[DEBUG] Renderizando loading...');
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
@@ -577,6 +696,7 @@ export default function TasksScreen() {
     );
   }
 
+  console.log('[DEBUG] Renderizando tela principal - tasks:', tasks.length, 'filteredTasks:', filteredTasks.length);
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -660,6 +780,13 @@ export default function TasksScreen() {
             )}
           </View>
         }
+        onLayout={() => {
+          console.log('[DEBUG] FlatList layout - filteredTasks:', filteredTasks.length, 'loading:', loading, 'isSearching:', isSearching);
+        }}
+        onEndReached={() => {
+          console.log('[DEBUG] FlatList end reached');
+        }}
+        onEndReachedThreshold={0.1}
       />
 
       {/* Task Modal */}
@@ -951,6 +1078,24 @@ export default function TasksScreen() {
           )}
         </View>
       </Modal>
+
+      {/* Quick View Modal */}
+      <TaskQuickView
+        visible={quickViewVisible}
+        task={quickViewTask}
+        onClose={() => setQuickViewVisible(false)}
+        onOpenTheater={handleOpenTheater}
+        onAddComment={handleQuickAddComment}
+      />
+      {/* Theater Mode Modal */}
+      <TaskModal
+        visible={theaterVisible}
+        task={quickViewTask}
+        userRole={userRole}
+        onSave={handleTaskSave}
+        onClose={handleCloseTheater}
+        detailsMode={true}
+      />
     </SafeAreaView>
   );
 }

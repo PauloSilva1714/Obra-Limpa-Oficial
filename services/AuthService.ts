@@ -151,24 +151,32 @@ export class AuthService {
 
   static async getCurrentSite(): Promise<Site | null> {
     try {
+      console.log('[AuthService] Buscando obra atual...');
       const siteData = await AsyncStorage.getItem(AuthService.SITE_KEY);
+      console.log('[AuthService] Dados da obra do AsyncStorage:', siteData);
       
       if (!siteData) {
+        console.log('[AuthService] Nenhuma obra encontrada no AsyncStorage');
         return null;
       }
       
       const parsedSite = JSON.parse(siteData);
+      console.log('[AuthService] Obra parseada:', parsedSite);
       
       if (!parsedSite || typeof parsedSite !== 'object') {
+        console.error('[AuthService] Dados da obra inválidos (não é objeto)');
         return null;
       }
       
       if (!parsedSite.id || typeof parsedSite.id !== 'string') {
+        console.error('[AuthService] ID da obra inválido:', parsedSite.id);
         return null;
       }
       
+      console.log('[AuthService] Obra válida encontrada:', parsedSite);
       return parsedSite;
     } catch (error) {
+      console.error('[AuthService] Erro ao buscar obra atual:', error);
       return null;
     }
   }
@@ -1883,5 +1891,9 @@ export class AuthService {
     } catch (error) {
       throw error;
     }
+  }
+
+  static async saveUserToStorageStatic(user: User) {
+    await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(user));
   }
 }
