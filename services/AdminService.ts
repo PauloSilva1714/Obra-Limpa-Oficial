@@ -1,0 +1,1274 @@
+import { db } from '../config/firebase';
+import { 
+  collection, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  getDoc, 
+  getDocs, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+  setDoc,
+  writeBatch
+} from 'firebase/firestore';
+import { AuthService, User, Site } from './AuthService';
+import { httpsCallable } from "firebase/functions";
+import { functions } from '@/config/firebase';
+
+export interface AdminMessage {
+  id: string;
+  siteId: string;
+  senderId: string;
+  senderName: string;
+  senderEmail: string;
+  message: string;
+  type: 'general' | 'task' | 'alert' | 'announcement';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  createdAt: string;
+  updatedAt?: string;
+  readBy: string[];
+  attachments?: string[];
+  recipientId?: string;
+  isPrivate?: boolean;
+}
+
+export interface AdminNotification {
+  id: string;
+  siteId: string;
+  recipientId: string;
+  senderId: string;
+  senderName: string;
+  type: 'message' | 'task_assigned' | 'task_completed' | 'invite' | 'alert';
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  actionUrl?: string;
+}
+
+export interface AdminActivity {
+  id: string;
+  siteId: string;
+  adminId: string;
+  adminName: string;
+  action: 'login' | 'logout' | 'task_created' | 'task_updated' | 'worker_invited' | 'admin_invited' | 'site_updated';
+  details: string;
+  timestamp: string;
+}
+
+export interface AdminDirectMessage {
+  id: string;
+  siteId: string;
+  senderId: string;
+  senderName: string;
+  senderEmail: string;
+  recipientId: string;
+  recipientName: string;
+  recipientEmail: string;
+  message: string;
+  createdAt: string;
+  updatedAt?: string;
+  readBy: string[];
+  attachments?: string[];
+}
+
+export interface AdminChatSession {
+  id: string;
+  siteId: string;
+  participants: string[];
+  participantNames: string[];
+  lastMessage?: string;
+  lastMessageTime?: string;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export class AdminService {
+  
+  /**
+   * Envia uma mensagem para outros administradores da mesma obra
+   */
+  static async sendMessage(
+    siteId: string, 
+    message: string, 
+    type: AdminMessage['type'] = 'general',
+    priority: AdminMessage['priority'] = 'medium'
+  ): Promise<AdminMessage> {
+    try {
+      if (!siteId) {
+        throw new Error('ID da obra é obrigatório');
+      }
+
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        throw new Error('Apenas administradores podem enviar mensagens');
+      }
+
+      if (!currentUser.sites?.includes(siteId)) {
+        throw new Error('Você não tem acesso a esta obra');
+      }
+
+      const messageData: Omit<AdminMessage, 'id'> = {
+        siteId,
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderEmail: currentUser.email,
+        message,
+        type,
+        priority,
+        createdAt: new Date().toISOString(),
+        readBy: [currentUser.id], // O remetente já leu
+      };
+
+      const docRef = await addDoc(collection(db, 'adminMessages'), messageData);
+      
+      // Enviar notificações para outros administradores
+      await this.notifyOtherAdmins(siteId, currentUser.id, 'message', 'Nova mensagem de administrador', message);
+
+      return {
+        id: docRef.id,
+        ...messageData,
+      };
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca mensagens da obra atual
+   */
+  static async getMessages(siteId: string, limitCount: number = 50): Promise<AdminMessage[]> {
+    try {
+      console.log('🔍 AdminService.getMessages() - Iniciando com siteId:', siteId, 'tipo:', typeof siteId);
+      
+      if (!siteId) {
+        console.warn('❌ AdminService.getMessages() - siteId é undefined, retornando array vazio');
+        return [];
+      }
+
+      const currentUser = await AuthService.getCurrentUser();
+      console.log('👤 AdminService.getMessages() - Usuário atual:', currentUser?.id, 'role:', currentUser?.role);
+      
+      if (!currentUser || currentUser.role !== 'admin') {
+        console.warn('❌ AdminService.getMessages() - Usuário não é admin, retornando array vazio');
+        return [];
+      }
+
+      console.log('🏗️ AdminService.getMessages() - Sites do usuário:', currentUser.sites);
+      
+      if (!currentUser.sites?.includes(siteId)) {
+        console.warn('❌ AdminService.getMessages() - Usuário não tem acesso ao site:', siteId);
+        return [];
+      }
+
+      console.log('✅ AdminService.getMessages() - Criando query com siteId:', siteId);
+      
+      const q = query(
+        collection(db, 'adminMessages'),
+        where('siteId', '==', siteId),
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+
+      console.log('📡 AdminService.getMessages() - Executando query...');
+      const querySnapshot = await getDocs(q);
+      console.log('✅ AdminService.getMessages() - Query executada com sucesso, documentos encontrados:', querySnapshot.docs.length);
+      
+      const messages = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as AdminMessage));
+      
+      console.log('📨 AdminService.getMessages() - Mensagens processadas:', messages.length);
+      return messages;
+    } catch (error) {
+      console.error('❌ AdminService.getMessages() - Erro ao buscar mensagens:', error);
+      console.error('❌ AdminService.getMessages() - Stack trace:', error instanceof Error ? error.stack : 'N/A');
+      return [];
+    }
+  }
+
+  /**
+   * Marca uma mensagem como lida
+   */
+  static async markMessageAsRead(messageId: string): Promise<void> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) return;
+
+      const messageRef = doc(db, 'adminMessages', messageId);
+      const messageDoc = await getDoc(messageRef);
+      
+      if (!messageDoc.exists()) return;
+
+      const message = messageDoc.data() as AdminMessage;
+      if (!message.readBy.includes(currentUser.id)) {
+        await updateDoc(messageRef, {
+          readBy: [...message.readBy, currentUser.id],
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao marcar mensagem como lida:', error);
+    }
+  }
+
+  /**
+   * Busca notificações do administrador atual
+   */
+  static async getNotifications(limitCount: number = 20): Promise<AdminNotification[]> {
+    try {
+      console.log('🔔 AdminService.getNotifications() - Iniciando busca de notificações');
+      
+      const currentUser = await AuthService.getCurrentUser();
+      console.log('👤 AdminService.getNotifications() - Usuário atual:', currentUser?.id, 'role:', currentUser?.role);
+      
+      if (!currentUser) {
+        console.warn('❌ AdminService.getNotifications() - Usuário não autenticado, retornando array vazio');
+        return [];
+      }
+
+      console.log('✅ AdminService.getNotifications() - Criando query para recipientId:', currentUser.id);
+      
+      const q = query(
+        collection(db, 'adminNotifications'),
+        where('recipientId', '==', currentUser.id),
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+
+      console.log('📡 AdminService.getNotifications() - Executando query...');
+      const querySnapshot = await getDocs(q);
+      console.log('✅ AdminService.getNotifications() - Query executada com sucesso, documentos encontrados:', querySnapshot.docs.length);
+      
+      const notifications = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as AdminNotification));
+      
+      console.log('🔔 AdminService.getNotifications() - Notificações processadas:', notifications.length);
+      return notifications;
+    } catch (error) {
+      console.error('❌ AdminService.getNotifications() - Erro ao buscar notificações:', error);
+      console.error('❌ AdminService.getNotifications() - Stack trace:', error instanceof Error ? error.stack : 'N/A');
+      return [];
+    }
+  }
+
+  /**
+   * Marca uma notificação como lida
+   */
+  static async markNotificationAsRead(notificationId: string): Promise<void> {
+    try {
+      const notificationRef = doc(db, 'adminNotifications', notificationId);
+      await updateDoc(notificationRef, {
+        read: true,
+      });
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error);
+    }
+  }
+
+  /**
+   * Busca atividades recentes da obra
+   */
+  static async getRecentActivities(siteId: string, limitCount: number = 30): Promise<AdminActivity[]> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        return [];
+      }
+
+      if (!currentUser.sites?.includes(siteId)) {
+        return [];
+      }
+
+      const q = query(
+        collection(db, 'adminActivities'),
+        where('siteId', '==', siteId),
+        orderBy('timestamp', 'desc'),
+        limit(limitCount)
+      );
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as AdminActivity));
+    } catch (error) {
+      console.error('Erro ao buscar atividades:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Registra uma atividade de administrador
+   */
+  static async logActivity(
+    siteId: string,
+    action: AdminActivity['action'],
+    details: string
+  ): Promise<void> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') return;
+
+      const activityData: Omit<AdminActivity, 'id'> = {
+        siteId,
+        adminId: currentUser.id,
+        adminName: currentUser.name,
+        action,
+        details,
+        timestamp: new Date().toISOString(),
+      };
+
+      await addDoc(collection(db, 'adminActivities'), activityData);
+    } catch (error) {
+      console.error('Erro ao registrar atividade:', error);
+    }
+  }
+
+  /**
+   * Busca outros administradores da mesma obra
+   */
+  static async getOtherAdmins(siteId: string): Promise<User[]> {
+    try {
+      if (!siteId) {
+        console.warn('siteId é undefined, retornando array vazio');
+        return [];
+      }
+
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) return [];
+
+      const admins = await AuthService.getSiteAdmins(siteId);
+      return admins.filter(admin => admin.id !== currentUser.id);
+    } catch (error) {
+      console.error('Erro ao buscar outros administradores:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Envia notificação para outros administradores
+   */
+  private static async notifyOtherAdmins(
+    siteId: string,
+    senderId: string,
+    type: AdminNotification['type'],
+    title: string,
+    message: string,
+    actionUrl?: string
+  ): Promise<void> {
+    try {
+      if (!siteId) {
+        console.warn('siteId é undefined, não é possível enviar notificações');
+        return;
+      }
+
+      const otherAdmins = await this.getOtherAdmins(siteId);
+      
+      const currentUser = await AuthService.getCurrentUser();
+      const senderName = currentUser?.name || 'Administrador';
+
+      const notifications = otherAdmins.map(admin => ({
+        siteId,
+        recipientId: admin.id,
+        senderId,
+        senderName,
+        type,
+        title,
+        message,
+        read: false,
+        createdAt: new Date().toISOString(),
+        actionUrl,
+      }));
+
+      // Adicionar notificações em lote
+      const batch = notifications.map(notification => 
+        addDoc(collection(db, 'adminNotifications'), notification)
+      );
+
+      await Promise.all(batch);
+    } catch (error) {
+      console.error('Erro ao enviar notificações:', error);
+    }
+  }
+
+  /**
+   * Configura listener em tempo real para mensagens
+   */
+  static async subscribeToMessages(siteId: string, callback: (messages: AdminMessage[]) => void) {
+    try {
+      console.log('📡 AdminService.subscribeToMessages - Iniciando subscribe com siteId:', siteId);
+      
+      if (!siteId) {
+        console.warn('❌ AdminService.subscribeToMessages - siteId é undefined, retornando função vazia');
+        return () => {};
+      }
+
+      const currentUser = await AuthService.getCurrentUser();
+      console.log('👤 AdminService.subscribeToMessages - Usuário atual:', currentUser?.id, 'role:', currentUser?.role);
+      
+      if (!currentUser || currentUser.role !== 'admin') {
+        console.warn('❌ AdminService.subscribeToMessages - Usuário não é admin, retornando função vazia');
+        return () => {};
+      }
+
+      console.log('🏗️ AdminService.subscribeToMessages - Sites do usuário:', currentUser.sites);
+      
+      if (!currentUser.sites?.includes(siteId)) {
+        console.warn('❌ AdminService.subscribeToMessages - Usuário não tem acesso ao site:', siteId);
+        return () => {};
+      }
+
+      console.log('✅ AdminService.subscribeToMessages - Criando listener para siteId:', siteId);
+      
+      const q = query(
+        collection(db, 'adminMessages'),
+        where('siteId', '==', siteId),
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const messages = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        } as AdminMessage));
+        
+        console.log('📨 AdminService.subscribeToMessages - Mensagens atualizadas em tempo real:', messages.length);
+        console.log('📨 AdminService.subscribeToMessages - Última mensagem:', messages[0]?.message?.substring(0, 50) + '...');
+        
+        callback(messages);
+      }, (error) => {
+        console.error('❌ AdminService.subscribeToMessages - Erro no listener:', error);
+      });
+
+      console.log('✅ AdminService.subscribeToMessages - Listener configurado com sucesso');
+      return unsubscribe;
+    } catch (error) {
+      console.error('❌ AdminService.subscribeToMessages - Erro ao configurar listener:', error);
+      return () => {};
+    }
+  }
+
+  /**
+   * Configura listener em tempo real para notificações
+   */
+  static async subscribeToNotifications(callback: (notifications: AdminNotification[]) => void) {
+    const currentUser = await AuthService.getCurrentUser();
+    if (!currentUser) return () => {};
+
+    const q = query(
+      collection(db, 'adminNotifications'),
+      where('recipientId', '==', currentUser.id),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+
+    return onSnapshot(q, (querySnapshot) => {
+      const notifications = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as AdminNotification));
+      callback(notifications);
+    });
+  }
+
+  /**
+   * Deleta uma mensagem (apenas o remetente pode deletar)
+   */
+  static async deleteMessage(messageId: string): Promise<void> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        throw new Error('Apenas administradores podem deletar mensagens');
+      }
+
+      const messageRef = doc(db, 'adminMessages', messageId);
+      const messageDoc = await getDoc(messageRef);
+      
+      if (!messageDoc.exists()) {
+        throw new Error('Mensagem não encontrada');
+      }
+
+      const message = messageDoc.data() as AdminMessage;
+      if (message.senderId !== currentUser.id) {
+        throw new Error('Apenas o remetente pode deletar a mensagem');
+      }
+
+      await deleteDoc(messageRef);
+    } catch (error) {
+      console.error('Erro ao deletar mensagem:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca estatísticas de comunicação da obra
+   */
+  static async getCommunicationStats(siteId: string): Promise<{
+    totalMessages: number;
+    unreadMessages: number;
+    totalNotifications: number;
+    unreadNotifications: number;
+    activeAdmins: number;
+  }> {
+    try {
+      if (!siteId) {
+        console.warn('siteId é undefined, retornando estatísticas vazias');
+        return {
+          totalMessages: 0,
+          unreadMessages: 0,
+          totalNotifications: 0,
+          unreadNotifications: 0,
+          activeAdmins: 0,
+        };
+      }
+
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        return {
+          totalMessages: 0,
+          unreadMessages: 0,
+          totalNotifications: 0,
+          unreadNotifications: 0,
+          activeAdmins: 0,
+        };
+      }
+
+      // Buscar mensagens
+      const messagesQuery = query(
+        collection(db, 'adminMessages'),
+        where('siteId', '==', siteId)
+      );
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const messages = messagesSnapshot.docs.map(doc => doc.data() as AdminMessage);
+      
+      const unreadMessages = messages.filter(msg => !msg.readBy.includes(currentUser.id)).length;
+
+      // Buscar notificações
+      const notificationsQuery = query(
+        collection(db, 'adminNotifications'),
+        where('recipientId', '==', currentUser.id)
+      );
+      const notificationsSnapshot = await getDocs(notificationsQuery);
+      const notifications = notificationsSnapshot.docs.map(doc => doc.data() as AdminNotification);
+      
+      const unreadNotifications = notifications.filter(notif => !notif.read).length;
+
+      // Buscar administradores ativos
+      const admins = await this.getOtherAdmins(siteId);
+
+      return {
+        totalMessages: messages.length,
+        unreadMessages,
+        totalNotifications: notifications.length,
+        unreadNotifications,
+        activeAdmins: admins.length + 1, // +1 para incluir o usuário atual
+      };
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error);
+      return {
+        totalMessages: 0,
+        unreadMessages: 0,
+        totalNotifications: 0,
+        unreadNotifications: 0,
+        activeAdmins: 0,
+      };
+    }
+  }
+
+  /**
+   * Função de debug para verificar comunicação entre administradores
+   */
+  static async debugAdminCommunication(siteId: string): Promise<{
+    success: boolean;
+    currentUser: any;
+    siteAdmins: any[];
+    messages: any[];
+    error?: string;
+  }> {
+    try {
+      console.log('🔍 AdminService.debugAdminCommunication - Iniciando debug com siteId:', siteId);
+      
+      // Verificar usuário atual
+      const currentUser = await AuthService.getCurrentUser();
+      console.log('👤 Usuário atual:', currentUser);
+      
+      if (!currentUser) {
+        return {
+          success: false,
+          currentUser: null,
+          siteAdmins: [],
+          messages: [],
+          error: 'Usuário não autenticado'
+        };
+      }
+
+      if (currentUser.role !== 'admin') {
+        return {
+          success: false,
+          currentUser,
+          siteAdmins: [],
+          messages: [],
+          error: 'Usuário não é administrador'
+        };
+      }
+
+      // Verificar se o usuário tem acesso ao site
+      console.log('🏗️ Sites do usuário:', currentUser.sites);
+      console.log('🎯 SiteId sendo verificado:', siteId);
+      
+      if (!currentUser.sites?.includes(siteId)) {
+        return {
+          success: false,
+          currentUser,
+          siteAdmins: [],
+          messages: [],
+          error: `Usuário não tem acesso ao site ${siteId}. Sites disponíveis: ${currentUser.sites?.join(', ') || 'nenhum'}`
+        };
+      }
+
+      // Buscar outros administradores do site
+      console.log('👥 Buscando outros administradores do site...');
+      const siteAdmins = await this.getOtherAdmins(siteId);
+      console.log('✅ Administradores encontrados:', siteAdmins.length);
+
+      // Buscar mensagens do site
+      console.log('📨 Buscando mensagens do site...');
+      const messages = await this.getMessages(siteId);
+      console.log('✅ Mensagens encontradas:', messages.length);
+
+      // Verificar site atual
+      const currentSite = await AuthService.getCurrentSite();
+      console.log('🏗️ Site atual selecionado:', currentSite);
+
+      const result = {
+        success: true,
+        currentUser: {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role,
+          sites: currentUser.sites,
+          siteId: currentUser.siteId
+        },
+        siteAdmins: siteAdmins.map(admin => ({
+          id: admin.id,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role
+        })),
+        messages: messages.map(msg => ({
+          id: msg.id,
+          senderName: msg.senderName,
+          message: msg.message,
+          createdAt: msg.createdAt,
+          type: msg.type,
+          priority: msg.priority
+        })),
+        currentSite: currentSite ? {
+          id: currentSite.id,
+          name: currentSite.name,
+          address: currentSite.address
+        } : null
+      };
+
+      console.log('✅ Debug concluído com sucesso:', result);
+      return result;
+
+    } catch (error) {
+      console.error('❌ Erro no debug de comunicação:', error);
+      return {
+        success: false,
+        currentUser: null,
+        siteAdmins: [],
+        messages: [],
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      };
+    }
+  }
+
+  /**
+   * Método legado para compatibilidade - Estatísticas gerais
+   */
+  static async getAdminStats() {
+    try {
+      // Buscar obras
+      const sitesSnapshot = await getDocs(collection(db, 'sites'));
+      console.log('[AdminService] Obras encontradas:', sitesSnapshot.size);
+
+      // Buscar colaboradores usando o método do AuthService
+      const workers = await AuthService.getInstance().getWorkers();
+      console.log('[AdminService] Colaboradores encontrados:', workers.length);
+
+      // Buscar tarefas do site atual
+      const currentSite = await AuthService.getCurrentSite();
+      if (!currentSite) {
+        console.log('[AdminService] Nenhum site selecionado, retornando estatísticas vazias');
+        return {
+          totalSites: sitesSnapshot.size,
+          totalWorkers: workers.length,
+          totalTasks: 0,
+          completedTasks: 0,
+        };
+      }
+      const tasksQuery = query(
+        collection(db, 'tasks'),
+        where('siteId', '==', currentSite.id)
+      );
+      const tasksSnapshot = await getDocs(tasksQuery);
+      console.log('[AdminService] Total de tarefas encontradas para o site:', tasksSnapshot.size);
+
+      const completedTasksQuery = query(
+        collection(db, 'tasks'),
+        where('siteId', '==', currentSite.id),
+        where('status', '==', 'completed')
+      );
+      const completedTasksSnapshot = await getDocs(completedTasksQuery);
+      console.log('[AdminService] Tarefas concluídas do site:', completedTasksSnapshot.size);
+
+      const stats = {
+        totalSites: sitesSnapshot.size,
+        totalWorkers: workers.length,
+        totalTasks: tasksSnapshot.size,
+        completedTasks: completedTasksSnapshot.size,
+      };
+
+      console.log('[AdminService] Estatísticas finais:', stats);
+      return stats;
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+      throw new Error('Could not fetch admin statistics.');
+    }
+  }
+
+  /**
+   * Configura listener em tempo real para tarefas
+   */
+  static async subscribeToTasks(siteId: string, callback: (tasks: any[]) => void) {
+    if (!siteId) {
+      console.warn('siteId é undefined, retornando função vazia');
+      return () => {};
+    }
+
+    const currentUser = await AuthService.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'admin') return () => {};
+
+    const q = query(
+      collection(db, 'tasks'),
+      where('siteId', '==', siteId),
+      orderBy('createdAt', 'desc')
+    );
+
+    return onSnapshot(q, (querySnapshot) => {
+      const tasks = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+        };
+      });
+      console.log('📋 Tarefas atualizadas em tempo real:', tasks.length);
+      callback(tasks);
+    });
+  }
+
+  /**
+   * Configura listener em tempo real para progresso
+   */
+  static async subscribeToProgress(siteId: string, callback: (progress: any) => void) {
+    if (!siteId) {
+      console.warn('siteId é undefined, retornando função vazia');
+      return () => {};
+    }
+
+    const currentUser = await AuthService.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'admin') return () => {};
+
+    // Listener para tarefas que afetam o progresso
+    const q = query(
+      collection(db, 'tasks'),
+      where('siteId', '==', siteId)
+    );
+
+    return onSnapshot(q, async (querySnapshot) => {
+      const tasks = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          status: data.status || 'pending', // valor padrão para status
+        };
+      });
+
+      // Calcular progresso em tempo real
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(task => task.status === 'completed').length;
+      const inProgressTasks = tasks.filter(task => task.status === 'in_progress').length;
+      const pendingTasks = tasks.filter(task => task.status === 'pending').length;
+      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      const progress = {
+        totalTasks,
+        completedTasks,
+        inProgressTasks,
+        pendingTasks,
+        completionRate,
+        lastUpdated: new Date().toISOString()
+      };
+
+      callback(progress);
+    });
+  }
+
+  /**
+   * Configura listener em tempo real para atividades administrativas
+   */
+  static async subscribeToAdminActivities(siteId: string, callback: (activities: AdminActivity[]) => void) {
+    if (!siteId) {
+      console.warn('siteId é undefined, retornando função vazia');
+      return () => {};
+    }
+
+    const currentUser = await AuthService.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'admin') return () => {};
+
+    const q = query(
+      collection(db, 'adminActivities'),
+      where('siteId', '==', siteId),
+      orderBy('timestamp', 'desc'),
+      limit(50)
+    );
+
+    return onSnapshot(q, (querySnapshot) => {
+      const activities = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as AdminActivity));
+      console.log('📝 Atividades administrativas atualizadas:', activities.length);
+      callback(activities);
+    });
+  }
+
+  /**
+   * Configura listener em tempo real para convites
+   */
+  static async subscribeToInvites(siteId: string, callback: (invites: any[]) => void) {
+    if (!siteId) {
+      console.warn('siteId é undefined, retornando função vazia');
+      return () => {};
+    }
+
+    const currentUser = await AuthService.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'admin') return () => {};
+
+    const q = query(
+      collection(db, 'invites'),
+      where('siteId', '==', siteId),
+      orderBy('createdAt', 'desc')
+    );
+
+    return onSnapshot(q, (querySnapshot) => {
+      const invites = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      console.log('📨 Convites atualizados em tempo real:', invites.length);
+      callback(invites);
+    });
+  }
+
+  /**
+   * Configura listener em tempo real para colaboradores
+   */
+  static async subscribeToWorkers(siteId: string, callback: (workers: any[]) => void) {
+    if (!siteId) {
+      console.warn('siteId é undefined, retornando função vazia');
+      return () => {};
+    }
+
+    const currentUser = await AuthService.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'admin') return () => {};
+
+    const q = query(
+      collection(db, 'users'),
+      where('role', '==', 'worker'),
+      where('sites', 'array-contains', siteId)
+    );
+
+    return onSnapshot(q, (querySnapshot) => {
+      const workers = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      console.log('👷 Colaboradores atualizados em tempo real:', workers.length);
+      callback(workers);
+    });
+  }
+
+  /**
+   * Envia uma mensagem individual para outro administrador
+   */
+  static async sendDirectMessage(
+    siteId: string,
+    recipientId: string,
+    message: string
+  ): Promise<AdminDirectMessage> {
+    try {
+      if (!siteId) {
+        throw new Error('ID da obra é obrigatório');
+      }
+
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        throw new Error('Apenas administradores podem enviar mensagens');
+      }
+
+      if (!currentUser.sites?.includes(siteId)) {
+        throw new Error('Você não tem acesso a esta obra');
+      }
+
+      // Verificar se o destinatário existe e é admin da mesma obra
+      const recipient = await AuthService.getUserById(recipientId);
+      if (!recipient || recipient.role !== 'admin' || !recipient.sites?.includes(siteId)) {
+        throw new Error('Destinatário não encontrado ou sem acesso à obra');
+      }
+
+      const messageData: Omit<AdminDirectMessage, 'id'> = {
+        siteId,
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderEmail: currentUser.email,
+        recipientId,
+        recipientName: recipient.name,
+        recipientEmail: recipient.email,
+        message,
+        createdAt: new Date().toISOString(),
+        readBy: [currentUser.id], // O remetente já leu
+      };
+
+      const docRef = await addDoc(collection(db, 'adminDirectMessages'), messageData);
+      
+      // Atualizar ou criar sessão
+      await this.updateChatSession(siteId, currentUser.id, recipientId, message);
+
+      return {
+        id: docRef.id,
+        ...messageData,
+      };
+    } catch (error) {
+      console.error('Erro ao enviar mensagem individual:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca mensagens individuais entre dois administradores
+   */
+  static async getDirectMessages(
+    siteId: string,
+    otherUserId: string,
+    limitCount: number = 50
+  ): Promise<AdminDirectMessage[]> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        return [];
+      }
+
+      if (!currentUser.sites?.includes(siteId)) {
+        return [];
+      }
+
+      // Buscar mensagens onde o usuário atual é remetente ou destinatário
+      const q = query(
+        collection(db, 'adminDirectMessages'),
+        where('siteId', '==', siteId),
+        where('senderId', 'in', [currentUser.id, otherUserId]),
+        where('recipientId', 'in', [currentUser.id, otherUserId]),
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+
+      const querySnapshot = await getDocs(q);
+      const messages = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as AdminDirectMessage));
+
+      // Marcar mensagens como lidas
+      const unreadMessages = messages.filter(msg => 
+        msg.recipientId === currentUser.id && !msg.readBy.includes(currentUser.id)
+      );
+
+      for (const msg of unreadMessages) {
+        await this.markDirectMessageAsRead(msg.id);
+      }
+
+      return messages.reverse(); // Ordenar por data crescente
+    } catch (error) {
+      console.error('Erro ao buscar mensagens individuais:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca sessões de chat do administrador atual
+   */
+  static async getChatSessions(siteId: string): Promise<AdminChatSession[]> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        return [];
+      }
+
+      if (!currentUser.sites?.includes(siteId)) {
+        return [];
+      }
+
+      const q = query(
+        collection(db, 'adminChatSessions'),
+        where('siteId', '==', siteId),
+        where('participants', 'array-contains', currentUser.id),
+        orderBy('updatedAt', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as AdminChatSession));
+    } catch (error) {
+      console.error('Erro ao buscar sessões de chat:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Atualiza ou cria uma sessão de chat
+   */
+  private static async updateChatSession(
+    siteId: string,
+    senderId: string,
+    recipientId: string,
+    lastMessage: string
+  ): Promise<void> {
+    try {
+      const participants = [senderId, recipientId].sort();
+      const sessionId = `${siteId}_${participants.join('_')}`;
+      
+      const sessionRef = doc(db, 'adminChatSessions', sessionId);
+      const sessionDoc = await getDoc(sessionRef);
+      
+      const currentUser = await AuthService.getCurrentUser();
+      const recipient = await AuthService.getUserById(recipientId);
+      
+      if (!currentUser || !recipient) return;
+
+      // Garantir que os nomes estejam na mesma ordem dos IDs ordenados
+      const participantNames = participants.map(id => {
+        if (id === currentUser.id) return currentUser.name;
+        if (id === recipient.id) return recipient.name;
+        return 'Usuário desconhecido';
+      });
+      
+      if (sessionDoc.exists()) {
+        // Atualizar sessão existente
+        await updateDoc(sessionRef, {
+          lastMessage,
+          lastMessageTime: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        // Criar nova sessão
+        const sessionData: AdminChatSession = {
+          id: sessionId,
+          siteId,
+          participants,
+          participantNames,
+          lastMessage,
+          lastMessageTime: new Date().toISOString(),
+          unreadCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        
+        await setDoc(sessionRef, sessionData);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar sessão de chat:', error);
+    }
+  }
+
+  /**
+   * Marca uma mensagem individual como lida
+   */
+  static async markDirectMessageAsRead(messageId: string): Promise<void> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) return;
+
+      const messageRef = doc(db, 'adminDirectMessages', messageId);
+      const messageDoc = await getDoc(messageRef);
+      
+      if (!messageDoc.exists()) return;
+
+      const message = messageDoc.data() as AdminDirectMessage;
+      if (!message.readBy.includes(currentUser.id)) {
+        await updateDoc(messageRef, {
+          readBy: [...message.readBy, currentUser.id],
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao marcar mensagem individual como lida:', error);
+    }
+  }
+
+  /**
+   * Deleta uma mensagem individual
+   */
+  static async deleteDirectMessage(messageId: string): Promise<void> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        throw new Error('Apenas administradores podem deletar mensagens');
+      }
+
+      const messageRef = doc(db, 'adminDirectMessages', messageId);
+      const messageDoc = await getDoc(messageRef);
+      
+      if (!messageDoc.exists()) {
+        throw new Error('Mensagem não encontrada');
+      }
+
+      const message = messageDoc.data() as AdminDirectMessage;
+      if (message.senderId !== currentUser.id) {
+        throw new Error('Apenas o remetente pode deletar a mensagem');
+      }
+
+      await deleteDoc(messageRef);
+    } catch (error) {
+      console.error('Erro ao deletar mensagem individual:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Inscreve-se para receber mensagens individuais em tempo real
+   */
+  static async subscribeToDirectMessages(
+    siteId: string,
+    otherUserId: string,
+    callback: (messages: AdminDirectMessage[]) => void
+  ) {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        return () => {};
+      }
+
+      const q = query(
+        collection(db, 'adminDirectMessages'),
+        where('siteId', '==', siteId),
+        where('senderId', 'in', [currentUser.id, otherUserId]),
+        where('recipientId', 'in', [currentUser.id, otherUserId]),
+        orderBy('createdAt', 'asc')
+      );
+
+      return onSnapshot(q, (snapshot) => {
+        const messages = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        } as AdminDirectMessage));
+        callback(messages);
+      });
+    } catch (error) {
+      console.error('Erro ao inscrever-se para mensagens individuais:', error);
+      return () => {};
+    }
+  }
+
+  /**
+   * Inscreve-se para receber sessões de chat em tempo real
+   */
+  static async subscribeToChatSessions(
+    siteId: string,
+    callback: (sessions: AdminChatSession[]) => void
+  ) {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        return () => {};
+      }
+
+      const q = query(
+        collection(db, 'adminChatSessions'),
+        where('siteId', '==', siteId),
+        where('participants', 'array-contains', currentUser.id),
+        orderBy('updatedAt', 'desc')
+      );
+
+      return onSnapshot(q, (snapshot) => {
+        const sessions = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        } as AdminChatSession));
+        callback(sessions);
+      });
+    } catch (error) {
+      console.error('Erro ao inscrever-se para sessões de chat:', error);
+      return () => {};
+    }
+  }
+
+  // Deleta todas as mensagens entre os participantes de uma sessão
+  static async deleteDirectMessagesForSession(siteId: string, participants: string[]): Promise<void> {
+    try {
+      console.log('Deletando mensagens da sessão:', siteId, participants);
+      const q = query(
+        collection(db, 'adminDirectMessages'),
+        where('siteId', '==', siteId),
+        where('senderId', 'in', participants),
+        where('recipientId', 'in', participants)
+      );
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      snapshot.forEach(docSnap => batch.delete(docSnap.ref));
+      await batch.commit();
+      console.log('Mensagens da sessão deletadas com sucesso!');
+    } catch (error) {
+      console.error('Erro ao deletar mensagens da sessão:', error);
+      throw error;
+    }
+  }
+
+  // Deleta a sessão de chat
+  static async deleteChatSession(sessionId: string): Promise<void> {
+    try {
+      console.log('Deletando sessão de chat:', sessionId);
+      await deleteDoc(doc(db, 'adminChatSessions', sessionId));
+      console.log('Sessão de chat deletada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao deletar sessão de chat:', error);
+      throw error;
+    }
+  }
+}
+
+// Exemplo de chamada para uma Cloud Function
+export async function getAdminStats() {
+  const getStats = httpsCallable(functions, "getAdminStats");
+  const result = await getStats();
+  return result.data;
+}

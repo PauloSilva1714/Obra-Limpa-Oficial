@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Funções auxiliares
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isWorker() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'worker';
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isSiteMember(siteId) {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.siteId == siteId ||
+        isAdmin()
+      );
+    }
+
+    // Regras para usuários
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Regras para convites
+    match /invites/{inviteId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // Regras para tarefas
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin() || isSiteMember(resource.data.siteId);
+      allow list: if isAuthenticated();
+    }
+
+    // Regras para obras
+    match /sites/{siteId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+      allow list: if isAuthenticated();
+    }
+
+    // Regras para mensagens administrativas
+    match /adminMessages/{messageId} {
+      allow read, list: if isAuthenticated() && isAdmin();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update, delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Regras para mensagens diretas
+    match /adminDirectMessages/{messageId} {
+      allow read, list: if isAuthenticated() && (
+        isAdmin() || 
+        request.auth.uid == resource.data.senderId || 
+        request.auth.uid == resource.data.recipientId
+      );
+      allow create: if isAuthenticated() && isAdmin();
+      allow update, delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Regras para sessões de chat
+    match /adminChatSessions/{sessionId} {
+      allow read, list: if isAuthenticated() && isAdmin();
+      allow create, update, delete: if isAuthenticated() && isAdmin();
+    }
+  }
+}
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+} 

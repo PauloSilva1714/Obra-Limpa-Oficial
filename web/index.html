@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1.00001, viewport-fit=cover" />
+    <title>Obra Limpa</title>
+    <style>
+      #root, body, html {
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+        margin: 0px;
+        padding: 0px;
+        min-height: 100%;
+      }
+      #root {
+        flex-shrink: 0;
+        flex-basis: auto;
+        flex-grow: 1;
+        display: flex;
+        flex: 1;
+      }
+      html {
+        scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
+        height: 100%;
+      }
+      body {
+        display: flex;
+        overflow-y: auto;
+        overscroll-behavior-y: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -ms-overflow-style: scrollbar;
+      }
+      
+      /* Remove completamente o dropdown de rota do Expo Router no rodapé */
+      [data-expo-router-root] > div[style*="position: fixed"] {
+        display: none !important;
+      }
+      
+      /* Remove qualquer elemento fixo no rodapé (dropdown de rotas do Expo Router) */
+      div[style*="position: fixed"][style*="bottom"] {
+        display: none !important;
+      }
+      
+      /* Remove elementos com classes CSS específicas do Expo Router */
+      .css-view-g5y9jx[role="tab"],
+      .r-touchAction-1otgn73[role="tab"],
+      .r-alignItems-1awozwy[role="tab"],
+      .r-flexDirection-18u37iz[role="tab"],
+      .r-justifyContent-1777fci[role="tab"],
+      .r-padding-1uu6nss[role="tab"] {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+      }
+      
+      /* Remove qualquer elemento que contenha 'admin/chat' no href ou texto */
+      a[href*="admin/chat"],
+      a[href="/admin/chat"],
+      [role="tab"] a[href*="admin/chat"],
+      [role="tab"] a[href="/admin/chat"],
+      div:has(a[href*="admin/chat"]),
+      div:has(a[href="/admin/chat"]) {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+      }
+      
+      /* Remove elementos com ícone de seta para baixo (⏷) */
+      *:contains("⏷") {
+        display: none !important;
+      }
+      
+      /* Remove elementos com texto 'admin/chat' */
+      *:contains("admin/chat") {
+        display: none !important;
+      }
+      
+      /* Remove especificamente o elemento com as classes CSS do Expo Router */
+      .css-view-g5y9jx.r-flex-13awgt0,
+      .css-view-g5y9jx.r-touchAction-1otgn73.r-alignItems-1awozwy.r-flexDirection-18u37iz.r-justifyContent-1777fci.r-padding-1uu6nss,
+      .css-view-g5y9jx.r-height-h0d30l.r-width-726pan,
+      .css-view-g5y9jx.r-alignItems-1awozwy.r-alignSelf-1kihuf0.r-height-1pi2tsx.r-justifyContent-1777fci.r-position-u8s1d.r-width-13qz1uu,
+      .css-text-146c3p1.r-backgroundColor-1niwhzg,
+      .css-text-146c3p1.r-maxWidth-dnmrzs.r-overflow-1udh08x.r-textOverflow-1udbk01.r-whiteSpace-3s2u2q.r-wordWrap-1iln25a.r-backgroundColor-1niwhzg.r-textAlign-q4m81j.r-lineHeight-135wba7.r-marginInlineStart-1a11zyx.r-fontSize-n6v787.r-marginInlineStart-wizibn {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+      }
+    </style>
+    <script>
+      // Script para remover o rodapé de navegação do Expo Router
+      function removeAdminChatLink() {
+        try {
+          // Remove todos os links para /admin/chat
+          document.querySelectorAll('a[href="/admin/chat"]').forEach(el => {
+            if (el.parentElement) el.parentElement.removeChild(el);
+          });
+          
+          // Remove qualquer div que contenha esse link
+          document.querySelectorAll('div').forEach(div => {
+            if (div.innerHTML && div.innerHTML.includes('/admin/chat')) {
+              div.style.display = 'none';
+              div.style.visibility = 'hidden';
+              div.style.width = '0';
+              div.style.height = '0';
+              div.style.position = 'absolute';
+              div.style.left = '-9999px';
+            }
+          });
+          
+          // Remove elementos com classes específicas do Expo Router
+          document.querySelectorAll('.css-view-g5y9jx').forEach(el => {
+            if (el.innerHTML && el.innerHTML.includes('admin/chat')) {
+              el.style.display = 'none';
+              el.style.visibility = 'hidden';
+            }
+          });
+          
+          // Remove TODOS os elementos com role="tab" (rodapé completo)
+          document.querySelectorAll('[role="tab"]').forEach(el => {
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+            el.style.width = '0';
+            el.style.height = '0';
+          });
+          
+          // Remove elementos com o ícone ⏷
+          document.querySelectorAll('*').forEach(el => {
+            if (el.textContent && el.textContent.includes('⏷')) {
+              el.style.display = 'none';
+              el.style.visibility = 'hidden';
+            }
+          });
+          
+        } catch (error) {
+          console.log('Erro ao remover elemento:', error);
+        }
+      }
+      
+      // Executa quando o DOM estiver pronto
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          removeAdminChatLink();
+          setInterval(removeAdminChatLink, 50);
+        });
+      } else {
+        removeAdminChatLink();
+        setInterval(removeAdminChatLink, 50);
+      }
+      
+      // Executa também quando a página carregar completamente
+      window.addEventListener('load', function() {
+        removeAdminChatLink();
+        setInterval(removeAdminChatLink, 50);
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html> 
