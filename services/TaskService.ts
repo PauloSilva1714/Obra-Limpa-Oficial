@@ -32,6 +32,7 @@ export interface Task {
   videos: string[];
   area: string;
   comments?: Comment[];
+  companyName?: string;
 }
 
 export interface Comment {

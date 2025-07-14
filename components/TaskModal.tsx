@@ -20,7 +20,7 @@ import { AuthService } from '../services/AuthService';
 import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadImageAsync } from '../services/PhotoService';
-import { Video as ExpoVideo } from 'expo-av';
+import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 
 interface TaskModalProps {
   visible: boolean;
@@ -454,7 +454,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   // Função para adicionar comentário
   const handleAddComment = async () => {
-    console.log('[TaskModal] handleAddComment chamado com:', { commentText, task, currentUser });
+    console.log('[TaskModal] handleAddComment chamado com:', { commentText, task });
     
     if (!commentText.trim()) {
       console.error('[TaskModal] commentText vazio');
@@ -511,8 +511,8 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       Alert.alert('Sucesso', 'Comentário adicionado com sucesso!');
       
     } catch (error) {
-      console.error('[TaskModal] Erro ao adicionar comentário:', error);
-      Alert.alert('Erro', `Não foi possível adicionar o comentário: ${error.message}`);
+      const err = error instanceof Error ? error : new Error(String(error));
+      Alert.alert('Erro', `Não foi possível adicionar o comentário: ${err.message}`);
     } finally {
       setIsAddingComment(false);
     }
@@ -625,7 +625,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 ))}
                 {formData.videos.map((url, idx) => (
                   <View key={idx} style={styles.mediaItem}>
-                    <ExpoVideo source={{ uri: url }} style={styles.videoPreview} useNativeControls resizeMode="cover" />
+                    <ExpoVideo source={{ uri: url }} style={styles.videoPreview} useNativeControls resizeMode={ResizeMode.COVER} />
                     <TouchableOpacity
                       style={styles.removeMediaButton}
                       onPress={() => removeMedia('video', idx)}
@@ -1691,5 +1691,18 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 14,
     marginTop: 8,
+  },
+  commentUser: {
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 2,
+  },
+  commentSendButton: {
+    backgroundColor: '#F97316',
+    borderRadius: 8,
+    padding: 8,
+    marginLeft: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
