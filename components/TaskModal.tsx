@@ -61,8 +61,8 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   // Carrossel de mídia (fotos + vídeos)
   const medias = [
-    ...(formData.photos || []).map(url => ({ type: 'photo', url })),
-    ...(formData.videos || []).map(url => ({ type: 'video', url })),
+    ...(task?.photos || []).map(url => ({ type: 'photo' as const, url })),
+    ...(task?.videos || []).map(url => ({ type: 'video' as const, url })),
   ];
   const hasMedia = medias.length > 0;
   const currentMedia = medias[mediaIndex] || null;
@@ -130,6 +130,12 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       Alert.alert('Erro', 'A descrição da tarefa é obrigatória.');
       return;
     }
+
+    // Remover qualquer validação obrigatória para assignedTo no handleSave
+    // if (!formData.assignedTo.trim()) {
+    //   Alert.alert('Erro', 'O nome da pessoa responsável é obrigatório.');
+    //   return;
+    // }
 
     // Novo: pode validar companyName se quiser
     // if (!formData.companyName.trim()) {
@@ -534,9 +540,12 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     }
   };
 
+  // 1. Checagem de null para 'task' (exemplo no início do bloco de detalhes):
+  if (detailsMode && !task) return null;
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={styles.container}>
+      <View style={[styles.container, { flex: 1, flexDirection: 'column', paddingBottom: 16 }]}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Text style={styles.title}>
@@ -552,6 +561,146 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
             <X size={24} color="#6B7280" />
           </TouchableOpacity>
         </View>
+
+        {/* BLOCO DE VISUALIZAÇÃO - Detalhes da Tarefa */}
+        {detailsMode && task && (
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            {/* Seção: Mídias Destacadas - AGORA PRIMEIRA */}
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Mídias</Text>
+              {hasMedia ? (
+                <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {medias.length > 1 && (
+                      <TouchableOpacity onPress={handlePrev} style={{ padding: 8 }}>
+                        <ChevronLeft size={32} color="#111827" />
+                      </TouchableOpacity>
+                    )}
+                    {currentMedia && currentMedia.type === 'photo' ? (
+                      <TouchableOpacity onPress={() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); }}>
+                        <Image
+                          source={{ uri: currentMedia.url }}
+                          style={{ width: 320, height: 220, borderRadius: 20, backgroundColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12 }}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    ) : currentMedia && currentMedia.type === 'video' ? (
+                      <TouchableOpacity onPress={() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); }}>
+                        <ExpoVideo source={{ uri: currentMedia.url }} style={{ width: 320, height: 220, borderRadius: 20 }} useNativeControls resizeMode={ResizeMode.COVER} />
+                      </TouchableOpacity>
+                    ) : null}
+                    {medias.length > 1 && (
+                      <TouchableOpacity onPress={handleNext} style={{ padding: 8 }}>
+                        <ChevronRight size={32} color="#111827" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {/* Miniaturas */}
+                  {medias.length > 1 && (
+                    <View style={{ flexDirection: 'row', marginTop: 12 }}>
+                      {medias.map((m, idx) => (
+                        <TouchableOpacity key={idx} onPress={() => setMediaIndex(idx)}>
+                          {m.type === 'photo' ? (
+                            <Image source={{ uri: m.url }} style={{ width: 48, height: 48, borderRadius: 8, marginHorizontal: 4, borderWidth: idx === mediaIndex ? 2 : 0, borderColor: '#F97316' }} />
+                          ) : (
+                            <View style={{ width: 48, height: 48, borderRadius: 8, marginHorizontal: 4, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center', borderWidth: idx === mediaIndex ? 2 : 0, borderColor: '#F97316' }}>
+                              <ExpoVideo source={{ uri: m.url }} style={{ width: 40, height: 40, borderRadius: 8 }} resizeMode={ResizeMode.COVER} />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <Text style={{ color: '#888' }}>Nenhuma mídia adicionada.</Text>
+              )}
+            </View>
+            {/* Seção: Informações Básicas - AGORA DEPOIS */}
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Informações Básicas</Text>
+              </View>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Título da Tarefa</Text>
+              <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.title}</Text>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Nome da Empresa</Text>
+              <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.companyName || '-'}</Text>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Descrição Detalhada</Text>
+              <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.description}</Text>
+            </View>
+            {/* Seção: Status e Prioridade */}
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Prioridade</Text>
+              </View>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Status Atual</Text>
+              <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{getStatusText(task.status)}</Text>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Prioridade</Text>
+              <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{getPriorityText(task.priority)}</Text>
+            </View>
+            {/* Painel de comentários dentro do ScrollView */}
+            {isEditing && (
+              <View style={{
+                maxWidth: 420,
+                width: '100%',
+                backgroundColor: '#F6F7F9',
+                borderRadius: 16,
+                padding: 12,
+                boxShadow: '0px 1px 4px rgba(0,0,0,0.06)',
+                marginTop: 24,
+                marginBottom: 24,
+                alignSelf: 'center',
+              }}>
+                <View style={[styles.commentsHeader, { marginBottom: 8 }]}> 
+                  <View style={styles.commentsHeaderContent}> 
+                    <MessageCircle size={18} color="#6B7280" /> 
+                    <Text style={[styles.commentsTitle, { fontSize: 16 }]}>Comentários</Text> 
+                  </View> 
+                </View> 
+                <ScrollView style={[styles.commentsList, { marginBottom: 8 }]}> 
+                  {(task?.comments || []).map((comment) => ( 
+                    <View key={comment.id} style={styles.commentItem}> 
+                      <Text style={[styles.commentUser, { fontSize: 13 }]}>{comment.userName}:</Text> 
+                      <Text style={[styles.commentText, { fontSize: 13 }]}>{comment.text}</Text> 
+                      <Text style={[styles.commentDate, { fontSize: 11 }]}>{formatCommentDate(comment.timestamp)}</Text> 
+                    </View> 
+                  ))} 
+                  {(!task?.comments || task.comments.length === 0) && ( 
+                    <Text style={[styles.noComments, { fontSize: 13 }]}>Nenhum comentário ainda.</Text> 
+                  )} 
+                </ScrollView> 
+                {/* Campo para novo comentário */} 
+                <View style={[styles.commentInputRow, { marginTop: 0 }]}> 
+                  <TextInput 
+                    style={[styles.commentInput, { fontSize: 13, padding: 8 }]} 
+                    placeholder="Comente algo..." 
+                    value={commentText} 
+                    onChangeText={(text) => { 
+                      console.log('[TaskModal] Texto do comentário alterado:', text); 
+                      setCommentText(text); 
+                    }} 
+                    onSubmitEditing={() => { 
+                      console.log('[TaskModal] onSubmitEditing chamado'); 
+                      handleAddComment(); 
+                    }} 
+                    editable={!isAddingComment} 
+                    returnKeyType="send" 
+                  /> 
+                  <TouchableOpacity 
+                    style={[styles.commentSendButton, { padding: 6 }]} 
+                    onPress={() => { 
+                      console.log('[TaskModal] Botão enviar pressionado'); 
+                      handleAddComment(); 
+                    }} 
+                    disabled={isAddingComment || !commentText.trim()} 
+                  > 
+                    <Send size={18} color="#fff" /> 
+                  </TouchableOpacity> 
+                </View> 
+              </View>
+            )}
+          </ScrollView>
+        )}
 
         {/* FORMULÁRIO PRINCIPAL - renderizar sempre que não estiver em detailsMode */}
         {!detailsMode && (
@@ -576,6 +725,14 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 placeholder="Digite o nome da empresa"
                 value={formData.companyName}
                 onChangeText={text => setFormData({ ...formData, companyName: text })}
+                editable={canEdit}
+              />
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Nome do Colaborador</Text>
+              <TextInput
+                style={[styles.modernInput, { marginBottom: 16 }]}
+                placeholder="Digite o nome do colaborador (opcional)"
+                value={formData.assignedTo}
+                onChangeText={text => setFormData({ ...formData, assignedTo: text })}
                 editable={canEdit}
               />
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Descrição Detalhada</Text>
@@ -673,58 +830,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         )}
 
           {/* Comentários ao lado (ou abaixo) */}
-          {isEditing && (
-            <View style={[styles.theaterCommentsPanel, isWide ? styles.theaterCommentsPanelWide : styles.theaterCommentsPanelVertical]}> 
-              <View style={styles.commentsCard}>
-                <View style={styles.commentsHeader}>
-                  <View style={styles.commentsHeaderContent}>
-                    <MessageCircle size={20} color="#6B7280" />
-                    <Text style={styles.commentsTitle}>Comentários</Text>
-                  </View>
-                </View>
-                <ScrollView style={styles.commentsList}>
-                  {(task?.comments || []).map((comment) => (
-                    <View key={comment.id} style={styles.commentItem}>
-                      <Text style={styles.commentUser}>{comment.userName}:</Text>
-                      <Text style={styles.commentText}>{comment.text}</Text>
-                      <Text style={styles.commentDate}>{formatCommentDate(comment.timestamp)}</Text>
-                    </View>
-                  ))}
-                  {(!task?.comments || task.comments.length === 0) && (
-                    <Text style={styles.noComments}>Nenhum comentário ainda.</Text>
-                  )}
-                </ScrollView>
-                {/* Campo para novo comentário */}
-                <View style={styles.commentInputRow}>
-                  <TextInput
-                    style={styles.commentInput}
-                    placeholder="Comente algo..."
-                    value={commentText}
-                    onChangeText={(text) => {
-                      console.log('[TaskModal] Texto do comentário alterado:', text);
-                      setCommentText(text);
-                    }}
-                    onSubmitEditing={() => {
-                      console.log('[TaskModal] onSubmitEditing chamado');
-                      handleAddComment();
-                    }}
-                    editable={!isAddingComment}
-                    returnKeyType="send"
-                  />
-                  <TouchableOpacity
-                    style={styles.commentSendButton}
-                    onPress={() => {
-                      console.log('[TaskModal] Botão enviar pressionado');
-                      handleAddComment();
-                    }}
-                    disabled={isAddingComment || !commentText.trim()}
-                  >
-                    <Send size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
+          {/* This block is now inside the detailsMode ScrollView */}
         </View>
       
     </Modal>
