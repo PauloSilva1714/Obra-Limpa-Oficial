@@ -121,6 +121,11 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       return;
     }
 
+    if (!formData.companyName.trim()) {
+      Alert.alert('Erro', 'O nome da empresa é obrigatório.');
+      return;
+    }
+
     if (!formData.description.trim()) {
       Alert.alert('Erro', 'A descrição da tarefa é obrigatória.');
       return;
@@ -150,6 +155,16 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const isReadOnly = detailsMode || (userRole === 'worker' && task?.status === 'completed');
   const isEditing = !!task;
   const canEdit = userRole === 'admin' || (userRole === 'worker' && !isReadOnly);
+
+  // LOGS DE DEPURAÇÃO
+  console.log('[TaskModal][DEBUG] Renderizando modal:', {
+    visible,
+    userRole,
+    isEditing,
+    canEdit,
+    detailsMode,
+    task
+  });
 
   const StatusButton = ({ status, label }: { status: Task['status']; label: string }) => (
     <TouchableOpacity
@@ -538,110 +553,180 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
           </TouchableOpacity>
         </View>
 
-        {/* Layout horizontal se tela larga, vertical se tela estreita */}
-        <View style={[styles.theaterMain, isWide ? styles.theaterMainWide : styles.theaterMainVertical]}> 
-          {/* Mídia em destaque com carrossel */}
-          <View style={[styles.theaterMediaContainer, isWide ? styles.theaterMediaWide : styles.theaterMediaVertical]}> 
-            {hasMedia ? (
-              <>
-                {currentMedia.type === 'photo' ? (
-                  <Image source={{ uri: currentMedia.url }} style={styles.theaterMediaImage} resizeMode="contain" />
-                ) : (
-                  <ExpoVideo
-                    source={{ uri: currentMedia.url }}
-                    style={styles.theaterMediaImage}
-                    resizeMode="contain"
-                    useNativeControls
-                  />
-                )}
-                {medias.length > 1 && (
-                  <View style={styles.theaterMediaNav}>
-                    <TouchableOpacity onPress={handlePrev} style={styles.theaterMediaNavButton}>
-                      <ChevronLeft size={28} color="#fff" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleNext} style={styles.theaterMediaNavButton}>
-                      <ChevronRight size={28} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {/* Miniaturas */}
-                {medias.length > 1 && (
-                  <View style={styles.theaterThumbnails}>
-                    {medias.map((m, idx) => (
-                      <TouchableOpacity key={idx} onPress={() => setMediaIndex(idx)}>
-                        {m.type === 'photo' ? (
-                          <Image source={{ uri: m.url }} style={[styles.theaterThumb, idx === mediaIndex && styles.theaterThumbActive]} />
-                        ) : (
-                          <View style={[styles.theaterThumb, idx === mediaIndex && styles.theaterThumbActive, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' }]}> <ExpoVideo source={{ uri: m.url }} style={{ width: 32, height: 32 }} resizeMode="cover" /> </View>
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </>
-            ) : (
-              <View style={styles.theaterNoMedia}><Text style={{ color: '#888' }}>Sem mídia</Text></View>
-            )}
-          </View>
-
-          {/* Comentários ao lado (ou abaixo) */}
-          <View style={[styles.theaterCommentsPanel, isWide ? styles.theaterCommentsPanelWide : styles.theaterCommentsPanelVertical]}> 
-            <View style={styles.commentsCard}>
-              <View style={styles.commentsHeader}>
-                <View style={styles.commentsHeaderContent}>
-                  <MessageCircle size={20} color="#6B7280" />
-                  <Text style={styles.commentsTitle}>Comentários</Text>
-                </View>
+        {/* FORMULÁRIO PRINCIPAL - renderizar sempre que não estiver em detailsMode */}
+        {!detailsMode && (
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            {/* Seção: Informações Básicas */}
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Informações Básicas</Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>Obrigatório</Text>
               </View>
-              <ScrollView style={styles.commentsList}>
-                {(task?.comments || []).map((comment) => (
-                  <View key={comment.id} style={styles.commentItem}>
-                    <Text style={styles.commentUser}>{comment.userName}:</Text>
-                    <Text style={styles.commentText}>{comment.text}</Text>
-                    <Text style={styles.commentDate}>{formatCommentDate(comment.timestamp)}</Text>
-                  </View>
-                ))}
-                {(!task?.comments || task.comments.length === 0) && (
-                  <Text style={styles.noComments}>Nenhum comentário ainda.</Text>
-                )}
-              </ScrollView>
-              {/* Campo para novo comentário */}
-              <View style={styles.commentInputRow}>
-                <TextInput
-                  style={styles.commentInput}
-                  placeholder="Comente algo..."
-                  value={commentText}
-                  onChangeText={(text) => {
-                    console.log('[TaskModal] Texto do comentário alterado:', text);
-                    setCommentText(text);
-                  }}
-                  onSubmitEditing={() => {
-                    console.log('[TaskModal] onSubmitEditing chamado');
-                    handleAddComment();
-                  }}
-                  editable={!isAddingComment}
-                  returnKeyType="send"
-                />
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Título da Tarefa</Text>
+              <TextInput
+                style={[styles.modernInput, { marginBottom: 16 }]}
+                placeholder="Digite um título claro e objetivo"
+                value={formData.title}
+                onChangeText={text => setFormData({ ...formData, title: text })}
+                editable={canEdit}
+              />
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Nome da Empresa</Text>
+              <TextInput
+                style={[styles.modernInput, { marginBottom: 16 }]}
+                placeholder="Digite o nome da empresa"
+                value={formData.companyName}
+                onChangeText={text => setFormData({ ...formData, companyName: text })}
+                editable={canEdit}
+              />
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Descrição Detalhada</Text>
+              <TextInput
+                style={[styles.modernInput, { minHeight: 60 }]}
+                placeholder="Descreva os detalhes, requisitos e especificações da tarefa"
+                value={formData.description}
+                onChangeText={text => setFormData({ ...formData, description: text })}
+                editable={canEdit}
+                multiline
+              />
+            </View>
+            {/* Seção: Mídias */}
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Mídias</Text>
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                 <TouchableOpacity
-                  style={styles.commentSendButton}
-                  onPress={() => {
-                    console.log('[TaskModal] Botão enviar pressionado');
-                    handleAddComment();
-                  }}
-                  disabled={isAddingComment || !commentText.trim()}
+                  style={[styles.mediaButton, { flex: 1 }]}
+                  onPress={pickImage}
+                  disabled={!canEdit}
                 >
-                  <Send size={20} color="#fff" />
+                  <ImagePlus size={20} color="#4B5563" />
+                  <Text style={styles.mediaButtonText}>Adicionar Foto</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.mediaButton, { flex: 1 }]}
+                  onPress={pickVideo}
+                  disabled={!canEdit}
+                >
+                  <Video size={20} color="#4B5563" />
+                  <Text style={styles.mediaButtonText}>Adicionar Vídeo</Text>
                 </TouchableOpacity>
               </View>
+              {/* Pré-visualização das mídias */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                {formData.photos.map((url, idx) => (
+                  <View key={idx} style={styles.mediaItem}>
+                    <Image source={{ uri: url }} style={styles.mediaPreview} />
+                    <TouchableOpacity
+                      style={styles.removeMediaButton}
+                      onPress={() => removeMedia('photo', idx)}
+                      disabled={!canEdit}
+                    >
+                      <Trash2 size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {formData.videos.map((url, idx) => (
+                  <View key={idx} style={styles.mediaItem}>
+                    <ExpoVideo source={{ uri: url }} style={styles.videoPreview} useNativeControls resizeMode="cover" />
+                    <TouchableOpacity
+                      style={styles.removeMediaButton}
+                      onPress={() => removeMedia('video', idx)}
+                      disabled={!canEdit}
+                    >
+                      <Trash2 size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {formData.photos.length === 0 && formData.videos.length === 0 && (
+                  <Text style={{ color: '#888' }}>Nenhuma mídia adicionada.</Text>
+                )}
+              </View>
             </View>
-          </View>
-        </View>
+            {/* Seção: Status e Prioridade */}
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Prioridade</Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>Configuração</Text>
+              </View>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Status Atual</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                <StatusButton status="pending" label="Pendente" />
+                <StatusButton status="in_progress" label="Em Andamento" />
+                <StatusButton status="completed" label="Concluída" />
+                <StatusButton status="delayed" label="Atrasada" />
+              </View>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Prioridade</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <PriorityButton priority="high" label="Alta" color="#EF4444" />
+                <PriorityButton priority="medium" label="Média" color="#F59E0B" />
+                <PriorityButton priority="low" label="Baixa" color="#10B981" />
+              </View>
+            </View>
+            {/* Botões */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 24 }}>
+              <TouchableOpacity style={[styles.cancelButton, { flex: 1, marginRight: 8 }]} onPress={onClose}>
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.saveButton, { flex: 2 }]} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>{isEditing ? 'Salvar' : 'Criar Tarefa'}</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        )}
 
-        {/* ...restante igual (informações, etc)... */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* ...informações da tarefa, etc... */}
-        </ScrollView>
-      </View>
+          {/* Comentários ao lado (ou abaixo) */}
+          {isEditing && (
+            <View style={[styles.theaterCommentsPanel, isWide ? styles.theaterCommentsPanelWide : styles.theaterCommentsPanelVertical]}> 
+              <View style={styles.commentsCard}>
+                <View style={styles.commentsHeader}>
+                  <View style={styles.commentsHeaderContent}>
+                    <MessageCircle size={20} color="#6B7280" />
+                    <Text style={styles.commentsTitle}>Comentários</Text>
+                  </View>
+                </View>
+                <ScrollView style={styles.commentsList}>
+                  {(task?.comments || []).map((comment) => (
+                    <View key={comment.id} style={styles.commentItem}>
+                      <Text style={styles.commentUser}>{comment.userName}:</Text>
+                      <Text style={styles.commentText}>{comment.text}</Text>
+                      <Text style={styles.commentDate}>{formatCommentDate(comment.timestamp)}</Text>
+                    </View>
+                  ))}
+                  {(!task?.comments || task.comments.length === 0) && (
+                    <Text style={styles.noComments}>Nenhum comentário ainda.</Text>
+                  )}
+                </ScrollView>
+                {/* Campo para novo comentário */}
+                <View style={styles.commentInputRow}>
+                  <TextInput
+                    style={styles.commentInput}
+                    placeholder="Comente algo..."
+                    value={commentText}
+                    onChangeText={(text) => {
+                      console.log('[TaskModal] Texto do comentário alterado:', text);
+                      setCommentText(text);
+                    }}
+                    onSubmitEditing={() => {
+                      console.log('[TaskModal] onSubmitEditing chamado');
+                      handleAddComment();
+                    }}
+                    editable={!isAddingComment}
+                    returnKeyType="send"
+                  />
+                  <TouchableOpacity
+                    style={styles.commentSendButton}
+                    onPress={() => {
+                      console.log('[TaskModal] Botão enviar pressionado');
+                      handleAddComment();
+                    }}
+                    disabled={isAddingComment || !commentText.trim()}
+                  >
+                    <Send size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+      
     </Modal>
   );
 }

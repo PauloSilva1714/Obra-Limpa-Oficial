@@ -197,9 +197,14 @@ export default function TasksScreen() {
   };
 
   const handleCreateTask = () => {
+    console.log('[DEBUG] handleCreateTask chamado');
     setSelectedTask(null);
     setModalVisible(true);
   };
+
+  useEffect(() => {
+    console.log('[DEBUG] Estado modalVisible mudou:', modalVisible);
+  }, [modalVisible]);
 
   const handleTaskSave = async (taskData: Partial<Task>) => {
     try {
@@ -790,6 +795,7 @@ export default function TasksScreen() {
       />
 
       {/* Task Modal */}
+      console.log('[DEBUG] Renderizando TaskModal - modalVisible:', modalVisible, 'selectedTask:', selectedTask);
       <TaskModal
         visible={modalVisible}
         task={selectedTask}
