@@ -17,6 +17,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Building2, User, Lock, Mail, Phone, ArrowLeft, Key, CheckCircle, Eye, EyeOff } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
+import { InviteService } from '@/services/InviteService';
 import AddressSearch from '@/components/AddressSearch';
 import {
   useFonts,
@@ -60,6 +61,8 @@ export default function RegisterScreen() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
+  const [inviteInfo, setInviteInfo] = useState<any>(null);
+  const [siteInfo, setSiteInfo] = useState<any>(null);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -96,7 +99,39 @@ export default function RegisterScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+
+    // Buscar dados do convite e da obra
+    const fetchInviteAndSite = async () => {
+      if (inviteId) {
+        try {
+          // Buscar convite
+          const inviteDoc = await InviteService.getInviteById(inviteId);
+          setInviteInfo(inviteDoc);
+          if (inviteDoc && inviteDoc.siteId) {
+            // Buscar obra
+            const siteDoc = await AuthService.getSiteById(inviteDoc.siteId);
+            let companyName = siteDoc?.company;
+            // Se não houver company na obra, buscar do usuário criador
+            if (!companyName && siteDoc?.createdBy) {
+              const creator = await AuthService.getUserById(siteDoc.createdBy);
+              companyName = creator?.company || '';
+            }
+            setSiteInfo({ ...siteDoc, company: companyName });
+            // Preencher campos do formulário se estiverem vazios
+            setFormData(prev => ({
+              ...prev,
+              siteName: siteDoc?.name || prev.siteName,
+              siteAddress: siteDoc?.address || prev.siteAddress,
+              company: companyName || prev.company,
+            }));
+          }
+        } catch (err) {
+          // Não bloquear cadastro, mas pode exibir um aviso
+        }
+      }
+    };
+    fetchInviteAndSite();
+  }, [inviteId]);
 
   const handleRegister = async () => {
     if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.confirmPassword.trim()) {
@@ -226,6 +261,15 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Exibir informações do convite/obra se disponíveis */}
+      {inviteInfo && siteInfo && (
+        <View style={{ backgroundColor: '#F3F4F6', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>Você está se cadastrando para:</Text>
+          <Text style={{ fontSize: 15, marginBottom: 2 }}>🏢 Empresa: <Text style={{ fontWeight: 'bold' }}>{siteInfo.company || 'Não informado'}</Text></Text>
+          <Text style={{ fontSize: 15, marginBottom: 2 }}>🏗️ Obra: <Text style={{ fontWeight: 'bold' }}>{siteInfo.name}</Text></Text>
+          <Text style={{ fontSize: 15 }}>📍 Endereço: <Text style={{ fontWeight: 'bold' }}>{siteInfo.address}</Text></Text>
+        </View>
+      )}
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -345,6 +389,7 @@ export default function RegisterScreen() {
                     returnKeyType="next"
                     onSubmitEditing={() => siteNameRef.current && siteNameRef.current.focus()}
                     blurOnSubmit={false}
+                    editable={!inviteInfo}
                   />
                 </View>
 
@@ -353,13 +398,29 @@ export default function RegisterScreen() {
                   <TextInput
                     ref={siteNameRef}
                     style={styles.input}
-                    placeholder="Nome da obra (se não usar convite)"
+                    placeholder="Nome da obra"
                     value={formData.siteName}
                     onChangeText={(text) => setFormData({ ...formData, siteName: text })}
                     placeholderTextColor="#9CA3AF"
                     returnKeyType="next"
-                    onSubmitEditing={() => passwordRef.current && passwordRef.current.focus()}
+                    onSubmitEditing={() => siteAddressRef.current && siteAddressRef.current.focus()}
                     blurOnSubmit={false}
+                    editable={!inviteInfo}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Building2 size={20} color="#6B7280" style={styles.inputIcon} />
+                  <TextInput
+                    ref={siteAddressRef}
+                    style={styles.input}
+                    placeholder="Endereço da obra"
+                    value={formData.siteAddress}
+                    onChangeText={(text) => setFormData({ ...formData, siteAddress: text })}
+                    placeholderTextColor="#9CA3AF"
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    editable={!inviteInfo}
                   />
                 </View>
 
@@ -396,6 +457,7 @@ export default function RegisterScreen() {
                     returnKeyType="next"
                     onSubmitEditing={() => funcaoRef.current && funcaoRef.current.focus()}
                     blurOnSubmit={false}
+                    editable={!inviteInfo}
                   />
                 </View>
                 <View style={styles.inputContainer}>

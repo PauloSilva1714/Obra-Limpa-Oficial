@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { AuthService } from './AuthService';
 
@@ -40,6 +40,18 @@ export const InviteService = {
     } catch (error) {
       console.error('Erro ao buscar convites para o usuário atual:', error);
       throw new Error('Não foi possível buscar os convites.');
+    }
+  },
+
+  // Adicionando função para buscar convite por ID
+  async getInviteById(inviteId: string) {
+    try {
+      const docRef = doc(db, 'invites', inviteId);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return null;
+      return { id: docSnap.id, ...docSnap.data() };
+    } catch (error) {
+      return null;
     }
   },
 }; 

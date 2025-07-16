@@ -53,6 +53,7 @@ export interface User {
   inviteId?: string;
   isSuperAdmin?: boolean;
   funcao?: string;
+  photoURL?: string;
 }
 
 export interface Site {
@@ -229,9 +230,23 @@ export class AuthService {
         );
         
         if (!userDoc || !userDoc.exists()) {
+          // Se não houver nome, não usar 'Usuário', tentar buscar do convite
+          let realName = userCredential.user.displayName || '';
+          // Tentar buscar nome do convite se possível
+          if (!realName || realName === 'Usuário') {
+            // Buscar convite pelo e-mail
+            const invitesQuery = query(collection(db, 'invites'), where('email', '==', email), where('status', '==', 'accepted'));
+            const invitesSnapshot = await getDocs(invitesQuery);
+            if (!invitesSnapshot.empty) {
+              const invite = invitesSnapshot.docs[0].data();
+              if (invite && invite.invitedByName) {
+                realName = invite.invitedByName;
+              }
+            }
+          }
           const basicUserData: User = {
             id: userCredential.user.uid,
-            name: userCredential.user.displayName || 'Usuário',
+            name: realName && realName !== '' ? realName : email.split('@')[0],
             email: userCredential.user.email || email,
             role: 'pending',
             status: 'pending_invite',
@@ -244,18 +259,52 @@ export class AuthService {
               loginConfirmation: true
             }
           };
-          
           await setDoc(doc(db, 'users', userCredential.user.uid), basicUserData);
           await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(basicUserData));
           return false; // Retornar false para indicar que precisa de configuração
         }
 
-        const userData = userDoc.data() as User;
+        let userData = userDoc.data() as User;
+
+        // CORRIGIR NOME AUTOMATICAMENTE SE FOR 'Usuário'
+        if (userData.name === 'Usuário') {
+          // Buscar convite aceito para tentar pegar o nome real
+          const invitesQuery = query(collection(db, 'invites'), where('email', '==', userData.email), where('status', '==', 'accepted'));
+          const invitesSnapshot = await getDocs(invitesQuery);
+          let realName = '';
+          if (!invitesSnapshot.empty) {
+            const invite = invitesSnapshot.docs[0].data();
+            if (invite && invite.invitedByName) {
+              realName = invite.invitedByName;
+            }
+          }
+          // Se não achar, usa o e-mail
+          if (!realName) {
+            realName = userData.email.split('@')[0];
+          }
+          await updateDoc(doc(db, 'users', userData.id), { name: realName });
+          userData.name = realName;
+        }
         
         const needsFix = userData.status === 'pending_invite' || userData.role === 'pending';
         if (needsFix) {
           return false;
         } else {
+          // NOVO: Corrigir sites de admin se estiverem vazios
+          if (userData.role === 'admin' && (!userData.sites || userData.sites.length === 0)) {
+            // Buscar obras criadas por esse usuário
+            const sitesQuery = query(collection(db, 'sites'), where('createdBy', '==', userData.id));
+            const sitesSnapshot = await getDocs(sitesQuery);
+            const siteIds = sitesSnapshot.docs.map(doc => doc.id);
+            if (siteIds.length > 0) {
+              await updateDoc(doc(db, 'users', userData.id), {
+                sites: siteIds,
+                siteId: siteIds[0],
+              });
+              userData.sites = siteIds;
+              userData.siteId = siteIds[0];
+            }
+          }
           await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(userData));
 
           try {
@@ -932,7 +981,7 @@ export class AuthService {
       if (userDoc.exists()) {
         const userData = userDoc.data() as User;
         const updatedSites = [...(userData.sites || []), docRef.id];
-        await updateDoc(userRef, { sites: updatedSites });
+        await updateDoc(userRef, { sites: updatedSites, siteId: docRef.id });
       }
 
       return {
