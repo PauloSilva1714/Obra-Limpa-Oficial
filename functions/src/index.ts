@@ -199,6 +199,14 @@ export const onInviteCreate = functions.firestore
     const invite = snap.data();
     if (!invite || !invite.email) return;
 
+    // Só envia e-mail de admin se o convite for realmente de admin
+    if (invite.role !== 'admin') {
+      // Se quiser, pode implementar o envio de colaborador aqui
+      // Exemplo:
+      // if (invite.role === 'worker') { ...enviar e-mail de colaborador... }
+      return;
+    }
+
     // Buscar nome do convidador se invitedBy for um ID
     let invitedByName = invite.invitedBy;
     if (invitedByName && invitedByName.length === 28) { // UID do Firebase tem 28 caracteres
