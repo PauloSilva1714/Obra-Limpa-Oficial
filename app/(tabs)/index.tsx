@@ -49,6 +49,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { TaskQuickView } from '@/components/TaskQuickView';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 
 export default function TasksScreen() {
   console.log('[DEBUG] TasksScreen - Componente montado');
@@ -85,6 +86,9 @@ export default function TasksScreen() {
   const [quickViewVisible, setQuickViewVisible] = useState(false);
   const [theaterVisible, setTheaterVisible] = useState(false);
   const [quickViewTask, setQuickViewTask] = useState<Task | null>(null);
+
+  // Estados para modal de confirmação
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
 
   console.log('[DEBUG] TasksScreen - Estados iniciais:', { 
     loading, 
@@ -290,7 +294,8 @@ export default function TasksScreen() {
       );
       
     } catch (error) {
-      Alert.alert(t('error'), 'Erro ao salvar tarefa.');
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      Alert.alert(t('error'), `Erro ao salvar tarefa: ${errorMsg}`);
     }
   };
 
@@ -435,7 +440,7 @@ export default function TasksScreen() {
       Alert.alert('Sucesso', 'Comentário adicionado!');
     } catch (error) {
       console.error('[DEBUG] Erro ao adicionar comentário:', error);
-      Alert.alert('Erro', `Erro ao adicionar comentário: ${error.message}`);
+      Alert.alert('Erro', `Erro ao adicionar comentário: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
@@ -556,7 +561,7 @@ export default function TasksScreen() {
       Alert.alert('Sucesso', 'Comentário adicionado!');
     } catch (error) {
       console.error('[DEBUG] Erro ao adicionar comentário:', error);
-      Alert.alert('Erro', `Erro ao adicionar comentário: ${error.message}`);
+      Alert.alert('Erro', `Erro ao adicionar comentário: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
@@ -1101,6 +1106,17 @@ export default function TasksScreen() {
         onSave={handleTaskSave}
         onClose={handleCloseTheater}
         detailsMode={true}
+      />
+
+      {/* Confirmation Modal para criação de tarefa */}
+      <ConfirmationModal
+        visible={confirmationModalVisible}
+        title="Tarefa criada com sucesso!"
+        message="A tarefa foi criada e adicionada à lista."
+        onConfirm={() => setConfirmationModalVisible(false)}
+        onCancel={() => setConfirmationModalVisible(false)}
+        confirmText="OK"
+        cancelText=""
       />
     </SafeAreaView>
   );
@@ -1710,5 +1726,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 8,
+  },
+  commentUser: {
+    fontWeight: 'bold',
+    color: '#2563EB', // ou a cor desejada
   },
 });

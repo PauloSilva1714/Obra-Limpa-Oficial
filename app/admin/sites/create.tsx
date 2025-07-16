@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import AddressSearch from '@/components/AddressSearch';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 
 export default function CreateSiteScreen() {
   const [name, setName] = useState('');
@@ -19,6 +20,15 @@ export default function CreateSiteScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+
+  function handleBack() {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.replace('/'); // Redireciona para a home ou outra tela principal
+    }
+  }
 
   const handleCreateSite = async () => {
     if (!name.trim() || !address.trim() || latitude === null || longitude === null) {
@@ -35,8 +45,8 @@ export default function CreateSiteScreen() {
         longitude,
         status: 'active',
       });
-      Alert.alert('Sucesso', 'Obra criada com sucesso');
-      router.back();
+      setConfirmationModalVisible(true);
+      // router.back(); // Remover o redirecionamento automático, deixar para o usuário fechar o modal
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível criar a obra');
     } finally {
@@ -49,7 +59,7 @@ export default function CreateSiteScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
         >
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>
@@ -93,6 +103,23 @@ export default function CreateSiteScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <ConfirmationModal
+        visible={confirmationModalVisible}
+        title="Obra criada com sucesso!"
+        message="A nova obra foi cadastrada com sucesso."
+        onConfirm={() => {
+          setConfirmationModalVisible(false);
+          router.replace('/admin/sites');
+        }}
+        onCancel={() => {
+          setConfirmationModalVisible(false);
+          router.replace('/admin/sites');
+        }}
+        confirmText="OK"
+        cancelText="Fechar"
+        
+      />
     </SafeAreaView>
   );
 }

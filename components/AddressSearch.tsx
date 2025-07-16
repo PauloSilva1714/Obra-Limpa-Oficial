@@ -388,8 +388,9 @@ export default function AddressSearch({
         animationType="fade"
         transparent={true}
         onRequestClose={() => setShowModal(false)}
+        accessible={true}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalOverlay} accessible={true}>
           {renderModalContent()}
         </View>
       </Modal>

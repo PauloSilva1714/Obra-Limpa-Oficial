@@ -63,6 +63,8 @@ export interface Site {
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Invite {
@@ -895,6 +897,8 @@ export class AuthService {
     name: string;
     address: string;
     status: 'active' | 'inactive';
+    latitude?: number;
+    longitude?: number;
   }): Promise<Site> {
     try {
       const currentUser = await AuthService.getCurrentUser();
@@ -1907,9 +1911,5 @@ export class AuthService {
     } catch (error) {
       throw error;
     }
-  }
-
-  static async saveUserToStorageStatic(user: User) {
-    await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(user));
   }
 }
