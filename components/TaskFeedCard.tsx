@@ -15,6 +15,7 @@ import {
   Trash2,
   MessageCircle,
   MapPin,
+  Eye,
 } from 'lucide-react-native';
 import { Task, Comment } from '@/services/TaskService';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -82,26 +83,14 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
 
   return (
     <View style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Header do Card */}
-      <View style={styles.cardHeader}>
-        <View style={styles.userInfo}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
-            <User size={16} color={colors.primary} />
-          </View>
-          <View style={styles.userDetails}>
-            <Text style={[styles.userName, { color: colors.text }]}>
-              {task.assignedTo || 'Não designado'}
-            </Text>
-            <Text style={[styles.taskDate, { color: colors.textMuted }]}>
-              {new Date(task.createdAt).toLocaleDateString('pt-BR')}
-            </Text>
-          </View>
+      {/* Substituir o header do card para exibir o nome de quem criou a tarefa no topo, estilo Facebook */}
+      <View style={styles.fbHeader}>
+        <View style={styles.fbAvatar}>
+          <User size={20} color={colors.primary} />
         </View>
-        <View style={styles.statusContainer}>
-          {getStatusIcon(task.status)}
-          <Text style={[styles.statusText, { color: colors.textSecondary }]}>
-            {getStatusText(task.status)}
-          </Text>
+        <View style={styles.fbHeaderInfo}>
+          <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>
+          <Text style={styles.fbDate}>{new Date(task.createdAt).toLocaleDateString('pt-BR')}</Text>
         </View>
       </View>
 
@@ -189,21 +178,20 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         )}
       </View>
 
-      {/* Ações do Card */}
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: colors.primary + '20' }]}
-          onPress={() => onTaskDetails(task)}
-        >
-          <Text style={[styles.actionButtonText, { color: colors.primary }]}>Ver Detalhes</Text>
+      {/* Barra de ações estilo Facebook na parte inferior */}
+      <View style={styles.fbActionsBar}>
+        <TouchableOpacity onPress={() => onOpenComments(task)} style={styles.fbActionButton}>
+          <MessageCircle size={20} color={colors.primary} />
+          <Text style={styles.fbActionText}>Comentar</Text>
         </TouchableOpacity>
-        
+        <TouchableOpacity onPress={() => onTaskDetails(task)} style={styles.fbActionButton}>
+          <Eye size={20} color={colors.primary} />
+          <Text style={styles.fbActionText}>Ver Detalhes</Text>
+        </TouchableOpacity>
         {userRole === 'admin' && (
-          <TouchableOpacity
-            style={[styles.deleteButton, { backgroundColor: colors.error + '20' }]}
-            onPress={() => onDeleteTask(task.id)}
-          >
-            <Trash2 size={16} color={colors.error} />
+          <TouchableOpacity onPress={() => onDeleteTask(task.id)} style={styles.fbActionButton}>
+            <Trash2 size={20} color={colors.error} />
+            <Text style={[styles.fbActionText, { color: colors.error }]}>Excluir</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -370,5 +358,54 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fbHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f0f2f5', // Facebook-like background
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  fbAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  fbHeaderInfo: {
+    flex: 1,
+  },
+  fbUserName: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1c1e21',
+  },
+  fbDate: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#606770',
+  },
+  fbActionsBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    backgroundColor: '#f0f2f5',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  fbActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  fbActionText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#385898', // Facebook blue
   },
 }); 

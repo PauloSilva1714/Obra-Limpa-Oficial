@@ -50,6 +50,10 @@ import { t } from '@/config/i18n';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { TaskQuickView } from '@/components/TaskQuickView';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { TaskFeedCard } from '@/components/TaskFeedCard';
+
+// Declarar a lista de emojis sugeridos antes do componente principal
+const suggestedEmojis: string[] = ['😀', '👍', '🙏', '👏', '🚀', '🔥'];
 
 export default function TasksScreen() {
   console.log('[DEBUG] TasksScreen - Componente montado');
@@ -391,6 +395,14 @@ export default function TasksScreen() {
     }
   };
 
+  // Função utilitária para extrair primeiro e segundo nome
+  function getFirstAndSecondName(fullName: string) {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) return parts[0];
+    return parts[0] + ' ' + parts[1];
+  }
+
   const handleOpenComments = (task: Task) => {
     setSelectedTaskForComments(task);
     setCommentModalVisible(true);
@@ -565,135 +577,17 @@ export default function TasksScreen() {
     }
   };
 
-  const renderTaskItem = ({ item }: { item: Task }) => {
-    console.log('[DEBUG] Renderizando tarefa:', { id: item.id, title: item.title, photos: item.photos?.length });
-    return (
-      <TouchableOpacity activeOpacity={0.9} onPress={() => handleTaskPress(item)}>
-        <View style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {/* Header do Card */}
-          <View style={styles.cardHeader}>
-            <View style={styles.userInfo}>
-              <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
-                <User size={16} color={colors.primary} />
-              </View>
-              <View style={styles.userDetails}>
-                <Text style={[styles.userName, { color: colors.text }]}>
-                  {formatUserName(item.assignedTo || '')}
-                </Text>
-                <Text style={[styles.taskDate, { color: colors.textMuted }]}>
-                  {formatCommentDateTime(item.createdAt)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.statusContainer}>
-              {getStatusIcon(item.status)}
-              <Text style={[styles.statusText, { color: colors.textSecondary }]}>
-                {getStatusText(item.status)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Mídia em destaque */}
-          {item.photos && item.photos.length > 0 ? (
-            <Image
-              source={{ uri: item.photos[0] }}
-              style={styles.igCardMedia}
-              resizeMode="cover"
-              onError={(error) => {
-                console.error('[DEBUG] Erro ao carregar imagem:', error.nativeEvent.error);
-                console.error('[DEBUG] URL da imagem:', item.photos[0]);
-              }}
-              onLoad={() => {
-                console.log('[DEBUG] Imagem carregada com sucesso:', item.photos[0]);
-              }}
-            />
-          ) : (
-            <View style={[styles.igCardMedia, { justifyContent: 'center', alignItems: 'center' }]}> 
-              <Text style={{ color: '#888' }}>Sem mídia</Text>
-            </View>
-          )}
-
-          {/* Ícones abaixo da mídia */}
-          <View style={styles.igCardActions}>
-            <TouchableOpacity onPress={() => handleOpenComments(item)}>
-              <MessageCircle size={24} color={colors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleTaskDetails(item)} style={{ marginLeft: 16 }}>
-              <Eye size={24} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Informações da Tarefa */}
-          <View style={styles.taskInfo}>
-            <Text style={[styles.taskTitle, { color: colors.text }]} numberOfLines={2}>
-              {item.title}
-            </Text>
-
-            {item.description && (
-              <Text style={[styles.taskDescription, { color: colors.textSecondary }]} numberOfLines={3}>
-                {item.description}
-              </Text>
-            )}
-
-            <View style={styles.taskDetails}>
-              {item.area && (
-                <View style={styles.detailItem}>
-                  <MapPin size={14} color={colors.textMuted} />
-                  <Text style={[styles.detailText, { color: colors.textMuted }]} numberOfLines={1}>
-                    {item.area}
-                  </Text>
-                </View>
-              )}
-              
-              {item.dueDate && (
-                <View style={styles.detailItem}>
-                  <Calendar size={14} color={colors.textMuted} />
-                  <Text style={[styles.detailText, { color: colors.textMuted }]}>
-                    {new Date(item.dueDate).toLocaleDateString('pt-BR')}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) + '20' }]}>
-              <Text style={[styles.priorityText, { color: getPriorityColor(item.priority) }]}>
-                {item.priority === 'high' ? t('high') : item.priority === 'medium' ? t('medium') : t('low')}
-              </Text>
-            </View>
-          </View>
-
-          {/* Seção de Comentários */}
-          <View style={styles.commentsSection}>
-            <View style={styles.commentsHeader}>
-              <Text style={[styles.commentsTitle, { color: colors.text }]}>
-                Comentários ({item.comments?.length || 0})
-              </Text>
-            </View>
-            
-            {item.comments && item.comments.length > 0 && (
-              <View style={styles.commentsPreview}>
-                {item.comments.slice(0, 2).map((comment, index) => (
-                  <View key={comment.id} style={styles.commentItem}>
-                    <MessageCircle size={12} color={colors.textMuted} style={{ marginRight: 4 }} />
-                    <Text style={[styles.commentText, { color: colors.textSecondary }]} numberOfLines={1}>
-                      <Text style={styles.commentUser}>{comment.userName}:</Text> {comment.text}
-                    </Text>
-                  </View>
-                ))}
-                {item.comments.length > 2 && (
-                  <TouchableOpacity onPress={() => handleOpenComments(item)}>
-                    <Text style={[styles.viewMoreComments, { color: colors.primary }]}>
-                      Ver mais {item.comments.length - 2} comentários
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  // Substituir renderTaskItem para usar TaskFeedCard
+  const renderTaskItem = ({ item }: { item: Task }) => (
+    <TaskFeedCard
+      task={item}
+      userRole={userRole}
+      onTaskPress={handleTaskPress}
+      onTaskDetails={handleTaskDetails}
+      onOpenComments={handleOpenComments}
+      onDeleteTask={handleDeleteTask}
+    />
+  );
 
   if (loading) {
     console.log('[DEBUG] Renderizando loading...');
@@ -800,7 +694,6 @@ export default function TasksScreen() {
       />
 
       {/* Task Modal */}
-      console.log('[DEBUG] Renderizando TaskModal - modalVisible:', modalVisible, 'selectedTask:', selectedTask);
       <TaskModal
         visible={modalVisible}
         task={selectedTask}
@@ -863,19 +756,37 @@ export default function TasksScreen() {
               contentContainerStyle={{ padding: 16, paddingBottom: 8 }}
               renderItem={({ item: comment }) => {
                 const isOwnComment = currentUser && comment.userId === currentUser.id;
+                const balloonBg = isOwnComment ? '#128C7E' : colors.surface;
+                const balloonText = isOwnComment ? '#FFFFFF' : colors.text;
+                const authorNameColor = isOwnComment ? '#128C7E' : '#25D366';
+                const timeColor = isOwnComment ? '#E0F2F1' : colors.textMuted;
                 return (
-                  <View style={[
-                    styles.commentItem,
-                    isOwnComment ? styles.ownComment : styles.otherComment
-                  ]}>
+                  <View style={{ marginVertical: 2, alignItems: isOwnComment ? 'flex-end' : 'flex-start', maxWidth: '75%', alignSelf: isOwnComment ? 'flex-end' : 'flex-start' }}>
+                    {/* Nome do autor acima do balão, só para outros usuários */}
+                    {!isOwnComment && (
+                      <Text style={{ fontWeight: 'bold', fontSize: 13, color: authorNameColor, marginBottom: 2, marginLeft: 8 }}>{getFirstAndSecondName(comment.userName)}</Text>
+                    )}
                     <View style={[
                       styles.commentBubble,
-                      isOwnComment ? styles.ownCommentBubble : styles.otherCommentBubble
+                      {
+                        backgroundColor: balloonBg,
+                        borderRadius: 8,
+                        padding: 8,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.10,
+                        shadowRadius: 2,
+                        elevation: 2,
+                      },
+                      isOwnComment ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }
                     ]}>
-                      <Text style={[styles.commentText, { color: '#1F2937' }]} numberOfLines={2}>
+                      <Text style={[
+                        styles.commentText,
+                        { color: balloonText, fontSize: 16 }
+                      ]} numberOfLines={6}>
                         {comment.text}
                       </Text>
-                      <Text style={[styles.commentTime, { color: '#6B7280' }]}>
+                      <Text style={[styles.commentTime, { color: timeColor, fontSize: 12, alignSelf: 'flex-end', marginTop: 4 }]}> 
                         {formatCommentDateTime(comment.timestamp)}
                       </Text>
                     </View>
@@ -885,6 +796,17 @@ export default function TasksScreen() {
               ListEmptyComponent={<Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: 24 }}>Nenhum comentário ainda.</Text>}
             />
             {/* Campo para adicionar comentário */}
+            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 4, flexWrap: 'wrap' }}>
+              {suggestedEmojis.map((emoji: string) => (
+                <Text
+                  key={emoji}
+                  style={{ fontSize: 24, marginRight: 8, marginBottom: 4, cursor: 'pointer' }}
+                  onPress={() => setNewComment((prev) => prev + emoji)}
+                >
+                  {emoji}
+                </Text>
+              ))}
+            </View>
             <View style={styles.igInputContainer}>
               <TextInput
                 style={[styles.igInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -1291,10 +1213,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   commentText: {
-    fontSize: 14,
+    fontSize: 20,
     fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-    marginBottom: 4,
+    flex: 1,
   },
   commentTime: {
     fontSize: 11,
@@ -1657,11 +1578,12 @@ const styles = StyleSheet.create({
   },
   igBottomSheet: {
     width: '100%',
-    maxHeight: '75%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-    paddingBottom: 8,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    minHeight: '100%',
+    maxHeight: '100%',
+    backgroundColor: '#1a1c23',
+    paddingBottom: 0,
   },
   igCarousel: {
     width: '100%',
