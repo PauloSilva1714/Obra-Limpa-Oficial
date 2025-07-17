@@ -9,6 +9,7 @@ import {
   reauthenticateWithCredential,
   sendPasswordResetEmail,
   onAuthStateChanged,
+  deleteUser,
 } from 'firebase/auth';
 import {
   collection,
@@ -53,7 +54,10 @@ export interface User {
   inviteId?: string;
   isSuperAdmin?: boolean;
   funcao?: string;
+  privacyEmail?: boolean;
+  privacyPhoto?: boolean;
   photoURL?: string;
+  siteName?: string;
 }
 
 export interface Site {
@@ -1616,6 +1620,17 @@ export class AuthService {
     }
   }
 
+  static async updateUserPrivacy(userId: string, privacy: { privacyEmail: boolean; privacyPhoto: boolean }): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        privacyEmail: privacy.privacyEmail,
+        privacyPhoto: privacy.privacyPhoto,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   static async testAuthOnly(): Promise<{
     success: boolean;
     error?: string;
@@ -1866,6 +1881,23 @@ export class AuthService {
       await updateDoc(doc(db, 'users', userId), { photoURL });
     } catch (error) {
       throw error;
+    }
+  }
+
+  static async deleteAccount(userId: string): Promise<void> {
+    // Deleta do Firestore
+    await deleteDoc(doc(db, 'users', userId));
+    // Deleta do Auth (precisa estar autenticado)
+    const currentUser = auth.currentUser;
+    if (currentUser && currentUser.uid === userId) {
+      try {
+        await deleteUser(currentUser);
+      } catch (error: any) {
+        if (error.code === 'auth/requires-recent-login') {
+          throw new Error('Por segurança, faça login novamente para excluir sua conta.');
+        }
+        throw error;
+      }
     }
   }
 }
