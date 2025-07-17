@@ -194,8 +194,8 @@ export default function AdminDirectChat({
     const diffMs = now.getTime() - date.getTime();
     const diffInMinutes = Math.floor(diffMs / (1000 * 60));
     const diffInHours = diffMs / (1000 * 60 * 60);
-    if (diffInMinutes < 1) {
-      return 'Agora';
+      if (diffInMinutes < 1) {
+        return 'Agora';
     } else if (diffInHours < 1) {
       return `${diffInMinutes}min atrás`;
     } else if (diffInHours < 24) {
@@ -332,7 +332,7 @@ export default function AdminDirectChat({
       />
       
       {/* Message Input */}
-      <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}> 
+      <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
         {/* Botão para mostrar/ocultar opções */}
         <TouchableOpacity
           onPress={() => setShowOptions(!showOptions)}
@@ -357,13 +357,13 @@ export default function AdminDirectChat({
                 </TouchableOpacity>
               ))}
             </View>
-            {/* Chat Type Indicator */}
-            <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}> 
-              <User size={16} color={colors.primary} />
-              <Text style={[styles.chatTypeText, { color: colors.primary }]}> 
-                Chat Individual - Enviando para {otherUserName}
-              </Text>
-            </View>
+        {/* Chat Type Indicator */}
+        <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
+          <User size={16} color={colors.primary} />
+          <Text style={[styles.chatTypeText, { color: colors.primary }]}>
+            Chat Individual - Enviando para {otherUserName}
+          </Text>
+        </View>
           </>
         )}
         {/* Campo de mensagem e botão de enviar continuam visíveis */}

@@ -595,7 +595,7 @@ export default function TasksScreen() {
       onDeleteTask={handleDeleteTask}
       onEditTask={handleEditTask}
     />
-  );
+    );
 
   if (loading) {
     console.log('[DEBUG] Renderizando loading...');

@@ -409,92 +409,92 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                     </TouchableOpacity>
                   ))}
                 </View>
-                {/* Chat Type Indicator */}
-                <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20' }]}> 
-                  <Users size={16} color={colors.primary} />
-                  <Text style={[styles.chatTypeText, { color: colors.primary }]}> 
-                    Chat em Grupo - Enviando para todos os administradores
-                  </Text>
-                </View>
+            {/* Chat Type Indicator */}
+            <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20' }]}>
+              <Users size={16} color={colors.primary} />
+              <Text style={[styles.chatTypeText, { color: colors.primary }]}>
+                Chat em Grupo - Enviando para todos os administradores
+              </Text>
+            </View>
                 {/* Campo de mensagem e botão de enviar */}
-                <View style={styles.inputRow}>
-                  <TextInput
-                    style={[styles.messageInput, { 
-                      backgroundColor: colors.surface, 
-                      color: colors.text,
-                      borderColor: colors.border 
-                    }]}
-                    placeholder="Digite sua mensagem para o grupo..."
-                    placeholderTextColor={colors.textMuted}
-                    value={newMessage}
-                    onChangeText={setNewMessage}
-                    multiline
-                    maxLength={500}
-                  />
-                  <TouchableOpacity
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.messageInput, { 
+                  backgroundColor: colors.surface, 
+                  color: colors.text,
+                  borderColor: colors.border 
+                }]}
+                placeholder="Digite sua mensagem para o grupo..."
+                placeholderTextColor={colors.textMuted}
+                value={newMessage}
+                onChangeText={setNewMessage}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
                     style={[styles.sendButton, { backgroundColor: colors.primary }]
                     }
-                    onPress={handleSendMessage}
-                    disabled={sending || !newMessage.trim()}
-                  >
-                    {sending ? (
-                      <ActivityIndicator size="small" color="white" />
-                    ) : (
-                      <Send size={20} color="white" />
-                    )}
-                  </TouchableOpacity>
+                onPress={handleSendMessage}
+                disabled={sending || !newMessage.trim()}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Send size={20} color="white" />
+                )}
+              </TouchableOpacity>
+            </View>
+            {/* Message Options */}
+            <View style={styles.messageOptions}>
+              <View style={styles.optionGroup}>
+                <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Tipo:</Text>
+                <View style={styles.optionButtons}>
+                  {(['general', 'task', 'alert', 'announcement'] as const).map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.optionButton,
+                        messageType === type && { backgroundColor: colors.primary }
+                      ]}
+                      onPress={() => setMessageType(type)}
+                    >
+                      <Text style={[
+                        styles.optionButtonText,
+                        { color: messageType === type ? 'white' : colors.text }
+                      ]}>
+                        {type === 'general' ? 'Geral' : 
+                         type === 'task' ? 'Tarefa' : 
+                         type === 'alert' ? 'Alerta' : 'Anúncio'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                {/* Message Options */}
-                <View style={styles.messageOptions}>
-                  <View style={styles.optionGroup}>
-                    <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Tipo:</Text>
-                    <View style={styles.optionButtons}>
-                      {(['general', 'task', 'alert', 'announcement'] as const).map((type) => (
-                        <TouchableOpacity
-                          key={type}
-                          style={[
-                            styles.optionButton,
-                            messageType === type && { backgroundColor: colors.primary }
-                          ]}
-                          onPress={() => setMessageType(type)}
-                        >
-                          <Text style={[
-                            styles.optionButtonText,
-                            { color: messageType === type ? 'white' : colors.text }
-                          ]}>
-                            {type === 'general' ? 'Geral' : 
-                             type === 'task' ? 'Tarefa' : 
-                             type === 'alert' ? 'Alerta' : 'Anúncio'}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                  <View style={styles.optionGroup}>
-                    <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Prioridade:</Text>
-                    <View style={styles.optionButtons}>
-                      {(['low', 'medium', 'high', 'urgent'] as const).map((pri) => (
-                        <TouchableOpacity
-                          key={pri}
-                          style={[
-                            styles.optionButton,
-                            priority === pri && { backgroundColor: getPriorityColor(pri) }
-                          ]}
-                          onPress={() => setPriority(pri)}
-                        >
-                          <Text style={[
-                            styles.optionButtonText,
-                            { color: priority === pri ? 'white' : colors.text }
-                          ]}>
-                            {pri === 'low' ? 'Baixa' : 
-                             pri === 'medium' ? 'Média' : 
-                             pri === 'high' ? 'Alta' : 'Urgente'}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
+              </View>
+              <View style={styles.optionGroup}>
+                <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Prioridade:</Text>
+                <View style={styles.optionButtons}>
+                  {(['low', 'medium', 'high', 'urgent'] as const).map((pri) => (
+                    <TouchableOpacity
+                      key={pri}
+                      style={[
+                        styles.optionButton,
+                        priority === pri && { backgroundColor: getPriorityColor(pri) }
+                      ]}
+                      onPress={() => setPriority(pri)}
+                    >
+                      <Text style={[
+                        styles.optionButtonText,
+                        { color: priority === pri ? 'white' : colors.text }
+                      ]}>
+                        {pri === 'low' ? 'Baixa' : 
+                         pri === 'medium' ? 'Média' : 
+                         pri === 'high' ? 'Alta' : 'Urgente'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
+              </View>
+            </View>
               </View>
             )}
           </View>

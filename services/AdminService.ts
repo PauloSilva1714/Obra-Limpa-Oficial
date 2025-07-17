@@ -1135,10 +1135,10 @@ export class AdminService {
             updatedAt: new Date().toISOString(),
           });
         } else {
-          await updateDoc(messageRef, {
-            readBy: [...message.readBy, currentUser.id],
-            updatedAt: new Date().toISOString(),
-          });
+        await updateDoc(messageRef, {
+          readBy: [...message.readBy, currentUser.id],
+          updatedAt: new Date().toISOString(),
+        });
         }
       }
     } catch (error) {

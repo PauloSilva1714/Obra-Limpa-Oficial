@@ -249,8 +249,27 @@ export default function ProfileScreen() {
           </View>
         </View>
         <View style={styles.header}>
-          <User size={40} color="#111827" />
-          <View>
+          {/* Foto de perfil antes do campo de nome */}
+          <View style={{ alignItems: 'center', marginRight: 16 }}>
+            {uploading ? (
+              <ActivityIndicator size="large" color="#22C55E" />
+            ) : userData?.photoURL ? (
+              <Image source={{ uri: userData.photoURL }} style={{ width: 64, height: 64, borderRadius: 32, marginBottom: 4 }} />
+            ) : (
+              <TouchableOpacity onPress={handlePickImage} style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                <User size={32} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+            <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+              <TouchableOpacity onPress={handlePickImage} style={{ marginRight: 8 }}>
+                <Text style={{ color: '#2563EB', fontSize: 12 }}>Galeria</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleTakePhoto}>
+                <Text style={{ color: '#2563EB', fontSize: 12 }}>Foto</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={{ flex: 1 }}>
             {/* Campo de texto editável para o nome */}
             <TextInput
               style={styles.userName}
@@ -260,26 +279,6 @@ export default function ProfileScreen() {
               placeholderTextColor="#9CA3AF"
               maxLength={40}
             />
-          </View>
-        </View>
-
-        <View style={{ alignItems: 'center', marginBottom: 24 }}>
-          {uploading ? (
-            <ActivityIndicator size="large" color="#22C55E" />
-          ) : userData?.photoURL ? (
-            <Image source={{ uri: userData.photoURL }} style={{ width: 96, height: 96, borderRadius: 48, marginBottom: 8 }} />
-          ) : (
-            <TouchableOpacity onPress={handlePickImage} style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <User size={48} color="#6B7280" />
-            </TouchableOpacity>
-          )}
-          <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-            <TouchableOpacity onPress={handlePickImage} style={{ marginRight: 16 }}>
-              <Text style={{ color: '#2563EB', fontSize: 14 }}>Escolher da Galeria</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleTakePhoto}>
-              <Text style={{ color: '#2563EB', fontSize: 14 }}>Tirar Foto</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
