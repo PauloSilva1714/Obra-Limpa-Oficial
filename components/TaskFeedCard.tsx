@@ -150,9 +150,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
           <Text style={[styles.commentsTitle, { color: colors.text }]}>
             Comentários ({task.comments?.length || 0})
           </Text>
-          <TouchableOpacity onPress={() => onOpenComments(task)}>
-            <MessageCircle size={16} color={colors.primary} />
-          </TouchableOpacity>
+          {/* Ícone de comentário removido daqui para evitar duplicidade */}
         </View>
         
         {task.comments && task.comments.length > 0 && (

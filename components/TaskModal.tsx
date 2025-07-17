@@ -568,9 +568,10 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
             {/* Seção: Mídias Destacadas - AGORA PRIMEIRA */}
             <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Mídias</Text>
-              {hasMedia ? (
-                <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* Carrossel de mídia (detalhes da tarefa) */}
+              {hasMedia && (
+                <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                     {medias.length > 1 && (
                       <TouchableOpacity onPress={handlePrev} style={{ padding: 8 }}>
                         <ChevronLeft size={32} color="#111827" />
@@ -612,8 +613,23 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                     </View>
                   )}
                 </View>
-              ) : (
-                <Text style={{ color: '#888' }}>Nenhuma mídia adicionada.</Text>
+              )}
+              {/* Modal de mídia em tela cheia */}
+              {fullscreenVisible && fullscreenMedia && (
+                <Modal visible={fullscreenVisible} transparent animationType="fade" onRequestClose={() => setFullscreenVisible(false)}>
+                  <View style={styles.fullscreenOverlay}>
+                    <TouchableOpacity style={{ position: 'absolute', top: 32, right: 32, zIndex: 10 }} onPress={() => setFullscreenVisible(false)}>
+                      <X size={36} color="#fff" />
+                    </TouchableOpacity>
+                    <View style={styles.fullscreenContainer}>
+                      {fullscreenMedia.type === 'photo' ? (
+                        <Image source={{ uri: fullscreenMedia.url }} style={{ width: '90%', height: '80%', resizeMode: 'contain', borderRadius: 16 }} />
+                      ) : (
+                        <ExpoVideo source={{ uri: fullscreenMedia.url }} style={{ width: '90%', height: '80%', borderRadius: 16 }} useNativeControls resizeMode={ResizeMode.CONTAIN} />
+                      )}
+                    </View>
+                  </View>
+                </Modal>
               )}
             </View>
             {/* Seção: Informações Básicas - AGORA DEPOIS */}
