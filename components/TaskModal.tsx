@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadImageAsync } from '../services/PhotoService';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
+import type { Video as ExpoVideoType } from 'expo-av';
 
 interface TaskModalProps {
   visible: boolean;
@@ -58,6 +59,9 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const [mediaIndex, setMediaIndex] = useState(0);
   const { width } = Dimensions.get('window');
   const isWide = width > 900;
+  const [carrosselVideoStatus, setCarrosselVideoStatus] = useState({});
+  const [shouldPlayCarrosselVideo, setShouldPlayCarrosselVideo] = useState(false);
+  const carrosselVideoRef = useRef<ExpoVideoType | null>(null);
 
   // Carrossel de mídia (fotos + vídeos)
   const medias = [
@@ -114,6 +118,21 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       setFormData(prev => ({ ...prev }));
     }
   }, [task?.comments]);
+
+  // Sempre que trocar de mídia, não tocar vídeo automaticamente
+  useEffect(() => {
+    setShouldPlayCarrosselVideo(false);
+    if (carrosselVideoRef.current && typeof carrosselVideoRef.current.pauseAsync === 'function') {
+      carrosselVideoRef.current.pauseAsync();
+    }
+  }, [mediaIndex]);
+
+  // Ao abrir o modal de fullscreen, pausar o vídeo do carrossel
+  useEffect(() => {
+    if (fullscreenVisible && carrosselVideoRef.current && typeof carrosselVideoRef.current.pauseAsync === 'function') {
+      carrosselVideoRef.current.pauseAsync();
+    }
+  }, [fullscreenVisible]);
 
   const handleSave = () => {
     if (!formData.title.trim()) {
@@ -587,7 +606,30 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                       </TouchableOpacity>
                     ) : currentMedia && currentMedia.type === 'video' ? (
                       <TouchableOpacity onPress={() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); }}>
-                        <ExpoVideo source={{ uri: currentMedia.url }} style={{ width: 320, height: 220, borderRadius: 20 }} useNativeControls resizeMode={ResizeMode.COVER} />
+                        <ExpoVideo
+                          ref={carrosselVideoRef}
+                          source={{ uri: currentMedia.url }}
+                          style={{ width: 320, height: 220, borderRadius: 20 }}
+                          useNativeControls
+                          resizeMode={ResizeMode.COVER}
+                          shouldPlay={shouldPlayCarrosselVideo && !fullscreenVisible}
+                          onPlaybackStatusUpdate={status => {
+                            setCarrosselVideoStatus(status);
+                            if (
+                              fullscreenVisible &&
+                              status.isLoaded &&
+                              (status as any).isPlaying &&
+                              carrosselVideoRef.current &&
+                              typeof carrosselVideoRef.current.pauseAsync === 'function'
+                            ) {
+                              carrosselVideoRef.current.pauseAsync();
+                            }
+                            // Se o usuário apertar play manualmente, liberar o play
+                            if (status.isLoaded && (status as any).isPlaying && !shouldPlayCarrosselVideo) {
+                              setShouldPlayCarrosselVideo(true);
+                            }
+                          }}
+                        />
                       </TouchableOpacity>
                     ) : null}
                     {medias.length > 1 && (
@@ -621,11 +663,11 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                     <TouchableOpacity style={{ position: 'absolute', top: 32, right: 32, zIndex: 10 }} onPress={() => setFullscreenVisible(false)}>
                       <X size={36} color="#fff" />
                     </TouchableOpacity>
-                    <View style={styles.fullscreenContainer}>
+                    <View style={[styles.fullscreenContainer, { width: '100%', height: '100%' }]}> 
                       {fullscreenMedia.type === 'photo' ? (
-                        <Image source={{ uri: fullscreenMedia.url }} style={{ width: '90%', height: '80%', resizeMode: 'contain', borderRadius: 16 }} />
+                        <Image source={{ uri: fullscreenMedia.url }} style={{ width: '100%', height: '90%', resizeMode: 'contain', borderRadius: 16 }} />
                       ) : (
-                        <ExpoVideo source={{ uri: fullscreenMedia.url }} style={{ width: '90%', height: '80%', borderRadius: 16 }} useNativeControls resizeMode={ResizeMode.CONTAIN} />
+                        <ExpoVideo source={{ uri: fullscreenMedia.url }} style={{ width: '100%', height: '90%', borderRadius: 16 }} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay />
                       )}
                     </View>
                   </View>
