@@ -16,6 +16,7 @@ import {
   MessageCircle,
   MapPin,
   Eye,
+  Pencil, // Adiciona o ícone de lápis
 } from 'lucide-react-native';
 import { Task, Comment } from '@/services/TaskService';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -28,6 +29,7 @@ interface TaskFeedCardProps {
   onTaskDetails: (task: Task) => void;
   onOpenComments: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
+  onEditTask?: (task: Task) => void; // Adiciona prop para editar
 }
 
 export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
@@ -37,6 +39,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
   onTaskDetails,
   onOpenComments,
   onDeleteTask,
+  onEditTask,
 }) => {
   const { colors } = useTheme();
 
@@ -186,6 +189,12 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
           <Eye size={20} color={colors.primary} />
           <Text style={styles.fbActionText}>Ver Detalhes</Text>
         </TouchableOpacity>
+        {userRole === 'admin' && onEditTask && (
+          <TouchableOpacity onPress={() => onEditTask(task)} style={styles.fbActionButton}>
+            <Pencil size={20} color={colors.primary} />
+            <Text style={styles.fbActionText}>Editar</Text>
+          </TouchableOpacity>
+        )}
         {userRole === 'admin' && (
           <TouchableOpacity onPress={() => onDeleteTask(task.id)} style={styles.fbActionButton}>
             <Trash2 size={20} color={colors.error} />

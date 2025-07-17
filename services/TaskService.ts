@@ -123,6 +123,10 @@ export class TaskService {
         throw new Error('Nenhuma obra selecionada');
       }
 
+      // Buscar nome do usuário atual
+      const currentUser = await AuthService.getCurrentUser();
+      const createdByName = currentUser?.name || 'Usuário';
+
       console.log('[TaskService] Site atual:', currentSite.id);
 
       const now = new Date().toISOString();
@@ -136,6 +140,7 @@ export class TaskService {
         status: task.status || 'pending',
         priority: task.priority || 'medium',
         comments: [], // Garantir que comments sempre seja um array
+        createdByName, // Adiciona o nome do criador
       };
       if (!newTask.completedAt) {
         delete newTask.completedAt;

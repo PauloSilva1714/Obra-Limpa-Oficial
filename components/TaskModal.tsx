@@ -33,7 +33,7 @@ interface TaskModalProps {
   onEditMode?: () => void;
 }
 
-const areas = ['Canteiro', 'Almoxarifado', 'Instalações', 'Área Externa', 'Escritório', 'Depósito'];
+const areas = ['Almoxarifado', 'Instalações', 'Área Externa', 'Escritório', 'Depósito', 'Outro'];
 
 export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMode = false, onEditMode }: TaskModalProps) {
   const [formData, setFormData] = useState({
@@ -689,11 +689,11 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
             {/* Seção: Status e Prioridade */}
             <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Prioridade</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Riscos</Text>
               </View>
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Status Atual</Text>
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{getStatusText(task.status)}</Text>
-              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Prioridade</Text>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Risco</Text>
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{getPriorityText(task.priority)}</Text>
             </View>
             {/* Painel de comentários dentro do ScrollView */}
@@ -793,6 +793,57 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 onChangeText={text => setFormData({ ...formData, assignedTo: text })}
                 editable={canEdit}
               />
+              {/* Campo de seleção de área */}
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Área <Text style={{ color: '#9CA3AF', fontSize: 14 }}>(opcional)</Text></Text>
+              <View style={{ marginBottom: 16 }}>
+                <TouchableOpacity
+                  style={[
+                    styles.modernInput,
+                    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }
+                  ]}
+                  onPress={() => canEdit && setShowAreaPicker(true)}
+                  disabled={!canEdit}
+                >
+                  <Text style={{ color: formData.area ? '#111827' : '#9CA3AF', fontSize: 16 }}>
+                    {formData.area || 'Selecione a área (opcional)'}
+                  </Text>
+                  <ChevronRight size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+                {/* Modal de seleção de área */}
+                <Modal visible={showAreaPicker} transparent animationType="fade" onRequestClose={() => setShowAreaPicker(false)}>
+                  <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setShowAreaPicker(false)}>
+                    <View style={styles.pickerModal}>
+                      <View style={styles.pickerHeader}>
+                        <Text style={styles.pickerTitle}>Selecione a área</Text>
+                        <TouchableOpacity onPress={() => setShowAreaPicker(false)}>
+                          <X size={24} color="#111827" />
+                        </TouchableOpacity>
+                      </View>
+                      {areas.map((area) => (
+                        <TouchableOpacity
+                          key={area}
+                          style={styles.pickerOption}
+                          onPress={() => {
+                            setFormData({ ...formData, area: area === 'Outro' ? '' : area });
+                            setShowAreaPicker(false);
+                          }}
+                        >
+                          <Text style={styles.pickerOptionText}>{area}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
+                {/* Campo de texto para área personalizada */}
+                {formData.area === '' && canEdit && (
+                  <TextInput
+                    style={[styles.modernInput, { marginTop: 8 }]}
+                    placeholder="Digite a área personalizada (opcional)"
+                    value={formData.area}
+                    onChangeText={text => setFormData({ ...formData, area: text })}
+                  />
+                )}
+              </View>
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Descrição Detalhada</Text>
               <TextInput
                 style={[styles.modernInput, { minHeight: 60 }]}
@@ -858,7 +909,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
             {/* Seção: Status e Prioridade */}
             <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Prioridade</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Riscos</Text>
                 <Text style={{ fontSize: 14, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>Configuração</Text>
               </View>
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Status Atual</Text>
@@ -868,7 +919,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 <StatusButton status="completed" label="Concluída" />
                 <StatusButton status="delayed" label="Atrasada" />
               </View>
-              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Prioridade</Text>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Risco</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <PriorityButton priority="high" label="Alta" color="#EF4444" />
                 <PriorityButton priority="medium" label="Média" color="#F59E0B" />

@@ -577,6 +577,13 @@ export default function TasksScreen() {
     }
   };
 
+  // Função para editar tarefa
+  const handleEditTask = (task: Task) => {
+    setSelectedTask(task);
+    setDetailsMode(false);
+    setModalVisible(true);
+  };
+
   // Substituir renderTaskItem para usar TaskFeedCard
   const renderTaskItem = ({ item }: { item: Task }) => (
     <TaskFeedCard
@@ -586,6 +593,7 @@ export default function TasksScreen() {
       onTaskDetails={handleTaskDetails}
       onOpenComments={handleOpenComments}
       onDeleteTask={handleDeleteTask}
+      onEditTask={handleEditTask}
     />
   );
 
