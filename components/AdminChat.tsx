@@ -16,6 +16,7 @@ import { Send, MessageCircle, Bell, Users, Trash2, AlertCircle, Info } from 'luc
 import { useTheme } from '../contexts/ThemeContext';
 import { AdminService, AdminMessage, AdminNotification } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
+import { Timestamp, FieldValue } from 'firebase/firestore';
 
 interface AdminChatProps {
   siteId: string;
@@ -35,10 +36,28 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [showOptions, setShowOptions] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
   const unsubscribeNotifications = useRef<(() => void) | null>(null);
+
+  // Função utilitária para ordenar mensagens
+  function sortMessages(msgs: AdminMessage[]) {
+    return [...msgs].sort((a, b) => {
+      const getTime = (createdAt: any) => {
+        if (!createdAt) return 0;
+        if (typeof createdAt === 'string') return new Date(createdAt).getTime();
+        if (createdAt.toDate) return createdAt.toDate().getTime();
+        return 0;
+      };
+      const timeA = getTime(a.createdAt);
+      const timeB = getTime(b.createdAt);
+      if (timeA !== timeB) return timeA - timeB;
+      // Fallback: comparar por id
+      return (a.id || '').localeCompare(b.id || '');
+    });
+  }
 
   useEffect(() => {
     const initializeComponent = async () => {
@@ -81,7 +100,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
       
       const notificationsData = await AdminService.getNotifications();
       
-      setMessages(messagesData);
+      setMessages(sortMessages(messagesData));
       setNotifications(notificationsData);
     } catch (error) {
       console.error('❌ AdminChat.loadInitialData() - Erro ao carregar dados iniciais:', error);
@@ -95,7 +114,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     try {
       // Listener para mensagens em tempo real
       const messagesUnsubscribe = await AdminService.subscribeToMessages(siteId, (newMessages) => {
-        setMessages(newMessages);
+        setMessages(sortMessages(newMessages));
       });
       unsubscribeMessages.current = messagesUnsubscribe;
 
@@ -182,13 +201,24 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (createdAt: string | Timestamp | FieldValue | undefined) => {
+    if (!createdAt) return 'Enviando...';
+    let date: Date;
+    if (typeof createdAt === 'string') {
+      date = new Date(createdAt);
+    } else if (createdAt instanceof Timestamp) {
+      date = createdAt.toDate();
+    } else {
+      return 'Enviando...';
+    }
     const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 1) {
+    const diffMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffInHours = diffMs / (1000 * 60 * 60);
+    if (diffInMinutes < 1) {
       return 'Agora';
+    } else if (diffInHours < 1) {
+      return `${diffInMinutes}min atrás`;
     } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)}h atrás`;
     } else {
@@ -286,6 +316,8 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     );
   }
 
+  const EMOJIS = ['😀', '😂', '😍', '👍', '🙏', '😎', '😢', '🎉', '🚀', '❤️'];
+
   return (
     <KeyboardAvoidingView 
       style={[styles.container, { backgroundColor: colors.background }, style]}
@@ -343,94 +375,128 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
           />
           
           {/* Message Input */}
-          <View style={[styles.inputContainer, { borderTopColor: colors.border }]}>
-            {/* Chat Type Indicator */}
-            <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20' }]}>
-              <Users size={16} color={colors.primary} />
-              <Text style={[styles.chatTypeText, { color: colors.primary }]}>
-                Chat em Grupo - Enviando para todos os administradores
-              </Text>
-            </View>
-            
-            <View style={styles.inputRow}>
-              <TextInput
-                style={[styles.messageInput, { 
-                  backgroundColor: colors.surface, 
-                  color: colors.text,
-                  borderColor: colors.border 
-                }]}
-                placeholder="Digite sua mensagem para o grupo..."
-                placeholderTextColor={colors.textMuted}
-                value={newMessage}
-                onChangeText={setNewMessage}
-                multiline
-                maxLength={500}
-              />
+          <View style={[styles.inputContainer, { borderTopColor: colors.border, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'flex-end' }]}> 
+            {/* Botão para mostrar/ocultar toda a área de digitação */}
+            {!showOptions && (
               <TouchableOpacity
-                style={[styles.sendButton, { backgroundColor: colors.primary }]}
-                onPress={handleSendMessage}
-                disabled={sending || !newMessage.trim()}
+                onPress={() => setShowOptions(true)}
+                style={{ alignSelf: 'flex-end', margin: 8 }}
+                accessibilityLabel={'Mostrar área de digitação'}
               >
-                {sending ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Send size={20} color="white" />
-                )}
+                <Text style={{ fontSize: 28 }}>😊</Text>
               </TouchableOpacity>
-            </View>
-            
-            {/* Message Options */}
-            <View style={styles.messageOptions}>
-              <View style={styles.optionGroup}>
-                <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Tipo:</Text>
-                <View style={styles.optionButtons}>
-                  {(['general', 'task', 'alert', 'announcement'] as const).map((type) => (
+            )}
+            {showOptions && (
+              <View style={{ flex: 1 }}>
+                {/* Botão para esconder */}
+                <TouchableOpacity
+                  onPress={() => setShowOptions(false)}
+                  style={{ alignSelf: 'flex-end', marginBottom: 4 }}
+                  accessibilityLabel={'Esconder área de digitação'}
+                >
+                  <Text style={{ fontSize: 22 }}>❌</Text>
+                </TouchableOpacity>
+                {/* Emojis sugeridos */}
+                <View style={{ flexDirection: 'row', marginBottom: 8, flexWrap: 'wrap' }}>
+                  {EMOJIS.map((emoji) => (
                     <TouchableOpacity
-                      key={type}
-                      style={[
-                        styles.optionButton,
-                        messageType === type && { backgroundColor: colors.primary }
-                      ]}
-                      onPress={() => setMessageType(type)}
+                      key={emoji}
+                      onPress={() => setNewMessage(newMessage + emoji)}
+                      style={{ marginRight: 8, marginBottom: 4 }}
+                      accessibilityLabel={`Adicionar emoji ${emoji}`}
                     >
-                      <Text style={[
-                        styles.optionButtonText,
-                        { color: messageType === type ? 'white' : colors.text }
-                      ]}>
-                        {type === 'general' ? 'Geral' : 
-                         type === 'task' ? 'Tarefa' : 
-                         type === 'alert' ? 'Alerta' : 'Anúncio'}
-                      </Text>
+                      <Text style={{ fontSize: 24 }}>{emoji}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
-              
-              <View style={styles.optionGroup}>
-                <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Prioridade:</Text>
-                <View style={styles.optionButtons}>
-                  {(['low', 'medium', 'high', 'urgent'] as const).map((pri) => (
-                    <TouchableOpacity
-                      key={pri}
-                      style={[
-                        styles.optionButton,
-                        priority === pri && { backgroundColor: getPriorityColor(pri) }
-                      ]}
-                      onPress={() => setPriority(pri)}
-                    >
-                      <Text style={[
-                        styles.optionButtonText,
-                        { color: priority === pri ? 'white' : colors.text }
-                      ]}>
-                        {pri === 'low' ? 'Baixa' : 
-                         pri === 'medium' ? 'Média' : 
-                         pri === 'high' ? 'Alta' : 'Urgente'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                {/* Chat Type Indicator */}
+                <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20' }]}> 
+                  <Users size={16} color={colors.primary} />
+                  <Text style={[styles.chatTypeText, { color: colors.primary }]}> 
+                    Chat em Grupo - Enviando para todos os administradores
+                  </Text>
+                </View>
+                {/* Campo de mensagem e botão de enviar */}
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={[styles.messageInput, { 
+                      backgroundColor: colors.surface, 
+                      color: colors.text,
+                      borderColor: colors.border 
+                    }]}
+                    placeholder="Digite sua mensagem para o grupo..."
+                    placeholderTextColor={colors.textMuted}
+                    value={newMessage}
+                    onChangeText={setNewMessage}
+                    multiline
+                    maxLength={500}
+                  />
+                  <TouchableOpacity
+                    style={[styles.sendButton, { backgroundColor: colors.primary }]
+                    }
+                    onPress={handleSendMessage}
+                    disabled={sending || !newMessage.trim()}
+                  >
+                    {sending ? (
+                      <ActivityIndicator size="small" color="white" />
+                    ) : (
+                      <Send size={20} color="white" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {/* Message Options */}
+                <View style={styles.messageOptions}>
+                  <View style={styles.optionGroup}>
+                    <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Tipo:</Text>
+                    <View style={styles.optionButtons}>
+                      {(['general', 'task', 'alert', 'announcement'] as const).map((type) => (
+                        <TouchableOpacity
+                          key={type}
+                          style={[
+                            styles.optionButton,
+                            messageType === type && { backgroundColor: colors.primary }
+                          ]}
+                          onPress={() => setMessageType(type)}
+                        >
+                          <Text style={[
+                            styles.optionButtonText,
+                            { color: messageType === type ? 'white' : colors.text }
+                          ]}>
+                            {type === 'general' ? 'Geral' : 
+                             type === 'task' ? 'Tarefa' : 
+                             type === 'alert' ? 'Alerta' : 'Anúncio'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                  <View style={styles.optionGroup}>
+                    <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Prioridade:</Text>
+                    <View style={styles.optionButtons}>
+                      {(['low', 'medium', 'high', 'urgent'] as const).map((pri) => (
+                        <TouchableOpacity
+                          key={pri}
+                          style={[
+                            styles.optionButton,
+                            priority === pri && { backgroundColor: getPriorityColor(pri) }
+                          ]}
+                          onPress={() => setPriority(pri)}
+                        >
+                          <Text style={[
+                            styles.optionButtonText,
+                            { color: priority === pri ? 'white' : colors.text }
+                          ]}>
+                            {pri === 'low' ? 'Baixa' : 
+                             pri === 'medium' ? 'Média' : 
+                             pri === 'high' ? 'Alta' : 'Urgente'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
                 </View>
               </View>
-            </View>
+            )}
           </View>
         </>
       ) : (

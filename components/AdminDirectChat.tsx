@@ -16,6 +16,8 @@ import { Send, ArrowLeft, Trash2, User, Check } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
+import { Timestamp, FieldValue } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AdminDirectChatProps {
   siteId: string;
@@ -40,23 +42,51 @@ export default function AdminDirectChat({
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showOptions, setShowOptions] = useState(false);
+  const [pendingMessages, setPendingMessages] = useState<AdminDirectMessage[]>([]);
   
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
 
+  // Função utilitária para ordenar mensagens
+  function sortMessages(msgs: AdminDirectMessage[]) {
+    return [...msgs].sort((a, b) => {
+      const getTime = (createdAt: any) => {
+        if (!createdAt) return 0;
+        if (typeof createdAt === 'string') return new Date(createdAt).getTime();
+        if (createdAt.toDate) return createdAt.toDate().getTime();
+        return 0;
+      };
+      const timeA = getTime(a.createdAt);
+      const timeB = getTime(b.createdAt);
+      if (timeA !== timeB) return timeA - timeB;
+      // Fallback: comparar por id
+      return (a.id || '').localeCompare(b.id || '');
+    });
+  }
+
+  // useEffect do listener (corrigido: não depende de pendingMessages)
   useEffect(() => {
     let isMounted = true;
     const initializeComponent = async () => {
       try {
         setLoading(true);
         const messagesData = await AdminService.getDirectMessages(siteId, otherUserId);
-        if (isMounted) setMessages(messagesData);
+        if (isMounted) setMessages(sortMessages(messagesData));
         if (unsubscribeMessages.current) unsubscribeMessages.current();
         const unsubscribe = await AdminService.subscribeToDirectMessages(
           siteId,
           otherUserId,
           (newMessages) => {
-            if (isMounted) setMessages(newMessages);
+            if (isMounted) {
+              // Remover mensagens pendentes que já foram confirmadas pelo Firestore
+              setPendingMessages((pending) => {
+                const confirmed = newMessages.map(msg => msg.message + msg.senderId);
+                return pending.filter(pmsg => !confirmed.includes(pmsg.message + pmsg.senderId));
+              });
+              // Mesclar mensagens confirmadas e pendentes
+              setMessages(sortMessages([...newMessages, ...pendingMessages]));
+            }
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: true });
             }, 100);
@@ -90,11 +120,25 @@ export default function AdminDirectChat({
     if (!newMessage.trim()) return;
     try {
       setSending(true);
-      await AdminService.sendDirectMessage(siteId, otherUserId, newMessage.trim());
+      // Mensagem otimista
+      const tempId = 'temp-' + uuidv4();
+      const optimisticMsg: AdminDirectMessage = {
+        id: tempId,
+        siteId,
+        senderId: currentUser?.id || '',
+        senderName: currentUser?.name || 'Você',
+        senderEmail: currentUser?.email || '',
+        recipientId: otherUserId,
+        recipientName: otherUserName,
+        recipientEmail: '',
+        message: newMessage,
+        createdAt: new Date().toISOString(),
+        readBy: [currentUser?.id || ''],
+        attachments: [],
+      };
+      setPendingMessages((prev) => [...prev, optimisticMsg]);
       setNewMessage('');
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      await AdminService.sendDirectMessage(siteId, otherUserId, optimisticMsg.message);
     } catch (error: any) {
       Alert.alert('Erro', 'Não foi possível enviar a mensagem: ' + (error?.message || ''));
     } finally {
@@ -136,16 +180,23 @@ export default function AdminDirectChat({
     setMessageToDelete(null);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (createdAt: string | Timestamp | FieldValue | undefined) => {
+    if (!createdAt) return 'Enviando...';
+    let date: Date;
+    if (typeof createdAt === 'string') {
+      date = new Date(createdAt);
+    } else if (createdAt instanceof Timestamp) {
+      date = createdAt.toDate();
+    } else {
+      return 'Enviando...';
+    }
     const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      if (diffInMinutes < 1) {
-        return 'Agora';
-      }
+    const diffMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffInHours = diffMs / (1000 * 60 * 60);
+    if (diffInMinutes < 1) {
+      return 'Agora';
+    } else if (diffInHours < 1) {
       return `${diffInMinutes}min atrás`;
     } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)}h atrás`;
@@ -179,14 +230,26 @@ export default function AdminDirectChat({
               </Text>
               <Text style={[styles.messageTime, { color: colors.textMuted }]}> 
                 {formatDate(item.createdAt)}
+                {/* Confirmação de leitura */}
+                {isOwnMessage && (
+                  (() => {
+                    if (item.readBy && item.readBy.length === 1 && item.readBy[0] === currentUser?.id) {
+                      return <Text style={{ marginLeft: 4, color: colors.textMuted, fontSize: 14 }}>✔️</Text>;
+                    }
+                    if (item.readBy && item.readBy.includes(item.recipientId)) {
+                      if (item.readAt) {
+                        return <Text style={{ marginLeft: 4, color: '#2563EB', fontSize: 14 }}>✔✔️</Text>; // azul
+                      }
+                      return <Text style={{ marginLeft: 4, color: colors.textMuted, fontSize: 14 }}>✔✔️</Text>; // cinza
+                    }
+                    return null;
+                  })()
+                )}
               </Text>
             </View>
           </View>
           <View style={styles.messageActions}>
-            {/* Confirmação visual de envio */}
-            {isOwnMessage && (
-              <Check size={16} color={colors.success || '#10B981'} style={{ marginRight: 8 }} />
-            )}
+            {/* Confirmação visual de envio (removida, agora está ao lado do horário) */}
             {/* Botão de exclusão */}
             {isOwnMessage && currentUser && (
               <TouchableOpacity
@@ -222,6 +285,8 @@ export default function AdminDirectChat({
       </View>
     );
   }
+
+  const EMOJIS = ['😀', '😂', '😍', '👍', '🙏', '😎', '😢', '🎉', '🚀', '❤️'];
 
   return (
     <KeyboardAvoidingView 
@@ -267,14 +332,41 @@ export default function AdminDirectChat({
       />
       
       {/* Message Input */}
-      <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
-        {/* Chat Type Indicator */}
-        <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
-          <User size={16} color={colors.primary} />
-          <Text style={[styles.chatTypeText, { color: colors.primary }]}>
-            Chat Individual - Enviando para {otherUserName}
-          </Text>
-        </View>
+      <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}> 
+        {/* Botão para mostrar/ocultar opções */}
+        <TouchableOpacity
+          onPress={() => setShowOptions(!showOptions)}
+          style={{ alignSelf: 'flex-end', marginBottom: 4 }}
+          accessibilityLabel={showOptions ? 'Esconder opções' : 'Mostrar opções'}
+        >
+          <Text style={{ fontSize: 22 }}>{showOptions ? '❌' : '😊'}</Text>
+        </TouchableOpacity>
+        {/* Área de opções (emojis + barra de envio) */}
+        {showOptions && (
+          <>
+            {/* Emojis sugeridos */}
+            <View style={{ flexDirection: 'row', marginBottom: 8, flexWrap: 'wrap' }}>
+              {EMOJIS.map((emoji) => (
+                <TouchableOpacity
+                  key={emoji}
+                  onPress={() => setNewMessage(newMessage + emoji)}
+                  style={{ marginRight: 8, marginBottom: 4 }}
+                  accessibilityLabel={`Adicionar emoji ${emoji}`}
+                >
+                  <Text style={{ fontSize: 24 }}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {/* Chat Type Indicator */}
+            <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}> 
+              <User size={16} color={colors.primary} />
+              <Text style={[styles.chatTypeText, { color: colors.primary }]}> 
+                Chat Individual - Enviando para {otherUserName}
+              </Text>
+            </View>
+          </>
+        )}
+        {/* Campo de mensagem e botão de enviar continuam visíveis */}
         
         <View style={styles.inputRow}>
           <TextInput

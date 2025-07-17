@@ -15,7 +15,8 @@ import {
   serverTimestamp,
   Timestamp,
   setDoc,
-  writeBatch
+  writeBatch,
+  FieldValue
 } from 'firebase/firestore';
 import { AuthService, User, Site } from './AuthService';
 import { httpsCallable } from "firebase/functions";
@@ -30,7 +31,7 @@ export interface AdminMessage {
   message: string;
   type: 'general' | 'task' | 'alert' | 'announcement';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  createdAt: string;
+  createdAt: string | Timestamp | FieldValue;
   updatedAt?: string;
   readBy: string[];
   attachments?: string[];
@@ -72,10 +73,11 @@ export interface AdminDirectMessage {
   recipientName: string;
   recipientEmail: string;
   message: string;
-  createdAt: string;
+  createdAt: string | Timestamp | FieldValue;
   updatedAt?: string;
   readBy: string[];
   attachments?: string[];
+  readAt?: string | Timestamp;
 }
 
 export interface AdminChatSession {
@@ -123,7 +125,7 @@ export class AdminService {
         message,
         type,
         priority,
-        createdAt: new Date().toISOString(),
+        createdAt: serverTimestamp(), // CORRIGIDO
         readBy: [currentUser.id], // O remetente já leu
       };
 
@@ -953,7 +955,7 @@ export class AdminService {
         recipientName: recipient.name,
         recipientEmail: recipient.email,
         message,
-        createdAt: new Date().toISOString(),
+        createdAt: serverTimestamp(), // CORRIGIDO
         readBy: [currentUser.id], // O remetente já leu
       };
 
@@ -1125,10 +1127,19 @@ export class AdminService {
 
       const message = messageDoc.data() as AdminDirectMessage;
       if (!message.readBy.includes(currentUser.id)) {
-        await updateDoc(messageRef, {
-          readBy: [...message.readBy, currentUser.id],
-          updatedAt: new Date().toISOString(),
-        });
+        // Se o usuário atual é o destinatário, além de adicionar no readBy, também preenche o readAt
+        if (message.recipientId === currentUser.id) {
+          await updateDoc(messageRef, {
+            readBy: [...message.readBy, currentUser.id],
+            readAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        } else {
+          await updateDoc(messageRef, {
+            readBy: [...message.readBy, currentUser.id],
+            updatedAt: new Date().toISOString(),
+          });
+        }
       }
     } catch (error) {
       console.error('Erro ao marcar mensagem individual como lida:', error);

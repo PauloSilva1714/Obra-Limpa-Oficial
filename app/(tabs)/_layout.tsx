@@ -6,7 +6,8 @@ import {
   BarChart3, 
   Camera, 
   Users,
-  Building2 
+  Building2,
+  MessageCircle // Adiciona ícone de chat
 } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { useState, useEffect } from 'react';
@@ -29,10 +30,10 @@ const TABS_CONFIG = {
     title: t('progress'),
     icon: BarChart3,
   },
-  invites: {
-    name: 'invites',
-    title: t('invites'),
-    icon: Users,
+  chat: {
+    name: 'chat',
+    title: 'Chat',
+    icon: MessageCircle,
   },
   profile: {
     name: 'profile',
@@ -92,7 +93,7 @@ export default function TabLayout() {
   useEffect(() => {
     if (userRole === 'worker' && !isLoading) {
       const currentTab = segments[segments.length - 1];
-      if (currentTab === 'admin' || currentTab === 'invites') {
+      if (currentTab === 'admin' || currentTab === 'chat') {
         router.replace('/(tabs)');
       }
     }
@@ -119,7 +120,7 @@ export default function TabLayout() {
   // Definir tabs dinamicamente DENTRO do componente
   const getTabsToRender = () => {
     if (userRole === 'admin') {
-      return [TABS_CONFIG.index, TABS_CONFIG.admin, TABS_CONFIG.progress, TABS_CONFIG.invites, TABS_CONFIG.profile];
+      return [TABS_CONFIG.index, TABS_CONFIG.admin, TABS_CONFIG.progress, TABS_CONFIG.chat, TABS_CONFIG.profile];
     }
     // worker
     return [TABS_CONFIG.index, TABS_CONFIG.progress, TABS_CONFIG.profile];
@@ -168,12 +169,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <TABS_CONFIG.progress.icon size={size} color={color} />,
         }}
       />
-      {/* Invites - ocultar visualmente para worker */}
+      {/* Chat - substitui invites */}
       <Tabs.Screen
-        name={TABS_CONFIG.invites.name}
+        name={TABS_CONFIG.chat.name}
         options={{
-          title: TABS_CONFIG.invites.title,
-          tabBarIcon: ({ color, size }) => <TABS_CONFIG.invites.icon size={size} color={color} />,
+          title: TABS_CONFIG.chat.title,
+          tabBarIcon: ({ color, size }) => <TABS_CONFIG.chat.icon size={size} color={color} />, 
           tabBarStyle: userRole === 'worker' ? { display: 'none' } : undefined,
         }}
       />
