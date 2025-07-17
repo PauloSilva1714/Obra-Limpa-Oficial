@@ -1608,6 +1608,14 @@ export class AuthService {
     }
   }
 
+  static async updateUserName(userId: string, name: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), { name });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   static async testAuthOnly(): Promise<{
     success: boolean;
     error?: string;

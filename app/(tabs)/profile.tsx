@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView, Modal, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, ScrollView, Modal, Image, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { User, Building2, LogOut, Settings, Bell, Shield, CircleHelp as HelpCircle } from 'lucide-react-native';
 import { AuthService, User as UserData } from '@/services/AuthService';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadProfilePhoto } from '@/services/PhotoService';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface UserProfile {
   name: string;
@@ -29,8 +30,12 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const user = await AuthService.getCurrentUser();
-      setUserData(user);
+      // Buscar usuário autenticado
+      const localUser = await AuthService.getCurrentUser();
+      if (!localUser) return;
+      // Buscar sempre do Firestore pelo id
+      const freshUser = await AuthService.getUserById(localUser.id);
+      setUserData(freshUser);
     };
     fetchUser();
   }, []);
@@ -46,6 +51,14 @@ export default function ProfileScreen() {
     if (hour < 12) return 'Bom dia';
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
+  };
+
+  // Função para emoji dinâmico
+  const getGreetingEmoji = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return '☀️';
+    if (hour < 18) return '🌤️';
+    return '🌙';
   };
 
   const handleNotificationChange = (key: 'taskCreation' | 'taskUpdate' | 'loginConfirmation', value: boolean) => {
@@ -65,7 +78,17 @@ export default function ProfileScreen() {
     if (!userData) return;
     setIsSaving(true);
     try {
+      // Salvar notificações
       await AuthService.updateNotificationSettings(userData.id, userData.notifications || {});
+      // Salvar foto de perfil, se houver
+      if (userData.photoURL) {
+        await AuthService.updateUserProfilePhoto(userData.id, userData.photoURL);
+      }
+      // Salvar nome, se alterado
+      if (userData.name) {
+        await AuthService.updateUserName(userData.id, userData.name);
+      }
+      // Buscar usuário atualizado do Firestore
       const updatedUser = await AuthService.getUserById(userData.id);
       setUserData(updatedUser);
       setShowSuccessModal(true);
@@ -122,8 +145,6 @@ export default function ProfileScreen() {
       await AuthService.updateUserProfilePhoto(userData.id, photoURL);
       // Buscar usuário atualizado do Firestore
       const updatedUser = await AuthService.getUserById(userData.id);
-      // Salvar no AsyncStorage
-      await AuthService.saveUserToStorageStatic(updatedUser);
       setUserData(updatedUser);
       Alert.alert('Sucesso', 'Foto de perfil atualizada!');
     } catch (error) {
@@ -193,10 +214,52 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Saudação dinâmica no topo com gradiente e emoji (compatível com web/mobile) */}
+        <View style={{ alignItems: 'center', marginTop: 36, marginBottom: 18 }}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(37,99,235,0.08)',
+            borderRadius: 32,
+            paddingHorizontal: 24,
+            paddingVertical: 10,
+            shadowColor: '#2563EB',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.12,
+            shadowRadius: 8,
+            elevation: 2,
+          }}>
+            <Text style={{ fontSize: 28, marginRight: 10 }}>{getGreetingEmoji()}</Text>
+            <LinearGradient
+              colors={['#2563EB', '#7C3AED']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ borderRadius: 8 }}
+            >
+              <Text style={{
+                fontSize: 26,
+                fontWeight: 'bold',
+                letterSpacing: 1,
+                textTransform: 'capitalize',
+                paddingHorizontal: 8,
+                backgroundColor: 'transparent',
+                color: '#fff',
+              }}>{getGreeting()}</Text>
+            </LinearGradient>
+          </View>
+        </View>
         <View style={styles.header}>
           <User size={40} color="#111827" />
           <View>
-            <Text style={styles.userName}>{getGreeting()} {getFirstName(userData.name)}</Text>
+            {/* Campo de texto editável para o nome */}
+            <TextInput
+              style={styles.userName}
+              value={userData.name}
+              onChangeText={name => setUserData(prev => prev ? { ...prev, name } : prev)}
+              placeholder="Seu nome"
+              placeholderTextColor="#9CA3AF"
+              maxLength={40}
+            />
           </View>
         </View>
 
