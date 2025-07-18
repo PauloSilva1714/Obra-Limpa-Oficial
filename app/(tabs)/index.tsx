@@ -618,47 +618,56 @@ export default function TasksScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('tasks')}</Text>
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        backgroundColor: colors.background, // fundo igual ao da tela
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+        zIndex: 10,
+      }}>
         {userRole === 'admin' && (
           <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: colors.primary }]}
+            style={{
+              width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary,
+              justifyContent: 'center', alignItems: 'center', marginRight: 8
+            }}
             onPress={handleCreateTask}
           >
             <Plus size={20} color="#FFFFFF" />
           </TouchableOpacity>
         )}
-      </View>
-
-      {/* Campo de Pesquisa */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View style={[styles.searchInputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Feather name="search" size={16} color={colors.textMuted} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Pesquisar tarefas..."
-            placeholderTextColor={colors.textMuted}
-            value={searchQuery}
-            onChangeText={(text) => {
-              setSearchQuery(text);
-              filterTasks(text);
-            }}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <X size={16} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
+        <View style={{ flex: 1 }}>
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
+            borderRadius: 8, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 8, height: 36
+          }}>
+            <Feather name="search" size={16} color={colors.textMuted} style={{ marginRight: 4 }} />
+            <TextInput
+              style={{ flex: 1, color: colors.text, fontSize: 15, paddingVertical: 0, backgroundColor: 'transparent' }}
+              placeholder="Pesquisar tarefas..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={(text) => {
+                setSearchQuery(text);
+                filterTasks(text);
+              }}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={clearSearch}>
+                <X size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-        {isSearching && (
-          <Text style={[styles.searchResults, { color: colors.textSecondary }]}>
-            {filteredTasks.length} resultado{filteredTasks.length !== 1 ? 's' : ''} encontrado{filteredTasks.length !== 1 ? 's' : ''}
-          </Text>
-        )}
       </View>
 
       {/* Feed de Tarefas */}
       <FlatList
+        ListHeaderComponent={<Text style={[styles.headerTitle, { color: colors.text, marginTop: 16, marginBottom: 8 }]}>Tarefas</Text>}
         data={filteredTasks}
         renderItem={renderTaskItem}
         keyExtractor={(item) => item.id}
@@ -1666,5 +1675,24 @@ const styles = StyleSheet.create({
   commentUser: {
     fontWeight: 'bold',
     color: '#2563EB', // ou a cor desejada
+  },
+  headerFixed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    backgroundColor: '#FFFFFF', // Cor de fundo para o header fixo
+    zIndex: 10, // Garante que fique acima do conteúdo
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  title: {
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
+    color: '#333', // Cor do texto para o header fixo
   },
 });

@@ -33,6 +33,7 @@ export default function ProgressScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Adicionar estados para modal de detalhes
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -104,6 +105,7 @@ export default function ProgressScreen() {
   // Cálculo dos status diretamente das tarefas carregadas
   const completedTasks = tasks.filter(t => t.status === 'completed').length;
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
+  const delayedTasks = tasks.filter(t => t.status === 'delayed').length;
   const pendingTasks = tasks.filter(t => t.status === 'pending' || !t.status).length;
   const totalTasks = tasks.length;
 
@@ -116,6 +118,7 @@ export default function ProgressScreen() {
     const data = [
       { value: completedTasks, color: '#10B981', label: 'Concluídas' },
       { value: inProgressTasks, color: '#F59E0B', label: 'Em Andamento' },
+      { value: delayedTasks, color: '#EF4444', label: 'Atrasadas' },
       { value: pendingTasks, color: '#6B7280', label: 'Pendentes' },
     ].filter(item => item.value > 0);
 
@@ -296,23 +299,22 @@ export default function ProgressScreen() {
           />
         }
       >
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.title}>Progresso da Obra</Text>
-            <View style={styles.completionContainer}>
-              <Text style={styles.completionRate}>{progressData.completionRate}%</Text>
-              <Text style={styles.completionLabel}>Concluído</Text>
-            </View>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Progresso da Obra</Text>
+          <View style={styles.completionContainer}>
+            <Text style={styles.completionRate}>{progressData.completionRate}%</Text>
+            <Text style={styles.completionLabel}>Concluído</Text>
           </View>
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={onRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw size={20} color="#6B7280" style={refreshing ? { opacity: 0.5 } : undefined} />
-          </TouchableOpacity>
         </View>
-
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={onRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCw size={20} color="#6B7280" style={refreshing ? { opacity: 0.5 } : undefined} />
+        </TouchableOpacity>
+      </View>
         {/* Gráfico de Pizza */}
         <View style={styles.chartSection}>
           <Text style={styles.sectionTitle}>Distribuição por Status</Text>
@@ -331,10 +333,11 @@ export default function ProgressScreen() {
           )}
         </View>
       </ScrollView>
+      {/* Renderizar o TaskModal no final do componente */}
       <TaskModal
         visible={modalVisible}
         task={selectedTask}
-        userRole={null}
+        userRole={null} // ou passe o userRole correto se disponível
         onClose={() => setModalVisible(false)}
         onSave={() => setModalVisible(false)}
         detailsMode={true}
