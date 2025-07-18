@@ -16,6 +16,7 @@ import { ProgressService, ProgressData } from '@/services/ProgressService';
 import taskService, { Task } from '@/services/TaskService';
 import { router } from 'expo-router';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
+import { TaskModal } from '@/components/TaskModal';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,8 @@ export default function ProgressScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {
     loadData();
@@ -257,7 +260,10 @@ export default function ProgressScreen() {
           {/* Botão de ver detalhes */}
           <TouchableOpacity 
             style={styles.detailsButton}
-            onPress={() => router.push(`/admin/tasks/${task.id}`)}
+            onPress={() => {
+              setSelectedTask(task);
+              setModalVisible(true);
+            }}
           >
             <Eye size={16} color="#FFFFFF" />
             <Text style={styles.detailsButtonText}>Ver Detalhes</Text>
@@ -279,23 +285,6 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.title}>Progresso da Obra</Text>
-          <View style={styles.completionContainer}>
-            <Text style={styles.completionRate}>{progressData.completionRate}%</Text>
-            <Text style={styles.completionLabel}>Concluído</Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={onRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw size={20} color="#6B7280" style={refreshing ? { opacity: 0.5 } : undefined} />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView 
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
@@ -307,6 +296,23 @@ export default function ProgressScreen() {
           />
         }
       >
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>Progresso da Obra</Text>
+            <View style={styles.completionContainer}>
+              <Text style={styles.completionRate}>{progressData.completionRate}%</Text>
+              <Text style={styles.completionLabel}>Concluído</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw size={20} color="#6B7280" style={refreshing ? { opacity: 0.5 } : undefined} />
+          </TouchableOpacity>
+        </View>
+
         {/* Gráfico de Pizza */}
         <View style={styles.chartSection}>
           <Text style={styles.sectionTitle}>Distribuição por Status</Text>
@@ -325,6 +331,14 @@ export default function ProgressScreen() {
           )}
         </View>
       </ScrollView>
+      <TaskModal
+        visible={modalVisible}
+        task={selectedTask}
+        userRole={null}
+        onClose={() => setModalVisible(false)}
+        onSave={() => setModalVisible(false)}
+        detailsMode={true}
+      />
     </SafeAreaView>
   );
 }

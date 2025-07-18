@@ -109,7 +109,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         <View style={styles.fbHeaderInfo}>
           <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>
           <Text style={styles.fbDate}>{new Date(task.createdAt).toLocaleDateString('pt-BR')}</Text>
-        </View>
+          </View>
         <View style={styles.statusRiskBadges}>
           <View style={[styles.statusBadge, getStatusBadgeStyle(task.status)]}>
             <Text style={{ fontWeight: 'bold', color: getStatusBadgeStyle(task.status).color, fontSize: 13 }}>
