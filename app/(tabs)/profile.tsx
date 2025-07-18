@@ -394,18 +394,18 @@ export default function ProfileScreen() {
                   marginBottom: 4,
                 }}
               >
-                {uploading ? (
-                  <ActivityIndicator size="large" color="#22C55E" />
-                ) : userData?.photoURL ? (
+          {uploading ? (
+            <ActivityIndicator size="large" color="#22C55E" />
+          ) : userData?.photoURL ? (
                   <Animated.Image
                     source={{ uri: userData.photoURL }}
                     style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#fff', opacity: photoAnim, transform: [{ scale: photoAnim }] }}
                   />
-                ) : (
+          ) : (
                   <TouchableOpacity onPress={handlePickImage} style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }}>
                     <User size={32} color="#6B7280" />
-                  </TouchableOpacity>
-                )}
+            </TouchableOpacity>
+          )}
               </LinearGradient>
               <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 2, gap: 8 }}>
                 {/* Botão Galeria */}
@@ -423,7 +423,7 @@ export default function ProfileScreen() {
                   {...(Platform.OS === 'web' ? { title: 'Tirar Foto' } : {})}
                 >
                   <Camera size={20} color="#2563EB" />
-                </TouchableOpacity>
+            </TouchableOpacity>
               </View>
               {/* Labels pequenas abaixo dos ícones para mobile */}
               {Platform.OS !== 'web' && (
@@ -484,7 +484,7 @@ export default function ProfileScreen() {
                 }}
               >
                 <Pencil size={14} color={isNameFocused ? '#2563EB' : '#6B7280'} />
-              </TouchableOpacity>
+            </TouchableOpacity>
               {/* Cargo abaixo do nome */}
               <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginTop: 2, fontWeight: '500' }}>
                 {userData.role === 'admin' ? 'Administrador' : 'Colaborador'}
@@ -639,7 +639,7 @@ export default function ProfileScreen() {
               icon={<HelpCircle size={20} color="#6B7280" />}
               title="Ajuda"
               subtitle="Central de ajuda e suporte"
-              onPress={() => Alert.alert('Ajuda', 'Entre em contato com o suporte através do email: suporte@gestaoobras.com')}
+              onPress={() => router.push('/admin/support')}
             />
             <MenuItem
               icon={<Settings size={20} color="#6B7280" />}

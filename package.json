@@ -15,6 +15,7 @@
     "@expo-google-fonts/inter": "^0.2.3",
     "@expo/vector-icons": "^14.1.0",
     "@expo/webpack-config": "^18.0.0",
+    "@google/generative-ai": "^0.24.1",
     "@lucide/lab": "^0.1.2",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-firebase/app": "^22.2.1",
@@ -74,7 +75,9 @@
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
     "url": "^0.11.4",
-    "util": "^0.12.5"
+    "util": "^0.12.5",
+    "expo-print": "~14.1.4",
+    "expo-sharing": "~13.1.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

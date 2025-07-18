@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { X, MessageCircle, ChevronLeft, ChevronRight, Video as VideoIcon } from 'lucide-react-native';
 import type { Task } from '../services/TaskService';
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
+import { PDFService } from '../services/PDFService';
 
 interface TaskQuickViewProps {
   visible: boolean;
@@ -25,6 +26,7 @@ interface TaskQuickViewProps {
 export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComment }: TaskQuickViewProps) {
   const [comment, setComment] = useState('');
   const [mediaIndex, setMediaIndex] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   if (!task) return null;
 
@@ -38,6 +40,17 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
 
   const handlePrev = () => setMediaIndex(i => (i > 0 ? i - 1 : medias.length - 1));
   const handleNext = () => setMediaIndex(i => (i < medias.length - 1 ? i + 1 : 0));
+
+  const handleSharePDF = async () => {
+    setPdfLoading(true);
+    try {
+      await PDFService.shareTaskPDF(task);
+    } catch (e) {
+      alert('Erro ao compartilhar PDF.');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -53,7 +66,7 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
                   <Video
                     source={{ uri: currentMedia.url }}
                     style={styles.mediaImage}
-                    resizeMode="cover"
+                    resizeMode={ResizeMode.COVER}
                     useNativeControls
                   />
                 )}
@@ -79,8 +92,26 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
               <X size={22} color="#666" />
             </TouchableOpacity>
           </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>Informações Básicas</Text>
+            <Text style={styles.infoLabel}>Título da Tarefa</Text>
+            <Text style={styles.infoValue}>{task.title}</Text>
+            <Text style={styles.infoLabel}>Descrição Detalhada</Text>
+            <Text style={styles.infoValue}>{task.description}</Text>
+
+            {/* Botão Compartilhar PDF */}
+            <TouchableOpacity style={styles.pdfButton} onPress={handleSharePDF} disabled={pdfLoading}>
+              <Text style={styles.pdfButtonText}>{pdfLoading ? 'Gerando PDF...' : 'Compartilhar PDF da Tarefa'}</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.status}>{task.status === 'completed' ? 'Concluída' : task.status === 'in_progress' ? 'Em andamento' : 'Pendente'}</Text>
           <Text style={styles.description} numberOfLines={3}>{task.description}</Text>
+
+          {/* Botão Compartilhar PDF */}
+          {/* <TouchableOpacity style={styles.pdfButton} onPress={handleSharePDF} disabled={pdfLoading}>
+            <Text style={styles.pdfButtonText}>{pdfLoading ? 'Gerando PDF...' : 'Compartilhar PDF'}</Text>
+          </TouchableOpacity> */}
+
           <View style={styles.commentsSection}>
             <Text style={styles.commentsTitle}>Comentários</Text>
             <FlatList
@@ -264,5 +295,42 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 15,
+  },
+  pdfButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginHorizontal: 28,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  pdfButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  infoCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    marginHorizontal: 28,
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: '#222',
+    marginBottom: 10,
   },
 }); 
