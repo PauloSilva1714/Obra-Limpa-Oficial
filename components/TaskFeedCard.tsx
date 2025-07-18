@@ -84,6 +84,21 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
     }
   };
 
+  const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return { backgroundColor: '#fff', color: '#F97316', borderColor: '#F97316', borderWidth: 1 };
+      case 'in_progress':
+        return { backgroundColor: '#FDE68A', color: '#B45309' };
+      case 'completed':
+        return { backgroundColor: '#D1FAE5', color: '#059669' };
+      case 'delayed':
+        return { backgroundColor: '#FECACA', color: '#B91C1C' };
+      default:
+        return { backgroundColor: '#E5E7EB', color: '#374151' };
+    }
+  };
+
   return (
     <View style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Substituir o header do card para exibir o nome de quem criou a tarefa no topo, estilo Facebook */}
@@ -94,6 +109,21 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         <View style={styles.fbHeaderInfo}>
           <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>
           <Text style={styles.fbDate}>{new Date(task.createdAt).toLocaleDateString('pt-BR')}</Text>
+        </View>
+        <View style={styles.statusRiskBadges}>
+          <View style={[styles.statusBadge, getStatusBadgeStyle(task.status)]}>
+            <Text style={{ fontWeight: 'bold', color: getStatusBadgeStyle(task.status).color, fontSize: 13 }}>
+              {task.status === 'pending' ? 'Pendente' :
+               task.status === 'in_progress' ? 'Em Andamento' :
+               task.status === 'completed' ? 'Concluída' :
+               task.status === 'delayed' ? 'Atrasada' : task.status}
+            </Text>
+          </View>
+          <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) + '20', marginLeft: 8, minWidth: 48, alignItems: 'center' }] }>
+            <Text style={{ color: getPriorityColor(task.priority), fontWeight: 'bold', fontSize: 13 }}>
+              {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -138,12 +168,6 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
               </Text>
             </View>
           )}
-        </View>
-
-        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) + '20' }]}>
-          <Text style={[styles.priorityText, { color: getPriorityColor(task.priority) }]}>
-            {task.priority === 'high' ? t('high') : task.priority === 'medium' ? t('medium') : t('low')}
-          </Text>
         </View>
       </View>
 
@@ -414,5 +438,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#385898', // Facebook blue
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  statusRiskBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 'auto',
+    gap: 8,
   },
 }); 

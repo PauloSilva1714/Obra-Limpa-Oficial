@@ -181,11 +181,44 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     task
   });
 
+  // Funções utilitárias para cor dos botões de status
+  const getStatusButtonStyle = (status: Task['status']) => {
+    if (formData.status !== status) return {};
+    switch (status) {
+      case 'pending':
+        return { backgroundColor: '#fff', borderColor: '#F97316' };
+      case 'in_progress':
+        return { backgroundColor: '#FDE68A', borderColor: '#F59E0B' };
+      case 'completed':
+        return { backgroundColor: '#D1FAE5', borderColor: '#10B981' };
+      case 'delayed':
+        return { backgroundColor: '#FECACA', borderColor: '#EF4444' };
+      default:
+        return {};
+    }
+  };
+  const getStatusButtonTextStyle = (status: Task['status']) => {
+    if (formData.status !== status) return {};
+    switch (status) {
+      case 'pending':
+        return { color: '#F97316' };
+      case 'in_progress':
+        return { color: '#B45309' };
+      case 'completed':
+        return { color: '#059669' };
+      case 'delayed':
+        return { color: '#B91C1C' };
+      default:
+        return {};
+    }
+  };
+
   const StatusButton = ({ status, label }: { status: Task['status']; label: string }) => (
     <TouchableOpacity
       style={[
         styles.modernStatusButton,
         formData.status === status && styles.modernStatusButtonActive,
+        formData.status === status && getStatusButtonStyle(status),
         !canEdit && styles.buttonDisabled,
       ]}
       onPress={() => {
@@ -210,6 +243,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         style={[
           styles.modernStatusButtonText,
           formData.status === status && styles.modernStatusButtonTextActive,
+          formData.status === status && getStatusButtonTextStyle(status),
         ]}
       >
         {label}
