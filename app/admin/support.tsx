@@ -29,23 +29,23 @@ export default function SupportScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.title}>Suporte</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color="#111827" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Suporte</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
         {/* FAQ Accordion com busca */}
         <FAQAccordionComBusca />
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Contato com o suporte</Text>
+        <Text style={styles.sectionTitle}>Contato com o suporte</Text>
           <TouchableOpacity style={styles.actionButton} onPress={handleEmail}>
-            <Mail size={20} color="#2196F3" />
-            <Text style={styles.actionButtonText}>Enviar e-mail para o suporte</Text>
-          </TouchableOpacity>
+          <Mail size={20} color="#2196F3" />
+          <Text style={styles.actionButtonText}>Enviar e-mail para o suporte</Text>
+        </TouchableOpacity>
           <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#DCFCE7' }]} onPress={handleWhatsApp}>
             <ExternalLink size={20} color="#22C55E" />
             <Text style={[styles.actionButtonText, { color: '#22C55E' }]}>Falar no WhatsApp</Text>

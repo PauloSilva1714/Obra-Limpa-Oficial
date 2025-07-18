@@ -32,7 +32,7 @@ export interface Task {
   videos: string[];
   area: string;
   comments?: Comment[];
-  companyName?: string;
+  createdByName?: string; // Adicionado para refletir o campo salvo
 }
 
 export interface Comment {

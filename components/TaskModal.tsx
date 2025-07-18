@@ -11,6 +11,7 @@ import {
   Image,
   Platform,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { X, User, Calendar, Flag, MapPin, ImagePlus, Video, Trash2, Send, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,6 +23,8 @@ import { db } from '../config/firebase';
 import { uploadImageAsync } from '../services/PhotoService';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import type { Video as ExpoVideoType } from 'expo-av';
+import { PDFService } from '../services/PDFService';
+// Remover: import Share, { Social } from 'react-native-share';
 
 interface TaskModalProps {
   visible: boolean;
@@ -38,7 +41,6 @@ const areas = ['Almoxarifado', 'Instalações', 'Área Externa', 'Escritório', 
 export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMode = false, onEditMode }: TaskModalProps) {
   const [formData, setFormData] = useState({
     title: '',
-    companyName: '', // Novo campo
     description: '',
     status: 'pending' as Task['status'],
     priority: 'medium' as Task['priority'],
@@ -62,6 +64,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const [carrosselVideoStatus, setCarrosselVideoStatus] = useState({});
   const [shouldPlayCarrosselVideo, setShouldPlayCarrosselVideo] = useState(false);
   const carrosselVideoRef = useRef<ExpoVideoType | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Carrossel de mídia (fotos + vídeos)
   const medias = [
@@ -78,7 +81,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     if (task) {
       setFormData({
         title: task.title || '',
-        companyName: task.companyName || '', // Novo campo
         description: task.description || '',
         status: task.status,
         priority: task.priority,
@@ -96,7 +98,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       // Reset form for new task
       setFormData({
         title: '',
-        companyName: '', // Novo campo
         description: '',
         status: 'pending',
         priority: 'medium',
@@ -140,11 +141,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       return;
     }
 
-    if (!formData.companyName.trim()) {
-      Alert.alert('Erro', 'O nome da empresa é obrigatório.');
-      return;
-    }
-
     if (!formData.description.trim()) {
       Alert.alert('Erro', 'A descrição da tarefa é obrigatória.');
       return;
@@ -153,12 +149,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     // Remover qualquer validação obrigatória para assignedTo no handleSave
     // if (!formData.assignedTo.trim()) {
     //   Alert.alert('Erro', 'O nome da pessoa responsável é obrigatório.');
-    //   return;
-    // }
-
-    // Novo: pode validar companyName se quiser
-    // if (!formData.companyName.trim()) {
-    //   Alert.alert('Erro', 'O nome da empresa é obrigatório.');
     //   return;
     // }
 
@@ -559,6 +549,58 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     }
   };
 
+  const handleSharePDF = async () => {
+    if (!task) return;
+    setPdfLoading(true);
+    try {
+      await PDFService.shareTaskPDF(task);
+    } catch (e) {
+      Alert.alert('Erro', 'Erro ao compartilhar PDF.');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const statusMap: { [key: string]: string } = {
+    pending: 'Pendente',
+    in_progress: 'Em andamento',
+    completed: 'Concluída',
+    delayed: 'Atrasada'
+  };
+  const priorityMap: { [key: string]: string } = {
+    high: 'Alta',
+    medium: 'Média',
+    low: 'Baixa'
+  };
+
+  const handleShareWhatsApp = async () => {
+    if (!task) return;
+    const msg = `Tarefa: ${task.title}\nDescrição: ${task.description || '-'}\nStatus: ${statusMap[task.status] || task.status}\nPrioridade: ${priorityMap[task.priority] || task.priority}\nResponsável: ${task.assignedTo || '-'}\nÁrea: ${task.area || '-'}\nData de Criação: ${task.createdAt}`;
+    if (Platform.OS === 'web') {
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      Linking.openURL(url);
+    } else {
+      if (!task.photos || task.photos.length === 0) {
+        alert('Esta tarefa não possui imagem para compartilhar.');
+        return;
+      }
+      try {
+        // Importação dinâmica para evitar erro no web
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const Share = require('react-native-share').default;
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const Social = require('react-native-share').Social;
+        await Share.shareSingle({
+          url: task.photos[0],
+          message: msg,
+          social: Social.Whatsapp,
+        });
+      } catch (error) {
+        // Usuário cancelou ou erro
+      }
+    }
+  };
+
   // 1. Checagem de null para 'task' (exemplo no início do bloco de detalhes):
   if (detailsMode && !task) return null;
 
@@ -681,8 +723,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               </View>
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Título da Tarefa</Text>
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.title}</Text>
-              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Nome da Empresa</Text>
-              <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.companyName || '-'}</Text>
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Descrição Detalhada</Text>
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.description}</Text>
             </View>
@@ -696,6 +736,17 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Risco</Text>
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{getPriorityText(task.priority)}</Text>
             </View>
+            {/* Botão Compartilhar PDF */}
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity style={styles.pdfButton} onPress={handleSharePDF} disabled={pdfLoading}>
+                <Text style={styles.pdfButtonText}>{pdfLoading ? 'Gerando PDF...' : 'Compartilhar PDF da Tarefa'}</Text>
+              </TouchableOpacity>
+            )}
+            {task && task.photos && task.photos.length > 0 && (
+              <TouchableOpacity style={[styles.pdfButton, { backgroundColor: '#25D366', marginTop: 8 }]} onPress={handleShareWhatsApp}>
+                <Text style={[styles.pdfButtonText, { color: '#fff' }]}>Compartilhar no WhatsApp</Text>
+              </TouchableOpacity>
+            )}
             {/* Painel de comentários dentro do ScrollView */}
             {isEditing && (
               <View style={{
@@ -777,73 +828,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 onChangeText={text => setFormData({ ...formData, title: text })}
                 editable={canEdit}
               />
-              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Nome da Empresa</Text>
-              <TextInput
-                style={[styles.modernInput, { marginBottom: 16 }]}
-                placeholder="Digite o nome da empresa"
-                value={formData.companyName}
-                onChangeText={text => setFormData({ ...formData, companyName: text })}
-                editable={canEdit}
-              />
-              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Nome do Colaborador</Text>
-              <TextInput
-                style={[styles.modernInput, { marginBottom: 16 }]}
-                placeholder="Digite o nome do colaborador (opcional)"
-                value={formData.assignedTo}
-                onChangeText={text => setFormData({ ...formData, assignedTo: text })}
-                editable={canEdit}
-              />
-              {/* Campo de seleção de área */}
-              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Área <Text style={{ color: '#9CA3AF', fontSize: 14 }}>(opcional)</Text></Text>
-              <View style={{ marginBottom: 16 }}>
-                <TouchableOpacity
-                  style={[
-                    styles.modernInput,
-                    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }
-                  ]}
-                  onPress={() => canEdit && setShowAreaPicker(true)}
-                  disabled={!canEdit}
-                >
-                  <Text style={{ color: formData.area ? '#111827' : '#9CA3AF', fontSize: 16 }}>
-                    {formData.area || 'Selecione a área (opcional)'}
-                  </Text>
-                  <ChevronRight size={20} color="#9CA3AF" />
-                </TouchableOpacity>
-                {/* Modal de seleção de área */}
-                <Modal visible={showAreaPicker} transparent animationType="fade" onRequestClose={() => setShowAreaPicker(false)}>
-                  <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setShowAreaPicker(false)}>
-                    <View style={styles.pickerModal}>
-                      <View style={styles.pickerHeader}>
-                        <Text style={styles.pickerTitle}>Selecione a área</Text>
-                        <TouchableOpacity onPress={() => setShowAreaPicker(false)}>
-                          <X size={24} color="#111827" />
-                        </TouchableOpacity>
-                      </View>
-                      {areas.map((area) => (
-                        <TouchableOpacity
-                          key={area}
-                          style={styles.pickerOption}
-                          onPress={() => {
-                            setFormData({ ...formData, area: area === 'Outro' ? '' : area });
-                            setShowAreaPicker(false);
-                          }}
-                        >
-                          <Text style={styles.pickerOptionText}>{area}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </TouchableOpacity>
-                </Modal>
-                {/* Campo de texto para área personalizada */}
-                {formData.area === '' && canEdit && (
-                  <TextInput
-                    style={[styles.modernInput, { marginTop: 8 }]}
-                    placeholder="Digite a área personalizada (opcional)"
-                    value={formData.area}
-                    onChangeText={text => setFormData({ ...formData, area: text })}
-                  />
-                )}
-              </View>
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 8 }}>Descrição Detalhada</Text>
               <TextInput
                 style={[styles.modernInput, { minHeight: 60 }]}
@@ -1919,5 +1903,18 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  pdfButton: {
+    backgroundColor: '#F97316',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  pdfButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
   },
 });

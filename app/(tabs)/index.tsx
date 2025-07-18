@@ -200,8 +200,14 @@ export default function TasksScreen() {
 
   // Substituir handleTaskPress para abrir o QuickView
   const handleTaskPress = (task: Task) => {
-    setQuickViewTask(task);
-    setQuickViewVisible(true);
+    if (userRole === 'worker') {
+      setQuickViewTask(task);
+      setQuickViewVisible(true);
+    } else if (userRole === 'admin') {
+      setSelectedTask(task);
+      setDetailsMode(true);
+      setModalVisible(true);
+    }
   };
 
   const handleCreateTask = () => {

@@ -1,17 +1,100 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Task } from './TaskService';
+import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export class PDFService {
   static async generateTaskPDF(task: Task): Promise<string> {
-    const htmlContent = this.generateTaskHTML(task);
-    
+    let photosBase64: string[] = [];
+    if (task.photos && task.photos.length > 0) {
+      photosBase64 = await Promise.all(task.photos.map(async (url, idx) => {
+        try {
+          if (Platform.OS === 'web') {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const result = reader.result as string;
+                resolve(result);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } else {
+            const localUri = url.startsWith('file://') ? url : undefined;
+            let fileUri = localUri;
+            if (!fileUri) {
+              const downloadResumable = FileSystem.createDownloadResumable(
+                url,
+                FileSystem.cacheDirectory + `pdfimg_${Date.now()}_${idx}.jpg`
+              );
+              const downloadResult = await downloadResumable.downloadAsync();
+              fileUri = downloadResult?.uri;
+            }
+            if (fileUri) {
+              const base64 = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.Base64 });
+              const mime = url.endsWith('.png') ? 'image/png' : 'image/jpeg';
+              const dataUrl = `data:${mime};base64,${base64}`;
+              return dataUrl;
+            }
+            return '';
+          }
+        } catch (e) {
+          console.error('Erro ao converter imagem para base64:', url, e);
+          return '';
+        }
+      }));
+      photosBase64 = photosBase64.filter(b64 => b64 && b64.length > 100).slice(0, 1);
+    }
+    if (Platform.OS === 'web') {
+      // Geração de PDF no web usando html2pdf.js via CDN
+      // @ts-ignore
+      const html2pdf = (window as any).html2pdf;
+      if (!html2pdf) {
+        alert('html2pdf.js não está disponível. Verifique se o script CDN está incluso em public/index.html.');
+        return '';
+      }
+      // Montar HTML simples para exportação
+      let html = `<div style='font-family: Arial, sans-serif; padding: 24px; max-width: 600px;'>`;
+      html += `<h2>Tarefa: ${task.title}</h2>`;
+      html += `<p><b>Descrição:</b> ${task.description || '-'}</p>`;
+      html += `<p><b>Status:</b> ${task.status}</p>`;
+      html += `<p><b>Prioridade:</b> ${task.priority}</p>`;
+      html += `<p><b>Responsável:</b> ${task.assignedTo || '-'}</p>`;
+      html += `<p><b>Área:</b> ${task.area || '-'}</p>`;
+      html += `<p><b>Data de Criação:</b> ${task.createdAt}</p>`;
+      html += `<p><b>Última Atualização:</b> ${task.updatedAt}</p>`;
+      if (photosBase64.length > 0) {
+        html += `<div style='margin: 16px 0;'><b>Foto:</b><br/><img src='${photosBase64[0]}' style='max-width: 350px; max-height: 250px; border-radius: 8px; border: 1px solid #ccc;'/></div>`;
+      }
+      if (task.comments && task.comments.length > 0) {
+        html += `<div style='margin-top: 24px;'><b>Comentários:</b><ul style='padding-left: 18px;'>`;
+        task.comments.forEach(comment => {
+          html += `<li><b>${comment.userName || 'Usuário'}:</b> ${comment.text} <span style='color: #888; font-size: 11px;'>${comment.timestamp || ''}</span></li>`;
+        });
+        html += `</ul></div>`;
+      }
+      html += `</div>`;
+      // Gerar e baixar PDF
+      html2pdf().from(html).set({
+        margin: 10,
+        filename: `Tarefa_${task.title.replace(/\s+/g, '_')}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).save();
+      return '';
+    }
+    // Mobile: manter expo-print
+    const htmlContent = this.generateTaskHTML(task, photosBase64);
     try {
       const { uri } = await Print.printToFileAsync({
         html: htmlContent,
         base64: false
       });
-      
       return uri;
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
@@ -22,8 +105,15 @@ export class PDFService {
   static async shareTaskPDF(task: Task): Promise<void> {
     try {
       const pdfUri = await this.generateTaskPDF(task);
-      
-      if (await Sharing.isAvailableAsync()) {
+      if (Platform.OS === 'web') {
+        // Forçar download no navegador
+        const link = document.createElement('a');
+        link.href = pdfUri;
+        link.download = `Tarefa_${task.title.replace(/\s+/g, '_')}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(pdfUri, {
           mimeType: 'application/pdf',
           dialogTitle: `Tarefa: ${task.title}`,
@@ -38,7 +128,7 @@ export class PDFService {
     }
   }
 
-  private static generateTaskHTML(task: Task): string {
+  private static generateTaskHTML(task: Task, photosBase64?: string[]): string {
     const formatDate = (dateString: string) => {
       const date = new Date(dateString);
       return date.toLocaleDateString('pt-BR', {
@@ -416,11 +506,11 @@ export class PDFService {
               </div>
             </div>
 
-            ${task.photos && task.photos.length > 0 ? `
+            ${photosBase64 && photosBase64.length > 0 ? `
             <div class="section photos-section">
-              <div class="section-title">📸 Documentação Visual (${task.photos.length} foto${task.photos.length !== 1 ? 's' : ''})</div>
+              <div class="section-title">📸 Documentação Visual (${photosBase64.length} foto${photosBase64.length !== 1 ? 's' : ''})</div>
               <div class="photos-grid">
-                ${task.photos.map((photo, index) => `
+                ${photosBase64.map((photo, index) => `
                   <div class="photo-item">
                     <img src="${photo}" alt="Documentação ${index + 1}" />
                     <div class="photo-caption">
