@@ -51,6 +51,7 @@ import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import { TaskQuickView } from '@/components/TaskQuickView';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { TaskFeedCard } from '@/components/TaskFeedCard';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 
 // Declarar a lista de emojis sugeridos antes do componente principal
 const suggestedEmojis: string[] = ['😀', '👍', '🙏', '👏', '🚀', '🔥'];
@@ -629,6 +630,10 @@ export default function TasksScreen() {
         borderBottomColor: colors.border,
         zIndex: 10,
       }}>
+        {/* Avatar com status antes do botão + */}
+        <View style={{ marginRight: 12 }}>
+          <ConnectionStatus />
+        </View>
         {userRole === 'admin' && (
           <TouchableOpacity
             style={{

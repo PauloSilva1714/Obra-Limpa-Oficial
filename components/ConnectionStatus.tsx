@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { checkFirebaseConnection, reconnectFirebase } from '../config/firebase';
 import { useAdminRealTimeSync } from '../hooks/useFrameworkReady';
 import { app, db } from '../config/firebase';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthService } from '@/services/AuthService';
+import { getDoc, doc } from 'firebase/firestore';
 
 interface ConnectionStatusProps {
   onConnectionChange?: (isConnected: boolean) => void;
@@ -18,145 +21,47 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
 }) => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(false);
-
-  // Hook para sincronização em tempo real (apenas para administradores)
-  const realTimeSync = showRealTimeSync && siteId ? useAdminRealTimeSync(siteId) : null;
-
-  const checkConnection = async () => {
-    setIsChecking(true);
-    try {
-      // Primeiro, verificar se o Firebase está inicializado
-      if (!app) {
-        setIsConnected(false);
-        return;
-      }
-
-      if (!db) {
-        setIsConnected(false);
-        return;
-      }
-
-      // Agora fazer a verificação completa
-      const connected = await checkFirebaseConnection();
-      setIsConnected(connected);
-      
-      onConnectionChange?.(connected);
-    } catch (error) {
-      setIsConnected(false);
-      onConnectionChange?.(false);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  const handleReconnect = async () => {
-    setIsChecking(true);
-    try {
-      const success = await reconnectFirebase();
-      if (success) {
-        await checkConnection();
-        Alert.alert('Sucesso', 'Tentativa de reconexão enviada. Verificando status...');
-      } else {
-        Alert.alert('Erro', 'Não foi possível restaurar a conexão. Verifique a internet e tente novamente.');
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Erro ao tentar reconectar. Verifique sua conexão com a internet.');
-    } finally {
-      setIsChecking(false);
-    }
-  };
+  const { user } = useAuth();
 
   useEffect(() => {
-    checkConnection();
-    
-    // Verifica conexão a cada 30 segundos
-    const interval = setInterval(checkConnection, 30000);
-    
+    async function checkFirestoreConnection() {
+      try {
+        // Tenta ler um documento simples do Firestore
+        await getDoc(doc(db, '_system', 'connection-test'));
+        setIsConnected(true);
+      } catch (error) {
+        setIsConnected(false);
+      }
+    }
+    checkFirestoreConnection();
+    const interval = setInterval(checkFirestoreConnection, 30000); // Verifica a cada 30s
     return () => clearInterval(interval);
-  }, [checkConnection]);
+  }, []);
 
-  // Renderizar indicador de sincronização em tempo real para administradores
-  if (showRealTimeSync && realTimeSync) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.statusContainer}>
-          <Ionicons 
-            name="ellipse" 
-            size={8} 
-            color={realTimeSync.isConnected ? '#4CAF50' : '#F44336'} 
-          />
-          <Text style={styles.statusText}>
-            {realTimeSync.loading ? 'Sincronizando...' : 
-             realTimeSync.isConnected ? 'Sincronizado' : 'Desconectado'}
-          </Text>
-          {realTimeSync.isConnected && (
-            <View style={styles.realTimeIndicator}>
-              <Ionicons name="sync" size={12} color="#4CAF50" />
-              <Text style={styles.realTimeText}>Tempo Real</Text>
-            </View>
-          )}
-        </View>
-        
-        {!realTimeSync.isConnected && (
-          <TouchableOpacity 
-            style={styles.reconnectButton} 
-            onPress={realTimeSync.refreshData}
-            disabled={realTimeSync.loading}
-          >
-            <Ionicons 
-              name={realTimeSync.loading ? "refresh" : "refresh-outline"} 
-              size={16} 
-              color="#2196F3" 
-            />
-            <Text style={styles.reconnectText}>
-              {realTimeSync.loading ? 'Sincronizando...' : 'Sincronizar'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }
+  // Debug: logar valores no console
+  console.log('[ConnectionStatus] user?.photoURL:', user?.photoURL);
+  console.log('[ConnectionStatus] isConnected:', isConnected);
 
-  if (isConnected === null) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.statusContainer}>
-          <Ionicons name="ellipse" size={8} color="#FFA500" />
-          <Text style={styles.statusText}>Verificando conexão...</Text>
-        </View>
-      </View>
-    );
-  }
+  // Avatar padrão
+  const defaultAvatar = require('@/assets/icon.png');
+  const avatarSource = user?.photoURL ? { uri: user.photoURL } : defaultAvatar;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.statusContainer}>
-        <Ionicons 
-          name="ellipse" 
-          size={8} 
-          color={isConnected ? '#4CAF50' : '#F44336'} 
-        />
-        <Text style={styles.statusText}>
-          {isConnected ? 'Conectado' : 'Desconectado'}
-        </Text>
+    <View style={{ padding: 0, backgroundColor: 'transparent', borderBottomWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        <Image source={avatarSource} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff' }} />
+        <View style={{
+          position: 'absolute',
+          bottom: 2,
+          right: 2,
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: isConnected === false ? '#F44336' : '#4CAF50',
+          borderWidth: 2,
+          borderColor: '#fff',
+        }} />
       </View>
-      
-      {!isConnected && (
-        <TouchableOpacity 
-          style={styles.reconnectButton} 
-          onPress={handleReconnect}
-          disabled={isChecking}
-        >
-          <Ionicons 
-            name={isChecking ? "refresh" : "refresh-outline"} 
-            size={16} 
-            color="#2196F3" 
-          />
-          <Text style={styles.reconnectText}>
-            {isChecking ? 'Reconectando...' : 'Reconectar'}
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };

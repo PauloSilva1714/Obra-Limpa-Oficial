@@ -93,9 +93,7 @@ export default function RootLayout() {
           </Head>
           
           {/* Status de conexão - apenas em desenvolvimento */}
-          {__DEV__ && (
-            <ConnectionStatus onConnectionChange={setIsConnected} />
-          )}
+          {/* Removido ConnectionStatus do topo global, agora aparece apenas na tela de tarefas */}
           
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />

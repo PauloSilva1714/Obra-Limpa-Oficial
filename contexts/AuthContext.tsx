@@ -9,6 +9,7 @@ interface AuthContextData {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  reloadUser: () => Promise<void>; // Adicionado para expor loadUser
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, reloadUser: loadUser }}>
       {children}
     </AuthContext.Provider>
   );

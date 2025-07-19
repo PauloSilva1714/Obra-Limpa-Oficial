@@ -1879,6 +1879,12 @@ export class AuthService {
   static async updateUserProfilePhoto(userId: string, photoURL: string): Promise<void> {
     try {
       await updateDoc(doc(db, 'users', userId), { photoURL });
+      // Buscar usuário atualizado e salvar no AsyncStorage
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(userData));
+      }
     } catch (error) {
       throw error;
     }

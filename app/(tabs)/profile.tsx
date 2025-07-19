@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { uploadProfilePhoto } from '@/services/PhotoService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TextInput as RNTextInput } from 'react-native';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserProfile {
   name: string;
@@ -38,6 +39,7 @@ export default function ProfileScreen() {
   const toastAnim = useRef(new RNAnimated.Value(-80)).current;
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { reloadUser } = useAuth();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -211,6 +213,7 @@ export default function ProfileScreen() {
       // Buscar usuário atualizado do Firestore
       const updatedUser = await AuthService.getUserById(userData.id);
       setUserData(updatedUser);
+      await reloadUser(); // Força atualização do contexto global
       Alert.alert('Sucesso', 'Foto de perfil atualizada!');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível atualizar a foto de perfil.');
