@@ -104,7 +104,15 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
       {/* Substituir o header do card para exibir o nome de quem criou a tarefa no topo, estilo Facebook */}
       <View style={styles.fbHeader}>
         <View style={styles.fbAvatar}>
-          <User size={20} color={colors.primary} />
+          {task.createdByPhotoURL ? (
+            <Image
+              source={{ uri: task.createdByPhotoURL }}
+              style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#eee' }}
+              resizeMode="cover"
+            />
+          ) : (
+            <User size={20} color={colors.primary} />
+          )}
         </View>
         <View style={styles.fbHeaderInfo}>
           <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>

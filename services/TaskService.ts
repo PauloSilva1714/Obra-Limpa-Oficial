@@ -123,9 +123,10 @@ export class TaskService {
         throw new Error('Nenhuma obra selecionada');
       }
 
-      // Buscar nome do usuário atual
+      // Buscar nome e foto do usuário atual
       const currentUser = await AuthService.getCurrentUser();
       const createdByName = currentUser?.name || 'Usuário';
+      const createdByPhotoURL = currentUser?.photoURL || null;
 
       console.log('[TaskService] Site atual:', currentSite.id);
 
@@ -141,6 +142,7 @@ export class TaskService {
         priority: task.priority || 'medium',
         comments: [], // Garantir que comments sempre seja um array
         createdByName, // Adiciona o nome do criador
+        createdByPhotoURL, // Adiciona a foto do criador
       };
       if (!newTask.completedAt) {
         delete newTask.completedAt;
