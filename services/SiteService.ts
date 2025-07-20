@@ -1,4 +1,5 @@
 import { AuthService, Site } from './AuthService';
+import { TaskService } from './TaskService';
 
 export interface SiteWithStats extends Site {
   tasksCount: number;
@@ -27,15 +28,20 @@ class SiteManagementService {
   async getUserSites(): Promise<SiteWithStats[]> {
     try {
       const sites = await AuthService.getUserSites();
-
-      return sites.map((site: Site) => {
-        const stats = this.demoSiteStats.find((s) => s.id === site.id);
-        return {
-          ...site,
-          tasksCount: stats?.tasksCount || 0,
-          completedTasks: stats?.completedTasks || 0,
-        };
-      });
+      // Buscar contagem real de tarefas para cada obra
+      const sitesWithStats = await Promise.all(
+        sites.map(async (site: Site) => {
+          const tasks = await TaskService.getTasksBySite(site.id);
+          const tasksCount = tasks.length;
+          const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
+          return {
+            ...site,
+            tasksCount,
+            completedTasks,
+          };
+        })
+      );
+      return sitesWithStats;
     } catch (error) {
       console.error('Error loading user sites:', error);
       return [];

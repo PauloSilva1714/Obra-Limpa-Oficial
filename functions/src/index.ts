@@ -2,12 +2,13 @@ import * as functions from 'firebase-functions/v1';
 // import { region } from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
-import cors from 'cors';
+// Remover importação global de cors
+// import cors from 'cors';
 import fetch from 'node-fetch';
 // Removido: import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Usar uma instância de CORS que permite todas as origens para simplificar a depuração
-const corsHandler = cors({ origin: true });
+// Remover instância global de corsHandler
+// const corsHandler = cors({ origin: true });
 
 admin.initializeApp();
 
@@ -56,6 +57,8 @@ if (gmailConfig && gmailConfig.user && gmailConfig.pass) {
  * Função HTTP v1 para enviar e-mail.
  * É mais estável para lidar com CORS e parsing de body.
  */
+import cors from 'cors';
+const corsHandler = cors({ origin: true });
 export const sendEmailV1 = functions.https.onRequest((req, res) => {
   // Envolvemos toda a lógica da função no corsHandler.
   // Ele gerenciará as requisições OPTIONS (preflight) automaticamente.
@@ -332,3 +335,74 @@ export const onInviteCreate = functions.firestore
       console.error('Erro ao enviar convite por e-mail:', error);
     }
   });
+
+/**
+ * Função HTTPS para aceitar convite de usuário para uma obra
+ * Recebe: inviteId, userId
+ * Garante que o usuário não seja adicionado duas vezes e atualiza o status do convite
+ */
+export const acceptInvite = functions.https.onCall(async (data, context) => {
+  // Permitir chamadas não autenticadas para teste
+  // if (!context.auth) {
+  //   throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+  // }
+  const { inviteId, userId } = data;
+  if (!inviteId || !userId) {
+    throw new functions.https.HttpsError('invalid-argument', 'inviteId e userId são obrigatórios.');
+  }
+
+  const db = admin.firestore();
+  const inviteRef = db.collection('invites').doc(inviteId);
+  const userRef = db.collection('users').doc(userId);
+
+  // Busca o convite
+  const inviteSnap = await inviteRef.get();
+  if (!inviteSnap.exists) {
+    throw new functions.https.HttpsError('not-found', 'Convite não encontrado.');
+  }
+  const invite = inviteSnap.data();
+  if (!invite) {
+    throw new functions.https.HttpsError('not-found', 'Dados do convite não encontrados.');
+  }
+  if (invite.status !== 'pending') {
+    throw new functions.https.HttpsError('failed-precondition', 'Convite já foi utilizado ou cancelado.');
+  }
+
+  // Busca o usuário
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    throw new functions.https.HttpsError('not-found', 'Usuário não encontrado.');
+  }
+  const user = userSnap.data();
+  if (!user) {
+    throw new functions.https.HttpsError('not-found', 'Dados do usuário não encontrados.');
+  }
+  let sites = [];
+  if (Array.isArray(user.sites)) {
+    sites = user.sites;
+  }
+  if (sites.includes(invite.siteId)) {
+    throw new functions.https.HttpsError('already-exists', 'Usuário já está vinculado à obra.');
+  }
+
+  // Adiciona a obra ao usuário
+  await userRef.update({
+    sites: [...sites, invite.siteId],
+    status: 'active',
+  });
+
+  // Atualiza o convite para aceito
+  await inviteRef.update({
+    status: 'accepted',
+    acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return { success: true };
+});
+
+/**
+ * Função callable de teste para isolar problemas de CORS e callable
+ */
+export const helloWorld = functions.https.onCall((data, context) => {
+  return { message: 'Hello from callable!' };
+});

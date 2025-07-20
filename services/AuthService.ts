@@ -2011,4 +2011,36 @@ export class AuthService {
       }
     }
   }
+
+  // Novo método para buscar colaboradores de uma obra
+  static async getWorkersBySite(siteId: string): Promise<User[]> {
+    try {
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'worker'),
+        where('sites', 'array-contains', siteId)
+      );
+      const snapshot = await getDocs(usersQuery);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+    } catch (error) {
+      console.error('Erro ao buscar colaboradores da obra:', error);
+      return [];
+    }
+  }
+
+  // Novo método para buscar administradores de uma obra
+  static async getAdminsBySite(siteId: string): Promise<User[]> {
+    try {
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'admin'),
+        where('sites', 'array-contains', siteId)
+      );
+      const snapshot = await getDocs(usersQuery);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+    } catch (error) {
+      console.error('Erro ao buscar administradores da obra:', error);
+      return [];
+    }
+  }
 }

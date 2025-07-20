@@ -337,7 +337,7 @@ export class TaskService {
     }
   }
 
-  async getTasksBySite(siteId: string): Promise<Task[]> {
+  static async getTasksBySite(siteId: string): Promise<Task[]> {
     try {
       const tasksQuery = query(
         collection(db, 'tasks'),

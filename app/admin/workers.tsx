@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 import { Plus, Edit, Trash2, ArrowLeft, UserPlus, Crown } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
+import { User } from '@/services/AuthService';
 
 interface Worker {
   id: string;
@@ -31,7 +32,7 @@ interface Invite {
 }
 
 export default function WorkersScreen() {
-  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [workers, setWorkers] = useState<User[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [siteId, setSiteId] = useState<string | null>(null);
@@ -48,15 +49,15 @@ export default function WorkersScreen() {
   useEffect(() => {
     if (!siteId) return;
     setLoading(true);
-    const unsubscribeWorkers = AuthService.subscribeToWorkers(siteId, (workersData) => {
-      setWorkers(workersData);
+    AuthService.getWorkersBySite(siteId).then(users => {
+      setWorkers(users.filter(w => w.status === 'active' || w.status === 'inactive'));
       setLoading(false);
     });
+    // Invites podem continuar como estão
     const unsubscribeInvites = AuthService.subscribeToInvites(siteId, (invitesData) => {
       setInvites(invitesData);
     });
     return () => {
-      unsubscribeWorkers && unsubscribeWorkers();
       unsubscribeInvites && unsubscribeInvites();
     };
   }, [siteId]);

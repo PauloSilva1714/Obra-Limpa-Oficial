@@ -77,9 +77,14 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   useEffect(() => {
     // Buscar colaboradores (workers) ao abrir o modal
     if (visible) {
-      AuthService.getInstance().getWorkers().then((users) => {
-        const onlyWorkers = users.filter((u: any) => u.role === 'worker');
-        setWorkers(onlyWorkers);
+      AuthService.getCurrentSite().then(site => {
+        if (site && site.id) {
+          AuthService.getWorkersBySite(site.id).then((users) => {
+            setWorkers(users);
+          });
+        } else {
+          setWorkers([]);
+        }
       });
     }
   }, [visible]);

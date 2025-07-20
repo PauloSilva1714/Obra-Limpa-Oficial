@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, UserPlus, Crown, Mail, Phone, Building2 } from 'lucide-react-native';
-import { AuthService } from '@/services/AuthService';
+import { AuthService, User } from '@/services/AuthService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 
@@ -26,7 +26,7 @@ interface Admin {
 
 export default function AdminsScreen() {
   const { colors } = useTheme();
-  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [admins, setAdmins] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -49,7 +49,7 @@ export default function AdminsScreen() {
       setLoading(true);
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
-        const siteAdmins = await AuthService.getSiteAdmins(currentSite.id);
+        const siteAdmins = await AuthService.getAdminsBySite(currentSite.id);
         setAdmins(siteAdmins);
       }
     } catch (error) {
@@ -100,7 +100,7 @@ export default function AdminsScreen() {
     setAdminToRemove(null);
   };
 
-  const renderAdminItem = ({ item }: { item: Admin }) => (
+  const renderAdminItem = ({ item }: { item: User }) => (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.adminHeader}>
         <View style={styles.adminInfo}>

@@ -34,10 +34,13 @@ export default function AdminSearch({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      loadAdmins();
-    }
-  }, [visible, siteId]);
+    if (!siteId) return;
+    setLoading(true);
+    AuthService.getAdminsBySite(siteId).then(admins => {
+      setAdmins(admins);
+      setLoading(false);
+    });
+  }, [siteId]);
 
   useEffect(() => {
     if (searchText.trim()) {

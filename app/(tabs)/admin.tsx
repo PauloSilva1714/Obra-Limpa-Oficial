@@ -91,8 +91,10 @@ export default function AdminScreen() {
     setLoadingWorkers(true);
     setWorkersModalVisible(true);
     try {
-      const allWorkers = await AuthService.getInstance().getWorkers();
-      setWorkers(allWorkers.filter(w => w.status === 'active'));
+      const currentSite = await AuthService.getCurrentSite();
+      if (!currentSite) throw new Error('Nenhuma obra selecionada');
+      const workers = await AuthService.getWorkersBySite(currentSite.id);
+      setWorkers(workers.filter(w => w.status === 'active'));
     } catch (e) {
       setWorkers([]);
       Alert.alert('Erro', 'Não foi possível carregar os colaboradores.');

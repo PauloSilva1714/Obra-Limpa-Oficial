@@ -11,7 +11,8 @@ import {
   Animated,
   Dimensions,
   Modal,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +31,8 @@ import {
 } from '@expo-google-fonts/inter';
 import { Picker } from '@react-native-picker/picker';
 import logo from './obra-limpa-logo.png';
+import { getAuth } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const { width } = Dimensions.get('window');
 
@@ -41,6 +44,18 @@ const FUNCOES_OBRA = [
   'Armador',
   'Outro',
 ];
+
+// Função utilitária para redirecionar após aceite de convite
+function redirectAfterInvite() {
+  const auth = getAuth();
+  if (auth.currentUser) {
+    // Usuário já está logado
+    router.replace('/(tabs)/progress');
+  } else {
+    // Usuário não está logado
+    router.replace('/(auth)/login');
+  }
+}
 
 export default function RegisterScreen() {
   const { role, inviteId } = useLocalSearchParams<{ role: 'admin' | 'worker', inviteId?: string }>();
@@ -68,6 +83,7 @@ export default function RegisterScreen() {
   const [showDuplicateAdminModal, setShowDuplicateAdminModal] = useState(false);
   const [duplicateAdminEmail, setDuplicateAdminEmail] = useState('');
   const [showDuplicateSiteModal, setShowDuplicateSiteModal] = useState(false);
+  const [checkingExistingUser, setCheckingExistingUser] = useState(true);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -137,6 +153,31 @@ export default function RegisterScreen() {
     };
     fetchInviteAndSite();
   }, [inviteId]);
+
+  useEffect(() => {
+    const checkIfUserExistsAndAcceptInvite = async () => {
+      setCheckingExistingUser(true);
+      if (inviteId && inviteInfo && inviteInfo.email) {
+        const existingUser = await AuthService.getUserByEmail(inviteInfo.email);
+        if (existingUser) {
+          const functions = getFunctions();
+          const acceptInvite = httpsCallable(functions, 'acceptInvite');
+          try {
+            await acceptInvite({ inviteId, userId: existingUser.id });
+            redirectAfterInvite();
+            return;
+          } catch (error) {
+            Alert.alert('Erro', 'Erro ao aceitar convite para usuário já cadastrado.');
+          }
+        }
+      }
+      setCheckingExistingUser(false);
+    };
+
+    if (inviteInfo) {
+      checkIfUserExistsAndAcceptInvite();
+    }
+  }, [inviteInfo]);
 
   const handleRegister = async () => {
     if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.confirmPassword.trim()) {
@@ -275,6 +316,15 @@ export default function RegisterScreen() {
           <Text style={styles.subtitleFallback}>Sistema de Gestão Inteligente</Text>
         </View>
       </SafeAreaView>
+    );
+  }
+
+  if (checkingExistingUser) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#2563EB" />
+        <Text>Verificando convite...</Text>
+      </View>
     );
   }
 

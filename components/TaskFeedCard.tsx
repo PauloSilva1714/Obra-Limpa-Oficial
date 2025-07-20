@@ -46,8 +46,14 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
   const [workers, setWorkers] = useState<any[]>([]);
 
   useEffect(() => {
-    AuthService.getInstance().getWorkers().then((users) => {
-      setWorkers(users);
+    AuthService.getCurrentSite().then(site => {
+      if (site && site.id) {
+        AuthService.getWorkersBySite(site.id).then((users) => {
+          setWorkers(users);
+        });
+      } else {
+        setWorkers([]);
+      }
     });
   }, []);
 

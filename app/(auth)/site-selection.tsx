@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Building2, ChevronRight, MapPin } from 'lucide-react-native';
+import { Building2, ChevronRight, MapPin, CheckCircle } from 'lucide-react-native';
 import { AuthService, User } from '../../services/AuthService';
 import { SiteService, SiteWithStats } from '../../services/SiteService';
 
 export default function SiteSelectionScreen() {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 500;
   const [sites, setSites] = useState<SiteWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<'admin' | 'worker'>('worker');
@@ -77,24 +79,34 @@ export default function SiteSelectionScreen() {
 
     return (
       <TouchableOpacity 
-        style={styles.siteCard} 
+        style={[styles.siteCard, isSmallScreen && styles.siteCardSmall]} 
         onPress={() => handleSiteSelection(item)}
       >
-        <View style={styles.siteHeader}>
+        <View style={[styles.siteHeader, isSmallScreen && styles.siteHeaderSmall]}>  
           <View style={styles.siteIconContainer}>
             <Building2 size={24} color="#F97316" />
           </View>
-          <View style={styles.siteInfo}>
-            <Text style={styles.siteName}>{item.name}</Text>
+          <View style={[styles.siteInfo, { flex: 1 }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Text style={styles.siteName} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
+              <CheckCircle size={16} color="#10B981" style={{ marginLeft: 8, marginRight: 2 }} />
+              <Text style={styles.taskRatio} numberOfLines={1}>{item.completedTasks}/{item.tasksCount}</Text>
+              <View style={styles.miniBarContainer}>
+                <View style={styles.miniBarBg}>
+                  <View style={[styles.miniBarFill, { width: `${completionPercentage}%` }]} />
+                </View>
+                <Text style={styles.percentText}>{completionPercentage}%</Text>
+              </View>
+            </View>
             <View style={styles.addressContainer}>
               <MapPin size={14} color="#666666" />
-              <Text style={styles.siteAddress}>{item.address}</Text>
+              <Text style={styles.siteAddress} numberOfLines={1} ellipsizeMode="tail">{item.address}</Text>
             </View>
           </View>
           <ChevronRight size={20} color="#CCCCCC" />
         </View>
-        
-        <View style={styles.siteStats}>
+        {/* Mantém as estatísticas detalhadas e barra grande se quiser */}
+        {/* <View style={[styles.siteStats, isSmallScreen && styles.siteStatsSmall]}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{item.tasksCount}</Text>
             <Text style={styles.statLabel}>Tarefas</Text>
@@ -107,9 +119,8 @@ export default function SiteSelectionScreen() {
             <Text style={styles.statNumber}>{completionPercentage}%</Text>
             <Text style={styles.statLabel}>Progresso</Text>
           </View>
-        </View>
-        
-        <View style={styles.progressContainer}>
+        </View> */}
+        {/* <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
             <View 
               style={[
@@ -118,7 +129,7 @@ export default function SiteSelectionScreen() {
               ]} 
             />
           </View>
-        </View>
+        </View> */}
       </TouchableOpacity>
     );
   };
@@ -222,20 +233,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    marginBottom: 8,
+  },
+  siteCardSmall: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    padding: 12,
   },
   siteHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    width: '100%',
   },
-  siteIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#FEF3F2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
+  siteHeaderSmall: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   siteInfo: {
     flex: 1,
@@ -254,13 +268,54 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
+  taskRatio: {
+    fontSize: 14,
+    color: '#10B981',
+    fontWeight: 'bold',
+    marginLeft: 4,
+    marginRight: 8,
+  },
+  miniBarContainer: {
+    height: 10,
+    width: 50,
+    marginLeft: 8,
+    justifyContent: 'center',
+  },
+  miniBarBg: {
+    height: 6,
+    width: '100%',
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  miniBarFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 3,
+  },
+  percentText: {
+    fontSize: 13,
+    color: '#374151',
+    marginLeft: 6,
+    fontWeight: 'bold',
+    minWidth: 28,
+    textAlign: 'right',
+  },
   siteStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 16,
+    width: '100%',
+  },
+  siteStatsSmall: {
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    marginBottom: 8,
   },
   statItem: {
     alignItems: 'center',
+    minWidth: 60,
+    marginBottom: 4,
   },
   statNumber: {
     fontSize: 20,
@@ -298,5 +353,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '500',
+  },
+  siteIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#FEF3F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
 });
