@@ -93,8 +93,13 @@ export default function AdminScreen() {
     try {
       const currentSite = await AuthService.getCurrentSite();
       if (!currentSite) throw new Error('Nenhuma obra selecionada');
-      const workers = await AuthService.getWorkersBySite(currentSite.id);
-      setWorkers(workers.filter(w => w.status === 'active'));
+      const [workers, admins] = await Promise.all([
+        AuthService.getWorkersBySite(currentSite.id),
+        AuthService.getAdminsBySite(currentSite.id),
+      ]);
+      // Unir e filtrar apenas ativos
+      const allActive = [...workers, ...admins].filter(w => w.status === 'active');
+      setWorkers(allActive);
     } catch (e) {
       setWorkers([]);
       Alert.alert('Erro', 'Não foi possível carregar os colaboradores.');
@@ -202,24 +207,16 @@ export default function AdminScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Painel Administrativo</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            Gerencie suas obras e colaboradores
-          </Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Cabeçalho agora dentro do ScrollView */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Painel Administrativo</Text>
+          <Text style={styles.subtitle}>Gerencie suas obras e colaboradores</Text>
+          <TouchableOpacity style={styles.refreshButton} onPress={loadAdminStats}>
+            <RefreshCw size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[styles.refreshButton, { backgroundColor: colors.primary + '20' }]}
-          onPress={loadAdminStats}
-          disabled={loading}
-        >
-          <RefreshCw size={20} color={colors.primary} style={loading ? { opacity: 0.5 } : undefined} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Estatísticas */}
         <View style={styles.statsSection}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Visão Geral</Text>
@@ -334,7 +331,9 @@ export default function AdminScreen() {
                 renderItem={({ item }) => (
                   <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                     <Text style={{ fontSize: 16, color: colors.text }}>{item.name}</Text>
-                    <Text style={{ fontSize: 14, color: colors.textSecondary }}>Função: {item.funcao || 'Não informada'}</Text>
+                    <Text style={{ fontSize: 14, color: colors.textSecondary }}>
+                      Função: {item.funcao ? item.funcao : (item.role === 'admin' ? 'Administrador' : 'Não informada')}
+                    </Text>
                   </View>
                 )}
                 style={{ maxHeight: 350 }}
@@ -401,27 +400,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   header: {
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderBottomWidth: 1,
+    // Voltar a usar as cores do tema
+    // backgroundColor: '#FFFFFF',
+    // borderBottomColor: '#E0E0E0',
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.05,
+    // shadowRadius: 4,
+    // elevation: 3,
   },
-  headerLeft: {
-    flexDirection: 'column',
-  },
-  headerTitle: {
+  title: {
     fontSize: 28,
     fontFamily: 'Inter-Bold',
     marginBottom: 4,
+    color: '#F97316', // Laranja destaque
   },
-  headerSubtitle: {
+  subtitle: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
+    color: '#666',
   },
   refreshButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#E0E0E0',
     borderRadius: 20,
     padding: 8,
-    marginLeft: 16,
   },
   content: {
     flex: 1,

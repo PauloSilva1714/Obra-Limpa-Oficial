@@ -705,21 +705,28 @@ export class AdminService {
    */
   static async getAdminStats() {
     try {
-      // Buscar obras
-      const sitesSnapshot = await getDocs(collection(db, 'sites'));
-      console.log('[AdminService] Obras encontradas:', sitesSnapshot.size);
+      // Buscar apenas as obras do usuário logado
+      const userSites = await AuthService.getUserSites();
+      const totalSites = userSites.length;
 
-      // Buscar colaboradores usando o método do AuthService
-      const workers = await AuthService.getInstance().getWorkers();
-      console.log('[AdminService] Colaboradores encontrados:', workers.length);
+      // Buscar colaboradores apenas das obras do usuário logado
+      let workers: User[] = [];
+      for (const site of userSites) {
+        const siteWorkers = await AuthService.getWorkersBySite(site.id);
+        workers = workers.concat(siteWorkers);
+      }
+      // Remover duplicados (caso algum worker esteja em mais de uma obra)
+      const uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
+      const activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
+      console.log('[AdminService] Colaboradores ativos encontrados:', activeWorkers.length);
 
       // Buscar tarefas do site atual
       const currentSite = await AuthService.getCurrentSite();
       if (!currentSite) {
         console.log('[AdminService] Nenhum site selecionado, retornando estatísticas vazias');
         return {
-          totalSites: sitesSnapshot.size,
-          totalWorkers: workers.length,
+          totalSites,
+          totalWorkers: activeWorkers.length,
           totalTasks: 0,
           completedTasks: 0,
         };
@@ -740,8 +747,8 @@ export class AdminService {
       console.log('[AdminService] Tarefas concluídas do site:', completedTasksSnapshot.size);
 
       const stats = {
-        totalSites: sitesSnapshot.size,
-        totalWorkers: workers.length,
+        totalSites,
+        totalWorkers: activeWorkers.length,
         totalTasks: tasksSnapshot.size,
         completedTasks: completedTasksSnapshot.size,
       };
@@ -750,7 +757,12 @@ export class AdminService {
       return stats;
     } catch (error) {
       console.error('Error fetching admin stats:', error);
-      throw new Error('Could not fetch admin statistics.');
+      return {
+        totalSites: 0,
+        totalWorkers: 0,
+        totalTasks: 0,
+        completedTasks: 0,
+      };
     }
   }
 
