@@ -449,57 +449,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                 )}
               </TouchableOpacity>
             </View>
-            {/* Message Options */}
-            <View style={styles.messageOptions}>
-              <View style={styles.optionGroup}>
-                <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Tipo:</Text>
-                <View style={styles.optionButtons}>
-                  {(['general', 'task', 'alert', 'announcement'] as const).map((type) => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[
-                        styles.optionButton,
-                        messageType === type && { backgroundColor: colors.primary }
-                      ]}
-                      onPress={() => setMessageType(type)}
-                    >
-                      <Text style={[
-                        styles.optionButtonText,
-                        { color: messageType === type ? 'white' : colors.text }
-                      ]}>
-                        {type === 'general' ? 'Geral' : 
-                         type === 'task' ? 'Tarefa' : 
-                         type === 'alert' ? 'Alerta' : 'Anúncio'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              <View style={styles.optionGroup}>
-                <Text style={[styles.optionLabel, { color: colors.textMuted }]}>Prioridade:</Text>
-                <View style={styles.optionButtons}>
-                  {(['low', 'medium', 'high', 'urgent'] as const).map((pri) => (
-                    <TouchableOpacity
-                      key={pri}
-                      style={[
-                        styles.optionButton,
-                        priority === pri && { backgroundColor: getPriorityColor(pri) }
-                      ]}
-                      onPress={() => setPriority(pri)}
-                    >
-                      <Text style={[
-                        styles.optionButtonText,
-                        { color: priority === pri ? 'white' : colors.text }
-                      ]}>
-                        {pri === 'low' ? 'Baixa' : 
-                         pri === 'medium' ? 'Média' : 
-                         pri === 'high' ? 'Alta' : 'Urgente'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
               </View>
             )}
           </View>
