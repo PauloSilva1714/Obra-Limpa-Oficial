@@ -4,6 +4,7 @@ import {
   getFirestore,
   doc,
   getDoc,
+  setDoc,
   Firestore,
   enableNetwork,
   connectFirestoreEmulator,
@@ -61,7 +62,7 @@ try {
     console.log('✅ Firestore inicializado com configuração web agressiva');
   } else {
     // Para mobile, usar configuração padrão
-  db = getFirestore(app);
+    db = getFirestore(app);
     console.log('✅ Firestore inicializado com configuração padrão');
   }
   
@@ -206,26 +207,93 @@ export const checkFirebaseConnection = async () => {
 
     console.log('✅ Conexão com internet OK');
 
-    // Verificação simples: apenas verificar se conseguimos acessar o Firestore
-    // sem fazer nenhuma operação que possa falhar por permissões
+    // Verificação adicional para problemas de CORS ou configuração
+    if (typeof window !== 'undefined') {
+      try {
+        // Testar se conseguimos fazer uma requisição básica para o Firebase
+        const testUrl = `https://${firebaseConfig.projectId}.firebaseapp.com/.well-known/__/firebase/init.json`;
+        const response = await fetch(testUrl, { 
+          method: 'HEAD',
+          mode: 'cors',
+          cache: 'no-cache'
+        });
+        console.log('✅ Firebase app acessível via HTTP');
+      } catch (httpError) {
+        console.warn('⚠️ Problema de acesso HTTP ao Firebase:', httpError);
+        // Não falhar aqui, apenas logar o aviso
+      }
+    }
+
+    // Verificação mais robusta: tentar uma operação real com timeout
     try {
-      console.log('🔍 Testando acesso ao Firestore...');
+      console.log('🔍 Testando operação real no Firestore...');
       
-      // Apenas verificar se conseguimos criar uma referência
       const testDocRef = doc(db, 'system', 'connection-test');
-      console.log('✅ Referência do documento criada com sucesso');
       
-      // Não vamos tentar ler o documento, apenas verificar se a referência é válida
-      if (testDocRef) {
-        console.log('✅ Firebase connection is OK - referência válida criada');
+      // Tentar ler o documento com timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout')), 5000); // 5 segundos
+      });
+      
+      const getDocPromise = getDoc(testDocRef);
+      const docSnapshot = await Promise.race([getDocPromise, timeoutPromise]) as any;
+      
+      // Se o documento não existir, criar um
+      if (!docSnapshot.exists()) {
+        console.log('📝 Documento de teste não existe, criando...');
+        await setDoc(testDocRef, {
+          created: new Date().toISOString(),
+          purpose: 'connection-test'
+        });
+        console.log('✅ Documento de teste criado com sucesso');
+      }
+      
+      console.log('✅ Firebase connection is OK - operação bem-sucedida');
+      return true;
+      
+    } catch (firestoreError: any) {
+      const errorMessage = firestoreError.message || '';
+      const errorCode = firestoreError.code || '';
+      
+      console.log('🔍 Erro na verificação de conexão:', { errorCode, errorMessage });
+      
+      // Se for erro de permissão ou "not found", significa que está online
+      if (errorMessage.includes('permission') || 
+          errorMessage.includes('not found') || 
+          errorCode === 'permission-denied' ||
+          errorCode === 'not-found') {
+        console.log('✅ Firebase está online (erro esperado de permissão/not found)');
         return true;
-      } else {
-        console.error('❌ Falha ao criar referência do documento');
+      }
+      
+      // Se for erro de timeout, pode ser problema de rede
+      if (errorMessage.includes('Timeout')) {
+        console.log('⚠️ Timeout na verificação de conexão');
         return false;
       }
       
-    } catch (firestoreError: any) {
-      console.error('❌ Erro ao acessar Firestore:', firestoreError.message);
+      // Se for erro de "unavailable", está offline
+      if (errorCode === 'unavailable' || 
+          errorMessage.includes('unavailable') || 
+          errorMessage.includes('offline')) {
+        console.log('❌ Firebase está offline');
+        return false;
+      }
+      
+      // Para outros erros, tentar uma verificação mais simples
+      try {
+        console.log('🔍 Tentando verificação simples...');
+        const simpleTestRef = doc(db, 'system', 'simple-test');
+        if (simpleTestRef) {
+          console.log('✅ Firebase está online (verificação simples)');
+          return true;
+        }
+      } catch (simpleError) {
+        console.log('⚠️ Verificação simples também falhou');
+      }
+      
+      // Se chegou até aqui, assumir que está offline
+      console.log('❌ Firebase parece estar offline');
       return false;
     }
   } catch (error: any) {

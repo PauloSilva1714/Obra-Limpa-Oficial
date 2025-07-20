@@ -23,18 +23,43 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   const [isChecking, setIsChecking] = useState(false);
   const { user } = useAuth();
 
+  const forceConnectionCheck = async () => {
+    console.log('[ConnectionStatus] Forçando verificação de conexão...');
+    try {
+      setIsChecking(true);
+      const isOnline = await checkFirebaseConnection();
+      setIsConnected(isOnline);
+      console.log('[ConnectionStatus] Verificação forçada:', isOnline);
+    } catch (error) {
+      console.error('[ConnectionStatus] Erro na verificação forçada:', error);
+      setIsConnected(false);
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   useEffect(() => {
     async function checkFirestoreConnection() {
       try {
-        // Tenta ler um documento simples do Firestore
-        await getDoc(doc(db, '_system', 'connection-test'));
-        setIsConnected(true);
+        setIsChecking(true);
+        // Usar a função de verificação mais robusta do Firebase
+        const isOnline = await checkFirebaseConnection();
+        setIsConnected(isOnline);
+        console.log('[ConnectionStatus] Verificação de conexão:', isOnline);
       } catch (error) {
+        console.error('[ConnectionStatus] Erro na verificação:', error);
         setIsConnected(false);
+      } finally {
+        setIsChecking(false);
       }
     }
+    
+    // Verificação inicial
     checkFirestoreConnection();
-    const interval = setInterval(checkFirestoreConnection, 30000); // Verifica a cada 30s
+    
+    // Verificação periódica a cada 30 segundos
+    const interval = setInterval(checkFirestoreConnection, 30000);
+    
     return () => clearInterval(interval);
   }, []);
 
@@ -48,7 +73,10 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
 
   return (
     <View style={{ padding: 0, backgroundColor: 'transparent', borderBottomWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <TouchableOpacity 
+        onPress={forceConnectionCheck}
+        style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+      >
         <Image source={avatarSource} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff' }} />
         <View style={{
           position: 'absolute',
@@ -57,11 +85,15 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
           width: 10,
           height: 10,
           borderRadius: 5,
-          backgroundColor: isConnected === false ? '#F44336' : '#4CAF50',
+          backgroundColor: isChecking ? '#FF9800' : (isConnected === false ? '#F44336' : '#4CAF50'),
           borderWidth: 2,
           borderColor: '#fff',
-        }} />
-      </View>
+        }}>
+          {isChecking && (
+            <ActivityIndicator size={6} color="#fff" />
+          )}
+        </View>
+      </TouchableOpacity>
     </View>
   );
 };
