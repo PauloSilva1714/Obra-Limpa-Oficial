@@ -10,6 +10,7 @@ import {
   sendPasswordResetEmail,
   onAuthStateChanged,
   deleteUser,
+  updateProfile,
 } from 'firebase/auth';
 import {
   collection,
@@ -402,6 +403,17 @@ export class AuthService {
       if (!emailRegex.test(userData.email)) throw new Error('Formato de email inválido');
       if (userData.password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres');
 
+      // Verificar se o usuário já existe como admin
+      if (userData.role === 'admin') {
+        console.log('[AuthService] Verificando admin duplicado para:', userData.email);
+        const existingUser = await AuthService.getUserByEmail(userData.email);
+        console.log('[AuthService] Usuário existente encontrado:', existingUser);
+        if (existingUser && existingUser.role === 'admin') {
+          console.log('[AuthService] Admin duplicado detectado!');
+          throw new Error('DUPLICATE_ADMIN: Este email já está cadastrado como administrador no sistema');
+        }
+      }
+
       const cleanUserData = {
         name: userData.name.trim(),
         email: userData.email.trim().toLowerCase(),
@@ -431,36 +443,16 @@ export class AuthService {
         };
       }
       else if (cleanUserData.role === 'admin' && cleanUserData.siteName && !cleanUserData.inviteId) {
-        const sitesQuery = query(
-          collection(db, 'sites'),
-          where('name', '==', cleanUserData.siteName)
-        );
-        const existingSites = await getDocs(sitesQuery);
-
-        if (!existingSites.empty) {
-          const existingSite = existingSites.docs[0];
-          siteId = existingSite.id;
-          user = {
-            name: cleanUserData.name,
-            email: cleanUserData.email,
-            role: 'admin',
-            phone: cleanUserData.phone,
-            company: cleanUserData.company,
-            sites: [siteId],
-            siteId,
-            status: 'active'
-          };
-        } else {
-          user = {
-            name: cleanUserData.name,
-            email: cleanUserData.email,
-            role: 'admin',
-            phone: cleanUserData.phone,
-            company: cleanUserData.company,
-            sites: [],
-            status: 'active'
-          };
-        }
+        // Primeiro criar o usuário, depois verificar obra duplicada
+        user = {
+          name: cleanUserData.name,
+          email: cleanUserData.email,
+          role: 'admin',
+          phone: cleanUserData.phone,
+          company: cleanUserData.company,
+          sites: [],
+          status: 'active'
+        };
       }
       else if (cleanUserData.inviteId) {
         const inviteDoc = await getDoc(doc(db, 'invites', cleanUserData.inviteId));
@@ -513,8 +505,51 @@ export class AuthService {
         !cleanUserData.inviteId &&
         !siteId
       ) {
-        console.log('🏗️ Criando nova obra automaticamente...');
+        console.log('🏗️ Verificando obra duplicada antes de criar...');
         
+        // Verificar se já existe uma obra com nome exato
+        const sitesQuery = query(
+          collection(db, 'sites'),
+          where('name', '==', cleanUserData.siteName)
+        );
+        const existingSites = await getDocs(sitesQuery);
+
+        if (!existingSites.empty) {
+          const existingSite = existingSites.docs[0];
+          console.log('[AuthService] Obra existente encontrada:', existingSite.data().name);
+          
+          // Deletar o usuário criado
+          await deleteDoc(doc(db, 'users', user.id));
+          await deleteUser(auth.currentUser!);
+          throw new Error('DUPLICATE_SITE: Já existe uma obra com este nome no sistema');
+        }
+        
+        // Verificar se já existe uma obra com nome similar
+        console.log('[AuthService] Verificando obra duplicada para:', cleanUserData.siteName);
+        const similarSitesQuery = query(
+          collection(db, 'sites'),
+          where('name', '>=', cleanUserData.siteName),
+          where('name', '<=', cleanUserData.siteName + '\uf8ff')
+        );
+        const similarSites = await getDocs(similarSitesQuery);
+        
+        console.log('[AuthService] Obras similares encontradas:', similarSites.size);
+        similarSites.docs.forEach((doc, index) => {
+          const site = doc.data();
+          console.log(`[AuthService] Obra ${index + 1}:`, site.name);
+        });
+        
+        if (!similarSites.empty) {
+          console.log('[AuthService] Obra duplicada detectada!');
+          // Deletar o usuário criado
+          await deleteDoc(doc(db, 'users', user.id));
+          await deleteUser(auth.currentUser!);
+          throw new Error('DUPLICATE_SITE: Já existe uma obra com este nome no sistema');
+        }
+        
+        console.log('[AuthService] Nenhuma obra duplicada encontrada, criando nova obra...');
+        
+        // Criar nova obra
         const siteRef = doc(collection(db, 'sites'));
         siteId = siteRef.id;
         const newSite = {
@@ -551,6 +586,12 @@ export class AuthService {
       if (error.code === 'auth/weak-password') throw new Error('Senha muito fraca. Use pelo menos 6 caracteres');
       if (error.code === 'auth/operation-not-allowed') throw new Error('Operação não permitida. Contate o suporte');
       if (error.code === 'auth/network-request-failed') throw new Error('Erro de conexão. Verifique sua internet');
+      
+      // Preservar erros com prefixo específico
+      if (error.message && (error.message.startsWith('DUPLICATE_ADMIN:') || error.message.startsWith('DUPLICATE_SITE:'))) {
+        throw error;
+      }
+      
       throw new Error(`Erro no registro: ${error.message || 'Erro desconhecido'}`);
     }
   }
@@ -674,6 +715,18 @@ export class AuthService {
         throw new Error('Já existe um convite pendente para este email nesta obra');
       }
 
+      // Verificar se usuário já existe e tem acesso à obra
+      const existingUser = await AuthService.getUserByEmail(email);
+      console.log('[AuthService] Verificando usuário existente para convite de colaborador:', existingUser);
+      if (existingUser) {
+        if (existingUser.sites?.includes(siteId)) {
+          console.log('[AuthService] Usuário já tem acesso à obra');
+          throw new Error('DUPLICATE_WORKER: Este usuário já tem acesso a esta obra');
+        }
+        // Removido o bloqueio de usuário já cadastrado - agora pode ser convidado para nova obra
+        console.log('[AuthService] Usuário já cadastrado, mas pode ser convidado para nova obra');
+      }
+
       const site = await AuthService.getSiteById(siteId);
       if (!site) {
         throw new Error('Obra não encontrada');
@@ -699,7 +752,10 @@ export class AuthService {
           invitedBy: currentUser.name,
           inviteId: invite.id,
         });
+        console.log('Email de convite de colaborador enviado com sucesso');
       } catch (emailError) {
+        console.warn('⚠️ Erro ao enviar e-mail, mas convite foi criado:', emailError);
+        // Não falhar o processo, apenas avisar
       }
 
       return invite;
@@ -1210,10 +1266,14 @@ export class AuthService {
       }
 
       const existingUser = await AuthService.getUserByEmail(email);
+      console.log('[AuthService] Verificando usuário existente:', existingUser);
       if (existingUser) {
         if (existingUser.sites?.includes(siteId)) {
-          throw new Error('Este usuário já tem acesso a esta obra');
+          console.log('[AuthService] Usuário já tem acesso à obra');
+          throw new Error('DUPLICATE_ADMIN: Este usuário já tem acesso a esta obra');
         }
+        // Removido o bloqueio de admin já cadastrado - agora pode ser convidado para nova obra
+        console.log('[AuthService] Usuário já cadastrado, mas pode ser convidado para nova obra');
       }
 
       const site = await AuthService.getSiteById(siteId);
@@ -1244,12 +1304,14 @@ export class AuthService {
         });
         
         if (!emailResult.success) {
-          throw new Error(`O convite foi salvo, mas o e-mail de notificação falhou: ${emailResult.error}`);
+          console.warn('⚠️ E-mail não pôde ser enviado, mas convite foi criado:', emailResult.error);
+          // Não falhar o processo, apenas avisar
+        } else {
+          console.log('Email de convite de administrador enviado com sucesso');
         }
-
-        console.log('Email de convite de administrador enviado com sucesso');
       } catch (emailError) {
-        throw emailError;
+        console.warn('⚠️ Erro ao enviar e-mail, mas convite foi criado:', emailError);
+        // Não falhar o processo, apenas avisar
       }
 
       return invite;
@@ -1916,13 +1978,13 @@ export class AuthService {
 
   static async syncPhotoURLToFirebaseAuth(photoURL: string): Promise<void> {
     try {
-      const currentUser = auth.currentUser;
+      const currentUser: FirebaseUser | null = auth.currentUser;
       if (!currentUser) {
         throw new Error('Usuário não autenticado');
       }
 
       // Atualizar o photoURL no Firebase Auth
-      await currentUser.updateProfile({
+      await updateProfile(currentUser, {
         photoURL: photoURL
       });
 

@@ -18,12 +18,27 @@ let transporter: nodemailer.Transporter;
 // Usar apenas Gmail como serviço de email
 if (gmailConfig && gmailConfig.user && gmailConfig.pass) {
   console.log('Configurando Gmail como serviço de email...');
+  console.log('Usuário Gmail:', gmailConfig.user);
+  console.log('Senha configurada:', gmailConfig.pass ? 'SIM' : 'NÃO');
+  
   transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
       user: gmailConfig.user,
       pass: gmailConfig.pass,
     },
+    // Adicionar configurações extras para melhor compatibilidade
+    secure: true,
+    port: 465,
+  });
+  
+  // Testar a conexão
+  transporter.verify(function(error, success) {
+    if (error) {
+      console.error('Erro na verificação do transporter Gmail:', error);
+    } else {
+      console.log('Transporter Gmail configurado com sucesso!');
+    }
   });
 } else {
   console.warn(

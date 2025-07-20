@@ -19,6 +19,8 @@ import { Building2, User, Lock, Mail, Phone, ArrowLeft, Key, CheckCircle, Eye, E
 import { AuthService } from '@/services/AuthService';
 import { InviteService } from '@/services/InviteService';
 import AddressSearch from '@/components/AddressSearch';
+import { DuplicateAdminModal } from '@/components/DuplicateAdminModal';
+import { DuplicateSiteModal } from '@/components/DuplicateSiteModal';
 import {
   useFonts,
   Inter_400Regular,
@@ -63,6 +65,9 @@ export default function RegisterScreen() {
   const [slideAnim] = useState(new Animated.Value(50));
   const [inviteInfo, setInviteInfo] = useState<any>(null);
   const [siteInfo, setSiteInfo] = useState<any>(null);
+  const [showDuplicateAdminModal, setShowDuplicateAdminModal] = useState(false);
+  const [duplicateAdminEmail, setDuplicateAdminEmail] = useState('');
+  const [showDuplicateSiteModal, setShowDuplicateSiteModal] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -72,16 +77,16 @@ export default function RegisterScreen() {
   });
 
   // Adicione refs para os campos
-  const emailRef = useRef(null);
-  const phoneRef = useRef(null);
-  const companyRef = useRef(null);
-  const inviteCodeRef = useRef(null);
-  const siteNameRef = useRef(null);
-  const siteAddressRef = useRef(null);
-  const funcaoRef = useRef(null);
-  const funcaoOutroRef = useRef(null);
-  const passwordRef = useRef(null);
-  const confirmPasswordRef = useRef(null);
+  const emailRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const companyRef = useRef<TextInput>(null);
+  const inviteCodeRef = useRef<TextInput>(null);
+  const siteNameRef = useRef<TextInput>(null);
+  const siteAddressRef = useRef<TextInput>(null);
+  const funcaoRef = useRef<TextInput>(null);
+  const funcaoOutroRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   useEffect(() => {
     document.title = 'Obra Limpa - Cadastro';
@@ -105,12 +110,12 @@ export default function RegisterScreen() {
       if (inviteId) {
         try {
           // Buscar convite
-          const inviteDoc = await InviteService.getInviteById(inviteId);
+          const inviteDoc = await InviteService.getInviteById(inviteId) as any;
           setInviteInfo(inviteDoc);
           if (inviteDoc && inviteDoc.siteId) {
             // Buscar obra
             const siteDoc = await AuthService.getSiteById(inviteDoc.siteId);
-            let companyName = siteDoc?.company;
+            let companyName = (siteDoc as any)?.company;
             // Se não houver company na obra, buscar do usuário criador
             if (!companyName && siteDoc?.createdBy) {
               const creator = await AuthService.getUserById(siteDoc.createdBy);
@@ -206,8 +211,22 @@ export default function RegisterScreen() {
       // Mostrar modal de sucesso
       setShowSuccessModal(true);
     } catch (error) {
+      console.log('[Register] Erro capturado:', error);
       if (error instanceof Error) {
-        if (error.message === 'Email já está em uso') {
+        console.log('[Register] Mensagem de erro:', error.message);
+        if (error.message && error.message.startsWith('DUPLICATE_ADMIN:')) {
+          console.log('[Register] Admin duplicado detectado, mostrando modal');
+          // Mostrar modal de admin duplicado
+          setDuplicateAdminEmail(formData.email.trim());
+          setShowDuplicateAdminModal(true);
+          console.log('[Register] Modal de admin duplicado ativado');
+        } else if (error.message && error.message.startsWith('DUPLICATE_SITE:')) {
+          console.log('[Register] Obra duplicada detectada, mostrando modal');
+          // Mostrar modal de obra duplicada
+          setDuplicateAdminEmail(formData.siteName.trim());
+          setShowDuplicateSiteModal(true);
+          console.log('[Register] Modal de obra duplicada ativado');
+        } else if (error.message === 'Email já está em uso') {
           Alert.alert('Erro', 'Este e-mail já está cadastrado.');
         } else if (error.message === 'Convite necessário para cadastro de colaborador') {
           Alert.alert('Erro', 'É necessário um convite válido para se cadastrar como colaborador.');
@@ -595,6 +614,20 @@ export default function RegisterScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de Admin Duplicado */}
+      <DuplicateAdminModal
+        visible={showDuplicateAdminModal}
+        onClose={() => setShowDuplicateAdminModal(false)}
+        email={duplicateAdminEmail}
+      />
+
+      {/* Modal de Obra Duplicada */}
+      <DuplicateSiteModal
+        visible={showDuplicateSiteModal}
+        onClose={() => setShowDuplicateSiteModal(false)}
+        siteName={duplicateAdminEmail}
+      />
     </SafeAreaView>
   );
 }

@@ -19,6 +19,7 @@ import { router } from 'expo-router';
 import { ArrowLeft, Mail, UserPlus, X, CheckCircle, Clock, User, Trash2 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { FlatList } from 'react-native';
+import { DuplicateAdminModal } from '@/components/DuplicateAdminModal';
 
 interface Invite {
   id: string;
@@ -49,6 +50,8 @@ export default function InviteAdminScreen() {
   const [successEmail, setSuccessEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isValidEmail, setIsValidEmail] = useState(false);
+  const [showDuplicateAdminModal, setShowDuplicateAdminModal] = useState(false);
+  const [duplicateAdminEmail, setDuplicateAdminEmail] = useState('');
 
   useEffect(() => {
     loadAdminInvites();
@@ -122,49 +125,16 @@ export default function InviteAdminScreen() {
       setIsValidEmail(false);
       await loadAdminInvites();
     } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Erro ao enviar convite');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDiagnose = async () => {
-    if (!email.trim()) {
-      Alert.alert('Erro', 'Por favor, insira um email para diagnosticar');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await AuthService.diagnoseInviteProblem(email.trim());
-      
-      let message = '🔍 **DIAGNÓSTICO COMPLETO**\n\n';
-      
-      if (result.success) {
-        message += '✅ **TUDO OK!** O envio de convite deve funcionar.\n\n';
+      console.log('[InviteAdmin] Erro capturado:', error);
+      if (error.message && error.message.startsWith('DUPLICATE_ADMIN:')) {
+        console.log('[InviteAdmin] Admin duplicado detectado, mostrando modal');
+        // Mostrar modal de admin duplicado
+        setDuplicateAdminEmail(email.trim());
+        setShowDuplicateAdminModal(true);
+        console.log('[InviteAdmin] Modal de admin duplicado ativado');
       } else {
-        message += '❌ **PROBLEMAS ENCONTRADOS:**\n\n';
-        result.issues.forEach((issue, index) => {
-          message += `${index + 1}. ${issue}\n`;
-        });
-        message += '\n';
+        Alert.alert('Erro', error.message || 'Erro ao enviar convite');
       }
-      
-      message += '📋 **DETALHES:**\n';
-      message += `• Usuário: ${result.details.currentUser?.email || 'N/A'}\n`;
-      message += `• Role: ${result.details.currentUser?.role || 'N/A'}\n`;
-      message += `• Site: ${result.details.currentSite?.name || 'N/A'}\n`;
-      message += `• Convites existentes: ${result.details.existingInvites || 0}\n`;
-      message += `• Email já é usuário: ${result.details.existingUser ? 'Sim' : 'Não'}\n`;
-      
-      if (result.details.emailResult) {
-        message += `• EmailService: ${result.details.emailResult.success ? 'OK' : 'Falhou'}\n`;
-      }
-      
-      Alert.alert('Diagnóstico', message);
-      
-    } catch (error: any) {
-      Alert.alert('Erro', 'Erro ao executar diagnóstico: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -532,6 +502,13 @@ export default function InviteAdminScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de Admin Duplicado */}
+      <DuplicateAdminModal
+        visible={showDuplicateAdminModal}
+        onClose={() => setShowDuplicateAdminModal(false)}
+        email={duplicateAdminEmail}
+      />
     </SafeView>
   );
 }

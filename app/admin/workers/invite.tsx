@@ -13,20 +13,20 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, Mail, CheckCircle, Trash2 } from 'lucide-react-native';
-import { AuthService } from '@/services/AuthService';
+import { AuthService, Invite } from '@/services/AuthService';
 
 export default function InviteWorkerScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successEmail, setSuccessEmail] = useState('');
-  const [invites, setInvites] = useState([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [inviteToDelete, setInviteToDelete] = useState(null);
+  const [inviteToDelete, setInviteToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [inviteToCancel, setInviteToCancel] = useState(null);
+  const [inviteToCancel, setInviteToCancel] = useState<string | null>(null);
 
   useEffect(() => {
     loadInvites();
@@ -64,8 +64,14 @@ export default function InviteWorkerScreen() {
       setEmail('');
       await loadInvites();
     } catch (error) {
+      console.log('[InviteWorker] Erro capturado:', error);
       if (error instanceof Error) {
-        Alert.alert('Erro', error.message);
+        if (error.message && error.message.startsWith('DUPLICATE_WORKER:')) {
+          console.log('[InviteWorker] Colaborador duplicado detectado, mostrando alerta');
+          Alert.alert('Colaborador Já Existe', 'Este usuário já tem acesso a esta obra.');
+        } else {
+          Alert.alert('Erro', error.message);
+        }
       } else {
         Alert.alert('Erro', 'Não foi possível enviar o convite.');
       }
@@ -74,7 +80,7 @@ export default function InviteWorkerScreen() {
     }
   };
 
-  const handleDeleteInvite = (inviteId) => {
+  const handleDeleteInvite = (inviteId: string) => {
     setInviteToDelete(inviteId);
     setShowDeleteModal(true);
   };
@@ -94,7 +100,7 @@ export default function InviteWorkerScreen() {
     }
   };
 
-  const handleCancelInvite = (inviteId) => {
+  const handleCancelInvite = (inviteId: string) => {
     setInviteToCancel(inviteId);
     setShowCancelModal(true);
   };
@@ -114,7 +120,7 @@ export default function InviteWorkerScreen() {
     }
   };
 
-  const renderInvite = ({ item }) => (
+  const renderInvite = ({ item }: { item: Invite }) => (
     <View style={styles.inviteCard}>
       <View style={styles.inviteInfo}>
         <Mail size={18} color="#2196F3" />
@@ -136,7 +142,7 @@ export default function InviteWorkerScreen() {
         ) : null}
       </View>
       <Text style={styles.inviteStatus}>Status: {item.status === 'pending' ? 'Pendente' : item.status === 'rejected' ? 'Cancelado' : item.status}</Text>
-      <Text style={styles.inviteDate}>Enviado em: {new Date(item.createdAt?.seconds ? item.createdAt.seconds * 1000 : item.createdAt).toLocaleString('pt-BR')}</Text>
+      <Text style={styles.inviteDate}>Enviado em: {new Date(typeof item.createdAt === 'string' ? item.createdAt : (item.createdAt as any)?.seconds ? (item.createdAt as any).seconds * 1000 : Date.now()).toLocaleString('pt-BR')}</Text>
     </View>
   );
 

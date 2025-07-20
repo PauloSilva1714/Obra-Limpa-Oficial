@@ -57,12 +57,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && (
-        // Permitir criação apenas se:
+        // Permitir criação se:
         // 1. É o próprio usuário (registro normal)
-        request.auth.uid == userId &&
-        // 2. E não está tentando se registrar como admin
-        request.resource.data.role != 'admin'
-      ) || canCreateAdmin(); // Ou se tem permissão para criar admin
+        request.auth.uid == userId
+        // 2. Ou se tem permissão para criar admin
+      ) || canCreateAdmin();
       allow update, delete: if isOwner(userId) || isAdmin();
     }
 
@@ -95,7 +94,7 @@ service cloud.firestore {
 
     // Regras para obras - CORRIGADAS
     match /sites/{siteId} {
-      allow read: if hasSiteAccess(siteId);
+      allow read: if isAuthenticated() || hasSiteAccess(siteId);
       allow create: if isAuthenticated() && (
         // Qualquer admin pode criar obras
         isAdmin() ||
@@ -103,12 +102,7 @@ service cloud.firestore {
         !exists(/databases/$(database)/documents/sites)
       );
       allow update, delete: if isAdmin() && (isSiteOwner(siteId) || isAdmin());
-      allow list: if isAuthenticated() && (
-        // Usuário pode ver apenas obras que tem acesso
-        isAdmin() ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.siteId != null ||
-        exists(/databases/$(database)/documents/siteInvites/$(request.auth.uid))
-      );
+      allow list: if isAuthenticated();
     }
 
     // Regras para mensagens administrativas

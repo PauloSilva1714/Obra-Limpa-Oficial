@@ -9,13 +9,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 
-interface DuplicateSiteModalProps {
+interface DuplicateAdminModalProps {
   visible: boolean;
   onClose: () => void;
-  siteName: string;
+  email: string;
 }
 
-export function DuplicateSiteModal({ visible, onClose, siteName }: DuplicateSiteModalProps) {
+export function DuplicateAdminModal({ visible, onClose, email }: DuplicateAdminModalProps) {
   const { colors } = useTheme();
 
   return (
@@ -32,16 +32,16 @@ export function DuplicateSiteModal({ visible, onClose, siteName }: DuplicateSite
           </View>
           
           <Text style={[styles.title, { color: colors.text }]}>
-            Obra Já Existe
+            Administrador Já Cadastrado
           </Text>
           
-          <Text style={[styles.siteName, { color: colors.primary }]}>
-            {siteName}
+          <Text style={[styles.email, { color: colors.primary }]}>
+            {email}
           </Text>
           
           <Text style={[styles.description, { color: colors.textMuted }]}>
-            Já existe uma obra com este nome no sistema. 
-            Por favor, escolha um nome diferente para sua obra.
+            Este email já está cadastrado no sistema como administrador. 
+            Não é possível enviar um novo convite para um usuário que já possui acesso.
           </Text>
           
           <TouchableOpacity
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-  siteName: {
+  email: {
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
