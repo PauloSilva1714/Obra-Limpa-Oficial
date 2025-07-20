@@ -24,6 +24,8 @@ import { uploadImageAsync } from '../services/PhotoService';
 import { Video as ExpoVideo, ResizeMode } from 'expo-av';
 import type { Video as ExpoVideoType } from 'expo-av';
 import { PDFService } from '../services/PDFService';
+import { Picker } from '@react-native-picker/picker';
+import { MultiSelect } from 'react-native-element-dropdown';
 // Remover: import Share, { Social } from 'react-native-share';
 
 interface TaskModalProps {
@@ -65,6 +67,52 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const [shouldPlayCarrosselVideo, setShouldPlayCarrosselVideo] = useState(false);
   const carrosselVideoRef = useRef<ExpoVideoType | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [company, setCompany] = useState('');
+  const [customAssignee, setCustomAssignee] = useState('');
+  const isOtherSelected = formData.assignedTo === 'outro';
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [manualAssignee, setManualAssignee] = useState('');
+
+  useEffect(() => {
+    // Buscar colaboradores (workers) ao abrir o modal
+    if (visible) {
+      AuthService.getInstance().getWorkers().then((users) => {
+        const onlyWorkers = users.filter((u: any) => u.role === 'worker');
+        setWorkers(onlyWorkers);
+      });
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    // Remover referência ao campo company que não existe na interface Task
+    setCompany('');
+  }, [task]);
+
+  useEffect(() => {
+    if (task && Array.isArray(task.assignedTo)) {
+      setSelectedAssignees(task.assignedTo);
+    } else if (task && typeof task.assignedTo === 'string' && task.assignedTo) {
+      setSelectedAssignees([task.assignedTo]);
+    } else {
+      setSelectedAssignees([]);
+    }
+  }, [task]);
+
+  useEffect(() => {
+    if (selectedAssignees.length === 0) return;
+    // Filtrar apenas IDs de workers cadastrados
+    const selectedWorkers = workers.filter(w => selectedAssignees.includes(w.id));
+    if (selectedWorkers.length === 0) return;
+    const empresas = selectedWorkers.map(w => w.company).filter(Boolean);
+    const empresasUnicas = Array.from(new Set(empresas));
+    if (empresasUnicas.length === 1) {
+      setCompany(empresasUnicas[0]);
+    } else if (empresasUnicas.length > 1) {
+      setCompany('Múltiplas empresas');
+    }
+    // Se só houver nomes manuais, não altera o campo
+  }, [selectedAssignees, workers]);
 
   // Carrossel de mídia (fotos + vídeos)
   const medias = [
@@ -84,7 +132,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         description: task.description || '',
         status: task.status,
         priority: task.priority,
-        assignedTo: task.assignedTo || '',
+        assignedTo: Array.isArray(task.assignedTo) ? task.assignedTo.join(', ') : (task.assignedTo || ''),
         dueDate: task.dueDate || '',
         completedDate: task.completedAt || '',
         area: task.area || '',
@@ -152,7 +200,8 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     //   return;
     // }
 
-    const taskData = { ...formData };
+    // No handleSave, inclua todos os responsáveis:
+    const taskData = { ...formData, company, assignedTo: selectedAssignees };
     // Converter datas para YYYY-MM-DD antes de salvar
     if (taskData.dueDate) {
       taskData.dueDate = formatDateForStorage(taskData.dueDate);
@@ -163,6 +212,10 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     delete (taskData as any).completedDate;
     if (!(taskData as any).completedAt) {
       delete (taskData as any).completedAt;
+    }
+    // No handleSave, ajuste para salvar o nome manual se selecionado:
+    if (formData.assignedTo === 'outro' && customAssignee.trim()) {
+      taskData.assignedTo = [customAssignee.trim()];
     }
     onSave(taskData);
   };
@@ -609,7 +662,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   const handleShareWhatsApp = async () => {
     if (!task) return;
-    const msg = `Tarefa: ${task.title}\nDescrição: ${task.description || '-'}\nStatus: ${statusMap[task.status] || task.status}\nPrioridade: ${priorityMap[task.priority] || task.priority}\nResponsável: ${task.assignedTo || '-'}\nÁrea: ${task.area || '-'}\nData de Criação: ${task.createdAt}`;
+    const msg = `Tarefa: ${task.title}\nDescrição: ${task.description || '-'}\nStatus: ${statusMap[task.status] || task.status}\nPrioridade: ${priorityMap[task.priority] || task.priority}\nResponsáveis: ${selectedAssignees.map(a => workers.find(w => w.id === a)?.name || a).join(', ')}\nÁrea: ${task.area || '-'}\nData de Criação: ${task.createdAt}`;
     if (Platform.OS === 'web') {
       const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
       Linking.openURL(url);
@@ -870,6 +923,60 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 onChangeText={text => setFormData({ ...formData, description: text })}
                 editable={canEdit}
                 multiline
+              />
+              <Text style={styles.label}>Responsáveis pela Tarefa (múltiplos, opcional)</Text>
+              <MultiSelect
+                style={{ marginBottom: 12, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8 }}
+                data={workers.map(w => ({ label: w.name, value: w.id }))}
+                labelField="label"
+                valueField="value"
+                placeholder="Selecione os responsáveis"
+                search
+                value={selectedAssignees}
+                onChange={item => setSelectedAssignees(item)}
+                selectedStyle={{ borderRadius: 8, backgroundColor: '#e0e7ef' }}
+              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginRight: 8 }]}
+                  value={manualAssignee}
+                  onChangeText={setManualAssignee}
+                  editable={canEdit}
+                  placeholder="Adicionar responsável manualmente"
+                />
+                <TouchableOpacity
+                  onPress={() => {
+                    if (manualAssignee.trim() && !selectedAssignees.includes(manualAssignee.trim())) {
+                      setSelectedAssignees([...selectedAssignees, manualAssignee.trim()]);
+                      setManualAssignee('');
+                    }
+                  }}
+                  style={{ backgroundColor: '#2563EB', padding: 8, borderRadius: 8 }}
+                  disabled={!manualAssignee.trim()}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Adicionar</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Exibir responsáveis selecionados */}
+              {selectedAssignees.length > 0 && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                  {selectedAssignees.map((assignee, idx) => (
+                    <View key={assignee + idx} style={{ backgroundColor: '#e0e7ef', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginRight: 6, marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}>
+                      <Text>{workers.find(w => w.id === assignee)?.name || assignee}</Text>
+                      <TouchableOpacity onPress={() => setSelectedAssignees(selectedAssignees.filter(a => a !== assignee))}>
+                        <Text style={{ marginLeft: 4, color: '#EF4444', fontWeight: 'bold' }}>×</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <Text style={styles.label}>Empresa Executora</Text>
+              <TextInput
+                style={[styles.modernInput, { marginBottom: 12 }]}
+                value={company}
+                onChangeText={setCompany}
+                editable={canEdit}
+                placeholder="Empresa responsável pela execução"
               />
             </View>
             {/* Seção: Mídias */}

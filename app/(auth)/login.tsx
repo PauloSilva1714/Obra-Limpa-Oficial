@@ -97,7 +97,7 @@ export default function LoginScreen() {
           if (!currentSite || !currentSite.id) {
             router.replace('/(auth)/site-selection');
           } else {
-            router.replace('/(tabs)/index');
+            router.replace('/tasks');
           }
         } else {
           await AuthService.setCurrentSite(null);
@@ -313,7 +313,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 16,
-    textShadow: '0px 3px 10px rgba(0,0,0,0.5)',
     fontWeight: '900',
     letterSpacing: 2,
     includeFontPadding: false,
@@ -325,7 +324,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     letterSpacing: 0.8,
-    textShadow: '0px 1px 4px rgba(0,0,0,0.3)',
   },
   formContainer: {
     flex: 1,
@@ -470,7 +468,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 16,
-    textShadow: '0px 3px 10px rgba(0,0,0,0.5)',
     letterSpacing: 2,
   },
   subtitleFallback: {
@@ -479,6 +476,5 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     letterSpacing: 0.8,
-    textShadow: '0px 1px 4px rgba(0,0,0,0.3)',
   },
 });

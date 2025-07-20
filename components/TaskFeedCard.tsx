@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
 import { Task, Comment } from '@/services/TaskService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
+import { AuthService } from '@/services/AuthService';
 
 interface TaskFeedCardProps {
   task: Task;
@@ -42,6 +43,13 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
   onEditTask,
 }) => {
   const { colors } = useTheme();
+  const [workers, setWorkers] = useState<any[]>([]);
+
+  useEffect(() => {
+    AuthService.getInstance().getWorkers().then((users) => {
+      setWorkers(users);
+    });
+  }, []);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -99,6 +107,40 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
     }
   };
 
+  // Função utilitária para exibir nomes dos responsáveis
+  const getAssigneesNames = () => {
+    if (!task.assignedTo || (Array.isArray(task.assignedTo) && task.assignedTo.length === 0)) {
+      return 'Sem responsável';
+    }
+    
+    // Se for string única
+    if (typeof task.assignedTo === 'string') {
+      const found = workers.find(w => w.id === task.assignedTo);
+      if (found) {
+        const nomes = found.name.split(' ');
+        const nomeCurto = nomes.slice(0, 2).join(' ');
+        return `${nomeCurto}${found.company ? ` ("${found.company}")` : ''}`;
+      }
+      return task.assignedTo;
+    }
+    
+    // Se for array - verificar se é realmente um array antes de usar map
+    if (Array.isArray(task.assignedTo)) {
+      return task.assignedTo.map((assignee: string) => {
+        const found = workers.find(w => w.id === assignee);
+        if (found) {
+          const nomes = found.name.split(' ');
+          const nomeCurto = nomes.slice(0, 2).join(' ');
+          return `${nomeCurto}${found.company ? ` ("${found.company}")` : ''}`;
+        }
+        return assignee;
+      }).join(', ');
+    }
+    
+    // Fallback
+    return 'Sem responsável';
+  };
+
   return (
     <View style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Substituir o header do card para exibir o nome de quem criou a tarefa no topo, estilo Facebook */}
@@ -111,12 +153,17 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
               resizeMode="cover"
             />
           ) : (
-            <User size={20} color={colors.primary} />
+          <User size={20} color={colors.primary} />
           )}
         </View>
         <View style={styles.fbHeaderInfo}>
           <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>
           <Text style={styles.fbDate}>{new Date(task.createdAt).toLocaleDateString('pt-BR')}</Text>
+          {/* Nomes dos responsáveis */}
+          <Text style={styles.fbAssigneesLine}>
+            <Text style={styles.fbAssigneesLabel}>Responsável(is) pela tarefa: </Text>
+            <Text style={styles.fbAssignees}>{getAssigneesNames()}</Text>
+          </Text>
           </View>
         <View style={styles.statusRiskBadges}>
           <View style={[styles.statusBadge, getStatusBadgeStyle(task.status)]}>
@@ -428,6 +475,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#606770',
+  },
+  fbAssigneesLine: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  fbAssigneesLabel: {
+    fontSize: 11,
+    color: '#6B7280', // cinza
+    fontFamily: 'Inter-Regular',
+  },
+  fbAssignees: {
+    fontSize: 13,
+    color: '#2563EB',
+    fontFamily: 'Inter-Medium',
   },
   fbActionsBar: {
     flexDirection: 'row',

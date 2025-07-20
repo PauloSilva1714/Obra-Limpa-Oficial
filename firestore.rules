@@ -27,34 +27,88 @@ service cloud.firestore {
       );
     }
 
-    // Regras para usuários
+    function isSiteOwner(siteId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/sites/$(siteId)).data.ownerId == request.auth.uid;
+    }
+
+    function hasSiteAccess(siteId) {
+      return isAuthenticated() && (
+        isAdmin() ||
+        isSiteOwner(siteId) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.siteId == siteId ||
+        exists(/databases/$(database)/documents/siteInvites) &&
+        exists(/databases/$(database)/documents/siteInvites/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/siteInvites/$(request.auth.uid)).data.siteId == siteId &&
+        get(/databases/$(database)/documents/siteInvites/$(request.auth.uid)).data.status == 'accepted'
+      );
+    }
+
+    function canCreateAdmin() {
+      return isAuthenticated() && (
+        // Qualquer admin pode criar outros admins
+        isAdmin() ||
+        // Ou verificar se é o primeiro usuário do sistema
+        !exists(/databases/$(database)/documents/users)
+      );
+    }
+
+    // Regras para usuários - CORRIGIDAS
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && (
+        // Permitir criação apenas se:
+        // 1. É o próprio usuário (registro normal)
+        request.auth.uid == userId &&
+        // 2. E não está tentando se registrar como admin
+        request.resource.data.role != 'admin'
+      ) || canCreateAdmin(); // Ou se tem permissão para criar admin
       allow update, delete: if isOwner(userId) || isAdmin();
     }
 
-    // Regras para convites
+    // Regras para convites de usuários
     match /invites/{inviteId} {
       allow read: if isAuthenticated();
       allow create: if isAdmin();
       allow update, delete: if isAdmin();
     }
 
-    // Regras para tarefas
+    // Regras para convites de obras
+    match /siteInvites/{inviteId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == inviteId || // Próprio convite
+        isAdmin() || // Admin pode ver todos
+        isSiteOwner(resource.data.siteId) // Dono da obra pode ver convites
+      );
+      allow create: if isAdmin() || isSiteOwner(request.resource.data.siteId);
+      allow update: if isAuthenticated() && request.auth.uid == inviteId; // Aceitar/rejeitar próprio convite
+      allow delete: if isAdmin() || isSiteOwner(resource.data.siteId);
+    }
+
+    // Regras para tarefas - RESTRITIVAS
     match /tasks/{taskId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAdmin() || isSiteMember(resource.data.siteId);
+      allow read: if hasSiteAccess(resource.data.siteId);
+      allow create: if isAuthenticated() && isAdmin() && hasSiteAccess(request.resource.data.siteId);
+      allow update, delete: if isAdmin() && hasSiteAccess(resource.data.siteId);
       allow list: if isAuthenticated();
     }
 
-    // Regras para obras
+    // Regras para obras - CORRIGADAS
     match /sites/{siteId} {
-      allow read: if isAuthenticated();
-      allow create: if isAdmin();
-      allow update, delete: if isAdmin();
-      allow list: if isAuthenticated();
+      allow read: if hasSiteAccess(siteId);
+      allow create: if isAuthenticated() && (
+        // Qualquer admin pode criar obras
+        isAdmin() ||
+        // Ou se é o primeiro admin do sistema
+        !exists(/databases/$(database)/documents/sites)
+      );
+      allow update, delete: if isAdmin() && (isSiteOwner(siteId) || isAdmin());
+      allow list: if isAuthenticated() && (
+        // Usuário pode ver apenas obras que tem acesso
+        isAdmin() ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.siteId != null ||
+        exists(/databases/$(database)/documents/siteInvites/$(request.auth.uid))
+      );
     }
 
     // Regras para mensagens administrativas
@@ -86,7 +140,13 @@ service cloud.firestore {
 service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {
-      allow read, write: if true;
+      // Regras seguras para Storage
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        // Permitir upload apenas para usuários autenticados
+        request.resource.size < 10 * 1024 * 1024 && // Máximo 10MB
+        request.resource.contentType.matches('image/.*|video/.*|application/pdf')
+      );
     }
   }
 } 

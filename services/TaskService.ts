@@ -22,7 +22,7 @@ export interface Task {
   description: string;
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
   priority: 'low' | 'medium' | 'high';
-  assignedTo?: string;
+  assignedTo?: string | string[]; // Pode ser string único ou array de strings
   siteId: string;
   createdAt: string;
   updatedAt: string;
@@ -32,7 +32,8 @@ export interface Task {
   videos: string[];
   area: string;
   comments?: Comment[];
-  createdByName?: string; // Adicionado para refletir o campo salvo
+  createdByName?: string; // Nome do criador da tarefa
+  createdByPhotoURL?: string; // URL da foto do criador
 }
 
 export interface Comment {
