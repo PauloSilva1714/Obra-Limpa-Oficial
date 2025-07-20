@@ -709,13 +709,14 @@ export class AdminService {
       const userSites = await AuthService.getUserSites();
       const totalSites = userSites.length;
 
-      // Buscar colaboradores apenas das obras do usuário logado
+      // Buscar colaboradores ativos de todas as obras do usuário logado
       let workers: User[] = [];
       for (const site of userSites) {
         const siteWorkers = await AuthService.getWorkersBySite(site.id);
-        workers = workers.concat(siteWorkers);
+        const siteAdmins = await AuthService.getAdminsBySite(site.id);
+        workers = workers.concat(siteWorkers, siteAdmins);
       }
-      // Remover duplicados (caso algum worker esteja em mais de uma obra)
+      // Remover duplicados (caso algum worker/admin esteja em mais de uma obra)
       const uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
       const activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
       console.log('[AdminService] Colaboradores ativos encontrados:', activeWorkers.length);

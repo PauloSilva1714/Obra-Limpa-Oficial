@@ -91,15 +91,23 @@ export default function AdminScreen() {
     setLoadingWorkers(true);
     setWorkersModalVisible(true);
     try {
-      const currentSite = await AuthService.getCurrentSite();
-      if (!currentSite) throw new Error('Nenhuma obra selecionada');
-      const [workers, admins] = await Promise.all([
-        AuthService.getWorkersBySite(currentSite.id),
-        AuthService.getAdminsBySite(currentSite.id),
-      ]);
-      // Unir e filtrar apenas ativos
-      const allActive = [...workers, ...admins].filter(w => w.status === 'active');
-      setWorkers(allActive);
+      // Buscar todas as obras do usuário logado
+      const userSites = await AuthService.getUserSites();
+      let workers: User[] = [];
+      for (const site of userSites) {
+        const siteWorkers = await AuthService.getWorkersBySite(site.id);
+        const siteAdmins = await AuthService.getAdminsBySite(site.id);
+        workers = workers.concat(siteWorkers, siteAdmins);
+      }
+      // Remover duplicados
+      const uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
+      const activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
+      const currentUser = await AuthService.getCurrentUser();
+      const sortedWorkers = [
+        ...activeWorkers.filter(w => w.id === currentUser?.id),
+        ...activeWorkers.filter(w => w.id !== currentUser?.id)
+      ];
+      setWorkers(sortedWorkers);
     } catch (e) {
       setWorkers([]);
       Alert.alert('Erro', 'Não foi possível carregar os colaboradores.');
