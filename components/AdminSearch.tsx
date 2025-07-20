@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { Search, User, X } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -121,9 +122,17 @@ export default function AdminSearch({
                 onPress={() => handleSelectAdmin(item)}
               >
                 <View style={styles.adminInfo}>
-                  <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                    <User size={20} color="white" />
-                  </View>
+                  {item.photoURL ? (
+                    <Image
+                      source={{ uri: item.photoURL }}
+                      style={[styles.avatar, { backgroundColor: colors.primary }]}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.avatar, { backgroundColor: colors.primary }]}> 
+                      <User size={20} color="white" />
+                    </View>
+                  )}
                   <View style={styles.adminDetails}>
                     <Text style={[styles.adminName, { color: colors.text }]}>
                       {item.name}
