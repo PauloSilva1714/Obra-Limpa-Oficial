@@ -430,6 +430,11 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                 onChangeText={setNewMessage}
                 multiline
                 maxLength={500}
+                onKeyPress={e => {
+                  if (e.nativeEvent.key === 'Enter') {
+                    handleSendMessage();
+                  }
+                }}
               />
               <TouchableOpacity
                     style={[styles.sendButton, { backgroundColor: colors.primary }]
