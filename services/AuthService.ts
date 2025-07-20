@@ -270,6 +270,22 @@ export class AuthService {
 
         let userData = userDoc.data() as User;
 
+        // SINCRONIZAR photoURL DO FIREBASE AUTH
+        const firebasePhotoURL = userCredential.user.photoURL;
+        console.log('[AuthService] Firebase Auth photoURL durante login:', firebasePhotoURL);
+        console.log('[AuthService] Firestore photoURL:', userData.photoURL);
+        console.log('[AuthService] Firebase User completo:', JSON.stringify(userCredential.user, null, 2));
+        
+        if (firebasePhotoURL && firebasePhotoURL !== userData.photoURL) {
+          console.log('[AuthService] Sincronizando photoURL do Firebase Auth para Firestore...');
+          await updateDoc(doc(db, 'users', userData.id), { photoURL: firebasePhotoURL });
+          userData.photoURL = firebasePhotoURL;
+        } else if (!firebasePhotoURL && userData.photoURL) {
+          console.log('[AuthService] Firebase Auth não tem photoURL, mantendo do Firestore');
+        } else {
+          console.log('[AuthService] Nenhuma sincronização de photoURL necessária durante login');
+        }
+
         // CORRIGIR NOME AUTOMATICAMENTE SE FOR 'Usuário'
         if (userData.name === 'Usuário') {
           // Buscar convite aceito para tentar pegar o nome real
@@ -309,7 +325,7 @@ export class AuthService {
               userData.siteId = siteIds[0];
             }
           }
-          await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(userData));
+          await AuthService.saveUserToStorage(userData);
 
           try {
             await EmailService.sendLoginConfirmation(
@@ -526,7 +542,7 @@ export class AuthService {
       await AsyncStorage.removeItem(AuthService.SITE_KEY);
 
       AuthService.getInstance().currentUser = user;
-      await AuthService.saveUserToStorageStatic(user);
+      await AuthService.saveUserToStorage(user);
 
       return true;
     } catch (error: any) {
@@ -1387,6 +1403,14 @@ export class AuthService {
     }
   }
 
+  static async saveUserToStorage(user: User): Promise<void> {
+    try {
+      await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(user));
+    } catch (error) {
+      throw error;
+    }
+  }
+
   static subscribeToUserSites(userId: string, callback: (sites: Site[]) => void) {
     const userDocRef = doc(db, 'users', userId);
     getDoc(userDocRef).then(userDoc => {
@@ -1513,7 +1537,7 @@ export class AuthService {
         if (updatedUser.id && autoSiteId) {
           await updateDoc(doc(db, 'users', updatedUser.id), { siteId: autoSiteId });
           updatedUser.siteId = autoSiteId;
-          await AuthService.saveUserToStorageStatic(updatedUser as User);
+          await AuthService.saveUserToStorage(updatedUser as User);
         }
       }
 
@@ -1604,7 +1628,7 @@ export class AuthService {
       await updateDoc(doc(db, 'users', currentUser.id), updatedUser);
 
       const updatedCurrentUser = { ...currentUser, ...updatedUser };
-      await AuthService.saveUserToStorageStatic(updatedCurrentUser as User);
+      await AuthService.saveUserToStorage(updatedCurrentUser as User);
 
       return true;
     } catch (error) {
@@ -1886,6 +1910,25 @@ export class AuthService {
         await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(userData));
       }
     } catch (error) {
+      throw error;
+    }
+  }
+
+  static async syncPhotoURLToFirebaseAuth(photoURL: string): Promise<void> {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Atualizar o photoURL no Firebase Auth
+      await currentUser.updateProfile({
+        photoURL: photoURL
+      });
+
+      console.log('[AuthService] photoURL sincronizado para Firebase Auth:', photoURL);
+    } catch (error) {
+      console.error('[AuthService] Erro ao sincronizar photoURL para Firebase Auth:', error);
       throw error;
     }
   }

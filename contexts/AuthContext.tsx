@@ -41,9 +41,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userData = await AuthService.getUserById(firebaseUser.uid);
           if (userData) {
             console.log('[AuthContext] Salvando usuário no AsyncStorage...');
-            await AuthService.saveUserToStorageStatic(userData);
+            await AuthService.saveUserToStorage(userData);
             console.log('[AuthContext] Usuário salvo no AsyncStorage com sucesso');
           }
+        }
+        
+        // SINCRONIZAR photoURL DO FIREBASE AUTH
+        console.log('[AuthContext] Firebase User photoURL:', firebaseUser.photoURL);
+        console.log('[AuthContext] Firebase User completo:', JSON.stringify(firebaseUser, null, 2));
+        console.log('[AuthContext] UserData photoURL:', userData?.photoURL);
+        
+        if (userData && firebaseUser.photoURL && firebaseUser.photoURL !== userData.photoURL) {
+          console.log('[AuthContext] Sincronizando photoURL do Firebase Auth...');
+          await AuthService.updateUserProfilePhoto(userData.id, firebaseUser.photoURL);
+          userData.photoURL = firebaseUser.photoURL;
+          await AuthService.saveUserToStorage(userData);
+        } else if (userData && !userData.photoURL && firebaseUser.photoURL) {
+          console.log('[AuthContext] Adicionando photoURL do Firebase Auth...');
+          await AuthService.updateUserProfilePhoto(userData.id, firebaseUser.photoURL);
+          userData.photoURL = firebaseUser.photoURL;
+          await AuthService.saveUserToStorage(userData);
+        } else if (userData && firebaseUser.photoURL === null && userData.photoURL) {
+          console.log('[AuthContext] Firebase Auth não tem photoURL, mas Firestore tem. Sincronizando para Firebase Auth...');
+          try {
+            await AuthService.syncPhotoURLToFirebaseAuth(userData.photoURL);
+            console.log('[AuthContext] photoURL sincronizado com sucesso para Firebase Auth');
+          } catch (error) {
+            console.error('[AuthContext] Erro ao sincronizar photoURL para Firebase Auth:', error);
+          }
+        } else {
+          console.log('[AuthContext] Nenhuma sincronização de photoURL necessária');
         }
         
         if (userData) {

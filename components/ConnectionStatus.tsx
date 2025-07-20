@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, ActivityIndicat
 import { Ionicons } from '@expo/vector-icons';
 import { checkFirebaseConnection, reconnectFirebase } from '../config/firebase';
 import { useAdminRealTimeSync } from '../hooks/useFrameworkReady';
-import { app, db } from '../config/firebase';
+import { app, db, auth } from '../config/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthService } from '@/services/AuthService';
 import { getDoc, doc } from 'firebase/firestore';
@@ -65,6 +65,13 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
 
   // Debug: logar valores no console
   console.log('[ConnectionStatus] user?.photoURL:', user?.photoURL);
+  console.log('[ConnectionStatus] user?.name:', user?.name);
+  console.log('[ConnectionStatus] user?.email:', user?.email);
+  console.log('[ConnectionStatus] user completo:', JSON.stringify(user, null, 2));
+  console.log('[ConnectionStatus] Firebase Auth currentUser photoURL:', auth.currentUser?.photoURL);
+  console.log('[ConnectionStatus] Firebase Auth currentUser completo:', JSON.stringify(auth.currentUser, null, 2));
+  console.log('[ConnectionStatus] Firebase Auth currentUser displayName:', auth.currentUser?.displayName);
+  console.log('[ConnectionStatus] Firebase Auth currentUser email:', auth.currentUser?.email);
   console.log('[ConnectionStatus] isConnected:', isConnected);
 
   // Avatar padrão

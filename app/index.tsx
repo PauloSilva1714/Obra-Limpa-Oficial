@@ -24,7 +24,7 @@ export default function Index() {
             userData = await AuthService.getUserById(firebaseUser.uid);
             if (userData) {
               console.log('[Index] Salvando usuário no AsyncStorage...');
-              await AuthService.saveUserToStorageStatic(userData);
+              await AuthService.saveUserToStorage(userData);
               console.log('[Index] Usuário salvo no AsyncStorage com sucesso');
             } else {
               console.log('[Index] Erro: Não foi possível buscar dados do usuário no Firestore');

@@ -13,6 +13,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import AddressSearch from '@/components/AddressSearch';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { DuplicateSiteModal } from '@/components/DuplicateSiteModal';
 
 export default function CreateSiteScreen() {
   const [name, setName] = useState('');
@@ -21,6 +22,8 @@ export default function CreateSiteScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [duplicateModalVisible, setDuplicateModalVisible] = useState(false);
+  const [duplicateSiteName, setDuplicateSiteName] = useState('');
 
   function handleBack() {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -47,8 +50,14 @@ export default function CreateSiteScreen() {
       });
       setConfirmationModalVisible(true);
       // router.back(); // Remover o redirecionamento automático, deixar para o usuário fechar o modal
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível criar a obra');
+    } catch (error: any) {
+      // Verificar se é um erro de obra duplicada
+      if (error.message && error.message.includes('Já existe uma obra com o nome')) {
+        setDuplicateSiteName(name.trim());
+        setDuplicateModalVisible(true);
+      } else {
+        Alert.alert('Erro', 'Não foi possível criar a obra');
+      }
     } finally {
       setLoading(false);
     }
@@ -118,7 +127,15 @@ export default function CreateSiteScreen() {
         }}
         confirmText="OK"
         cancelText="Fechar"
-        
+      />
+
+      <DuplicateSiteModal
+        visible={duplicateModalVisible}
+        siteName={duplicateSiteName}
+        onClose={() => {
+          setDuplicateModalVisible(false);
+          setDuplicateSiteName('');
+        }}
       />
     </SafeAreaView>
   );
