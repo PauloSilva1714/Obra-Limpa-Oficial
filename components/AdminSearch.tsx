@@ -36,8 +36,10 @@ export default function AdminSearch({
   useEffect(() => {
     if (!siteId) return;
     setLoading(true);
-    AuthService.getAdminsBySite(siteId).then(admins => {
-      setAdmins(admins);
+    AuthService.getAdminsBySite(siteId).then(async admins => {
+      const currentUser = await AuthService.getCurrentUser();
+      const filteredAdmins = currentUser ? admins.filter(admin => admin.id !== currentUser.id) : admins;
+      setAdmins(filteredAdmins);
       setLoading(false);
     });
   }, [siteId]);
@@ -126,8 +128,8 @@ export default function AdminSearch({
                     <Text style={[styles.adminName, { color: colors.text }]}>
                       {item.name}
                     </Text>
-                    <Text style={[styles.adminEmail, { color: colors.textMuted }]}>
-                      {item.email}
+                    <Text style={[styles.adminEmail, { color: colors.textMuted }]}> 
+                      {item.funcao ? item.funcao : 'Administrador'}
                     </Text>
                   </View>
                 </View>
