@@ -365,19 +365,18 @@ export default function AdminScreen() {
                 data={sites}
                 keyExtractor={item => item.id}
                 renderItem={({ item }) => (
-                  <View style={{
-                    backgroundColor: '#F3F4F6',
-                    borderRadius: 12,
-                    padding: 16,
-                    marginBottom: 12,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.06,
-                    shadowRadius: 4,
-                    elevation: 2,
-                  }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#222' }}>{item.name}</Text>
-                    <Text style={{ fontSize: 14, color: '#444', marginTop: 2 }}>{item.address || 'Endereço não informado'}</Text>
-                  </View>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 }}
+                    onPress={async () => {
+                      await AuthService.setCurrentSite(item);
+                      setSitesModalVisible(false);
+                      // Opcional: recarregar dados ou navegar, se necessário
+                      // Exemplo: router.replace('/(tabs)');
+                    }}
+                  >
+                    <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>{item.name}</Text>
+                    <Text style={{ color: '#374151', fontSize: 14 }}>{item.address}</Text>
+                  </TouchableOpacity>
                 )}
                 style={{ maxHeight: 350 }}
               />
