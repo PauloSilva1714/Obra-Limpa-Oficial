@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import { Send, ArrowLeft, Trash2, User, Check } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -44,6 +45,7 @@ export default function AdminDirectChat({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showOptions, setShowOptions] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<AdminDirectMessage[]>([]);
+  const [otherUserPhotoURL, setOtherUserPhotoURL] = useState<string | null>(null);
   
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
@@ -115,6 +117,13 @@ export default function AdminDirectChat({
   useEffect(() => {
     AuthService.getCurrentUser().then(setCurrentUser);
   }, []);
+
+  useEffect(() => {
+    // Buscar foto de perfil do outro usuário
+    AuthService.getUserById(otherUserId).then(user => {
+      setOtherUserPhotoURL(user?.photoURL || null);
+    });
+  }, [otherUserId]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -301,9 +310,17 @@ export default function AdminDirectChat({
         
         <View style={styles.headerContent}>
           <View style={styles.userInfo}>
-            <View style={[styles.headerAvatar, { backgroundColor: colors.primary }]}> 
-              <Text style={[styles.headerAvatarText, { color: 'white' }]}>{otherUserName.charAt(0).toUpperCase()}</Text>
-            </View>
+            {otherUserPhotoURL ? (
+              <Image
+                source={{ uri: otherUserPhotoURL }}
+                style={[styles.headerAvatar, { backgroundColor: colors.primary }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.headerAvatar, { backgroundColor: colors.primary }]}> 
+                <Text style={[styles.headerAvatarText, { color: 'white' }]}>{otherUserName.charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
             <View style={styles.headerUserInfo}>
               <Text style={[styles.headerTitle, { color: colors.text }]}>
                 {otherUserName}
