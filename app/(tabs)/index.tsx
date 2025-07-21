@@ -31,6 +31,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Building2,
 } from 'lucide-react-native';
 import { Feather } from '@expo/vector-icons';
 import { GestureHandlerRootView, PinchGestureHandler } from 'react-native-gesture-handler';
@@ -52,6 +53,7 @@ import { TaskQuickView } from '@/components/TaskQuickView';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { TaskFeedCard } from '@/components/TaskFeedCard';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { useSite } from '@/contexts/SiteContext';
 
 // Declarar a lista de emojis sugeridos antes do componente principal
 const suggestedEmojis: string[] = ['😀', '👍', '🙏', '👏', '🚀', '🔥'];
@@ -94,6 +96,18 @@ export default function TasksScreen() {
 
   // Estados para modal de confirmação
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [completionPercentage, setCompletionPercentage] = useState(0);
+
+  const { currentSite } = useSite();
+
+  useEffect(() => {
+    if (tasks && tasks.length > 0) {
+        const completed = tasks.filter(task => task.status === 'completed').length;
+        setCompletionPercentage(Math.round((completed / tasks.length) * 100));
+    } else {
+        setCompletionPercentage(0);
+    }
+  }, [tasks]);
 
   console.log('[DEBUG] TasksScreen - Estados iniciais:', { 
     loading, 
@@ -477,12 +491,12 @@ export default function TasksScreen() {
     const filtered = tasks.filter(task => {
       const title = task.title?.toLowerCase() || '';
       const description = task.description?.toLowerCase() || '';
-      const assignedTo = task.assignedTo?.toLowerCase() || '';
+      const assignedToText = task.assignedTo?.toLowerCase() || '';
       const area = task.area?.toLowerCase() || '';
       
       return title.includes(lowerQuery) ||
              description.includes(lowerQuery) ||
-             assignedTo.includes(lowerQuery) ||
+             assignedToText.includes(lowerQuery) ||
              area.includes(lowerQuery);
     });
     
@@ -668,6 +682,31 @@ export default function TasksScreen() {
             )}
           </View>
         </View>
+        {/* Nome da obra atual */}
+        {currentSite?.name && (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginLeft: 12,
+            paddingHorizontal: 14,
+            paddingVertical: 4,
+            backgroundColor: colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.primary,
+            shadowColor: colors.primary,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 3
+          }}>
+            <Building2 size={18} color={colors.primary} style={{ marginRight: 6 }} />
+            <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 15 }}>
+              {currentSite.name}
+              {tasks.length > 0 && ` (${completionPercentage}%)`}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Feed de Tarefas */}

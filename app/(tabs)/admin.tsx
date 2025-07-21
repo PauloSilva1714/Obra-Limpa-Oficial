@@ -30,6 +30,7 @@ import {
 import { AuthService, User, Site } from '@/services/AuthService';
 import { AdminService } from '@/services/AdminService';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSite } from '@/contexts/SiteContext';
 import { t } from '@/config/i18n';
 import logo from '../(auth)/obra-limpa-logo.png';
 
@@ -54,9 +55,12 @@ export default function AdminScreen() {
   const [workersModalVisible, setWorkersModalVisible] = useState(false);
   const [workers, setWorkers] = useState<User[]>([]);
   const [loadingWorkers, setLoadingWorkers] = useState(false);
+  const [totalWorkers, setTotalWorkers] = useState(0);
   const [sitesModalVisible, setSitesModalVisible] = useState(false);
   const [sites, setSites] = useState<Site[]>([]);
   const [loadingSites, setLoadingSites] = useState(false);
+  const { currentSite, setCurrentSite } = useSite();
+
 
   useEffect(() => {
     const checkUserAndLoadData = async () => {
@@ -67,12 +71,12 @@ export default function AdminScreen() {
         setLoading(false);
         return;
       }
-      
       loadAdminStats();
+      updateTotalWorkers();
     };
 
     checkUserAndLoadData();
-  }, []);
+  }, [currentSite]);
 
   const loadAdminStats = async () => {
     try {
@@ -87,34 +91,52 @@ export default function AdminScreen() {
     }
   };
 
+  const updateTotalWorkers = async () => {
+    if (!currentSite) {
+      setTotalWorkers(0);
+      return;
+    }
+    try {
+      const siteWorkers = await AuthService.getWorkersBySite(currentSite.id);
+      const siteAdmins = await AuthService.getAdminsBySite(currentSite.id);
+      let workers = siteWorkers.concat(siteAdmins);
+      // Remover duplicados
+      const uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
+      const activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
+      setTotalWorkers(activeWorkers.length);
+    } catch {
+      setTotalWorkers(0);
+    }
+  };
+
   const openWorkersModal = async () => {
     setLoadingWorkers(true);
     setWorkersModalVisible(true);
     try {
-      // Buscar todas as obras do usuário logado
-      const userSites = await AuthService.getUserSites();
-      let workers: User[] = [];
-      for (const site of userSites) {
-        const siteWorkers = await AuthService.getWorkersBySite(site.id);
-        const siteAdmins = await AuthService.getAdminsBySite(site.id);
-        workers = workers.concat(siteWorkers, siteAdmins);
-      }
-      // Remover duplicados
-      const uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
-      const activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
-      const currentUser = await AuthService.getCurrentUser();
-      const sortedWorkers = [
-        ...activeWorkers.filter(w => w.id === currentUser?.id),
-        ...activeWorkers.filter(w => w.id !== currentUser?.id)
-      ];
-      setWorkers(sortedWorkers);
+        if (!currentSite) {
+            throw new Error("Nenhuma obra selecionada");
+        }
+        const siteWorkers = await AuthService.getWorkersBySite(currentSite.id);
+        const siteAdmins = await AuthService.getAdminsBySite(currentSite.id);
+        let workers = siteWorkers.concat(siteAdmins);
+        // Remover duplicados
+        let uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
+        let activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
+        const currentUser = await AuthService.getCurrentUser();
+        if (currentUser && currentUser.role === 'admin' && currentUser.status === 'active') {
+          // Remove se já existe
+          activeWorkers = activeWorkers.filter(w => w.id !== currentUser.id);
+          // Adiciona no topo
+          activeWorkers = [currentUser, ...activeWorkers];
+        }
+        setWorkers(activeWorkers);
     } catch (e) {
-      setWorkers([]);
-      Alert.alert('Erro', 'Não foi possível carregar os colaboradores.');
+        setWorkers([]);
+        Alert.alert('Erro', e instanceof Error ? e.message : 'Não foi possível carregar os colaboradores.');
     } finally {
-      setLoadingWorkers(false);
+        setLoadingWorkers(false);
     }
-  };
+};
 
   const openSitesModal = async () => {
     setLoadingSites(true);
@@ -220,6 +242,31 @@ export default function AdminScreen() {
         {/* Cabeçalho agora dentro do ScrollView */}
         <View style={styles.header}>
           <Text style={styles.title}>Painel Administrativo</Text>
+          {currentSite?.name && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginTop: 2,
+              marginLeft: 8,
+              paddingHorizontal: 14,
+              paddingVertical: 4,
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.primary,
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 3
+            }}>
+              <Building2 size={18} color={colors.primary} style={{ marginRight: 6 }} />
+              <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 15 }}>
+                {currentSite.name}
+                {stats.totalTasks > 0 && ` (${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%)`}
+              </Text>
+            </View>
+          )}
           <Text style={styles.subtitle}>Gerencie suas obras e colaboradores</Text>
           <TouchableOpacity style={styles.refreshButton} onPress={loadAdminStats}>
             <RefreshCw size={24} color={colors.primary} />
@@ -238,7 +285,7 @@ export default function AdminScreen() {
             />
             <StatCard
               title="Colaboradores"
-              value={stats.totalWorkers}
+              value={totalWorkers}
               icon={<Users size={20} color={colors.success} />}
               color={colors.success}
               onPress={openWorkersModal}
@@ -338,7 +385,10 @@ export default function AdminScreen() {
                 keyExtractor={item => item.id}
                 renderItem={({ item }) => (
                   <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                    <Text style={{ fontSize: 16, color: colors.text }}>{item.name}</Text>
+                    <Text style={{ fontSize: 16, color: colors.text }}>
+                      {item.name}
+                      {item.company ? ` (${item.company})` : ''}
+                    </Text>
                     <Text style={{ fontSize: 14, color: colors.textSecondary }}>
                       Função: {item.funcao ? item.funcao : (item.role === 'admin' ? 'Administrador' : 'Não informada')}
                     </Text>
@@ -377,9 +427,9 @@ export default function AdminScreen() {
                     style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 }}
                     onPress={async () => {
                       await AuthService.setCurrentSite(item);
+                      setCurrentSite({ ...item, company: '' });
                       setSitesModalVisible(false);
-                      // Opcional: recarregar dados ou navegar, se necessário
-                      // Exemplo: router.replace('/(tabs)');
+                      loadAdminStats();
                     }}
                   >
                     <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>{item.name}</Text>

@@ -22,7 +22,7 @@ export interface Task {
   description: string;
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
   priority: 'low' | 'medium' | 'high';
-  assignedTo?: string | string[]; // Pode ser string único ou array de strings
+  assignedTo?: string;
   siteId: string;
   createdAt: string;
   updatedAt: string;

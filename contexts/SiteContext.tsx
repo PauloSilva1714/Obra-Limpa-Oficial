@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AuthService } from '@/services/AuthService';
 
 interface Site {
   id: string;
@@ -16,6 +17,16 @@ const SiteContext = createContext<SiteContextData>({} as SiteContextData);
 
 export function SiteProvider({ children }: { children: React.ReactNode }) {
   const [currentSite, setCurrentSite] = useState<Site | null>(null);
+
+  useEffect(() => {
+    async function loadSite() {
+      const site = await AuthService.getCurrentSite();
+      if (site) {
+        setCurrentSite({ ...site, company: '' });
+      }
+    }
+    loadSite();
+  }, []);
 
   return (
     <SiteContext.Provider value={{ currentSite, setCurrentSite }}>
