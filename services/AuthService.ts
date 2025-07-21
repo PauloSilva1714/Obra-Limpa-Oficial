@@ -1446,10 +1446,6 @@ export class AuthService {
         throw new Error('Este não é um convite de administrador');
       }
 
-      if (invite.status === 'pending') {
-        throw new Error('Apenas convites rejeitados ou cancelados podem ser excluídos');
-      }
-
       await deleteDoc(doc(db, 'invites', inviteId));
       
     } catch (error) {

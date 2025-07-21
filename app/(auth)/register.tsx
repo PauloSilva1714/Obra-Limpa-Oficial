@@ -143,7 +143,7 @@ export default function RegisterScreen() {
               ...prev,
               siteName: siteDoc?.name || prev.siteName,
               siteAddress: siteDoc?.address || prev.siteAddress,
-              company: companyName || prev.company,
+              company: role === 'worker' ? (companyName || prev.company) : '',
             }));
           }
         } catch (err) {
