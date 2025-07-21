@@ -59,6 +59,7 @@ function redirectAfterInvite() {
 
 export default function RegisterScreen() {
   const { role, inviteId } = useLocalSearchParams<{ role: 'admin' | 'worker', inviteId?: string }>();
+  console.log('[RegisterScreen] role:', role, 'inviteId:', inviteId);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -103,6 +104,8 @@ export default function RegisterScreen() {
   const funcaoOutroRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
+  const continuarButtonRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
+  const nomeInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     document.title = 'Obra Limpa - Cadastro';
@@ -178,6 +181,13 @@ export default function RegisterScreen() {
       checkIfUserExistsAndAcceptInvite();
     }
   }, [inviteInfo]);
+
+  useEffect(() => {
+    if (showSuccessModal) {
+      // Foca no botão "Continuar" ao abrir o modal
+      continuarButtonRef.current?.focus && continuarButtonRef.current.focus();
+    }
+  }, [showSuccessModal]);
 
   const handleRegister = async () => {
     if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.confirmPassword.trim()) {
@@ -288,6 +298,8 @@ export default function RegisterScreen() {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
+    // Devolve o foco para o campo nome ao fechar o modal
+    nomeInputRef.current?.focus && nomeInputRef.current.focus();
     setFormData({
       name: '',
       email: '',
@@ -319,11 +331,11 @@ export default function RegisterScreen() {
     );
   }
 
-  if (checkingExistingUser) {
+  if (inviteId && checkingExistingUser) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
         <ActivityIndicator size="large" color="#2563EB" />
-        <Text>Verificando convite...</Text>
+        <Text style={{ marginTop: 16, color: '#111827', fontSize: 16 }}>Verificando convite...</Text>
       </View>
     );
   }
@@ -382,6 +394,7 @@ export default function RegisterScreen() {
             <View style={styles.inputContainer}>
               <User size={20} color="#6B7280" style={styles.inputIcon} />
               <TextInput
+                ref={nomeInputRef}
                 style={styles.input}
                 placeholder="Nome completo"
                 value={formData.name}
@@ -656,6 +669,7 @@ export default function RegisterScreen() {
               Sua conta foi criada com sucesso. Você será redirecionado para a tela de login.
             </Text>
             <TouchableOpacity
+              ref={continuarButtonRef}
               style={styles.successButton}
               onPress={handleSuccessModalClose}
             >
