@@ -60,7 +60,7 @@ export default function ProfileScreen() {
         Animated.timing(photoAnim, {
           toValue: 1,
           duration: 400,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
       prevPhotoURL.current = userData.photoURL;
@@ -122,14 +122,14 @@ export default function ProfileScreen() {
       toValue: 0,
       duration: 350,
       easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(() => {
       setTimeout(() => {
         RNAnimated.timing(toastAnim, {
           toValue: -80,
           duration: 350,
           easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }).start(() => setShowSuccessToast(false));
       }, 2500);
     });

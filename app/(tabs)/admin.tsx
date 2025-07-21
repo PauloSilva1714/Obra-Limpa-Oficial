@@ -313,7 +313,7 @@ export default function AdminScreen() {
           <AdminCard
             title="Gerenciar Obras"
             subtitle="Criar, editar e visualizar obras"
-            icon={<Image source={logo} style={{ width: 32, height: 32, resizeMode: 'contain' }} />}
+            icon={<Image source={logo} resizeMode="contain" style={{ width: 32, height: 32 }} />}
             onPress={() => router.push('/admin/sites')}
             color={colors.primary}
           />

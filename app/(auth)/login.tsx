@@ -55,12 +55,12 @@ export default function LoginScreen() {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   }, []);
@@ -71,7 +71,7 @@ export default function LoginScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
           <View style={styles.logoContainer}>
-            <Image source={logo} style={{ width: 90, height: 90, resizeMode: 'contain' }} />
+            <Image source={logo} resizeMode="contain" style={{ width: 90, height: 90 }} />
           </View>
           <Text style={styles.titleFallback}>Obra Limpa</Text>
           <Text style={styles.subtitleFallback}>Sistema de Gestão Inteligente</Text>
@@ -244,7 +244,7 @@ export default function LoginScreen() {
         {/* Header fixo no topo */}
         <View style={styles.headerContainer}>
           <View style={styles.logoContainer}>
-            <Image source={logo} style={{ width: 90, height: 90, resizeMode: 'contain' }} />
+            <Image source={logo} resizeMode="contain" style={{ width: 90, height: 90 }} />
           </View>
           <Text style={styles.title}>Obra Limpa</Text>
           <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>

@@ -115,12 +115,12 @@ export default function RegisterScreen() {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -366,8 +366,8 @@ export default function RegisterScreen() {
           <View style={styles.logoContainer}>
             <Image
               source={logo}
-              style={{ width: 100, height: 100, marginBottom: 8 }}
               resizeMode="contain"
+              style={{ width: 120, height: 120, borderRadius: 60 }}
             />
           </View>
           <Text style={styles.title}>Obra Limpa</Text>
