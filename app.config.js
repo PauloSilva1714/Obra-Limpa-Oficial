@@ -11,7 +11,9 @@ module.exports = {
   plugins: [
     'expo-router',
     'expo-font',
-    'expo-web-browser'
+    'expo-web-browser',
+    'expo-audio',
+    'expo-video'
   ],
   extra: {
     firebase: {

@@ -298,13 +298,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     borderWidth: 3,
     borderColor: '#38A3C0', // azul do logo
-    shadowColor: '#38A3C0', // azul do logo
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0px 4px 8px rgba(56, 163, 192, 0.3)', // azul do logo
     elevation: 8,
   },
   title: {
@@ -330,13 +324,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    boxShadow: '0px -4px 12px rgba(0,0,0,0.1)',
     elevation: 8,
     zIndex: 2,
   },
@@ -402,18 +390,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
-    shadowColor: '#3B82F6',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0px 4px 8px rgba(59, 130, 246, 0.3)',
     elevation: 4,
   },
   buttonDisabled: {
     backgroundColor: '#9CA3AF',
-    shadowOpacity: 0,
+    boxShadow: 'none',
   },
   loginButtonText: {
     fontSize: 18,

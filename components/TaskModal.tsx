@@ -13,7 +13,7 @@ import {
   Dimensions,
   Linking,
 } from 'react-native';
-import { X, User, Calendar, Flag, MapPin, ImagePlus, Video, Trash2, Send, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { X, User, Calendar, Flag, MapPin, ImagePlus, Trash2, Send, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import type { Task } from '../services/TaskService';
 import { TaskService } from '../services/TaskService';
@@ -21,7 +21,7 @@ import { AuthService } from '../services/AuthService';
 import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadImageAsync } from '../services/PhotoService';
-import { Video as ExpoVideo, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, Audio } from 'expo-av';
 import type { Video as ExpoVideoType } from 'expo-av';
 import { PDFService } from '../services/PDFService';
 import { Picker } from '@react-native-picker/picker';
@@ -206,7 +206,13 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     // }
 
     // No handleSave, inclua todos os responsáveis:
-    const taskData = { ...formData, company, assignedTo: selectedAssignees };
+    const taskData = {
+      ...formData,
+      company,
+      assignedTo: Array.isArray(selectedAssignees)
+        ? selectedAssignees.join(', ')
+        : (typeof selectedAssignees === 'string' ? selectedAssignees : '')
+    };
     // Converter datas para YYYY-MM-DD antes de salvar
     if (taskData.dueDate) {
       taskData.dueDate = formatDateForStorage(taskData.dueDate);
@@ -220,7 +226,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     }
     // No handleSave, ajuste para salvar o nome manual se selecionado:
     if (formData.assignedTo === 'outro' && customAssignee.trim()) {
-      taskData.assignedTo = [customAssignee.trim()];
+      taskData.assignedTo = customAssignee.trim();
     }
     onSave(taskData);
   };
@@ -719,7 +725,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         {detailsMode && task && (
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             {/* Seção: Mídias Destacadas - AGORA PRIMEIRA */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Mídias</Text>
               {/* Carrossel de mídia (detalhes da tarefa) */}
               {hasMedia && (
@@ -734,20 +740,20 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                       <TouchableOpacity onPress={() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); }}>
                         <Image
                           source={{ uri: currentMedia.url }}
-                          style={{ width: 320, height: 220, borderRadius: 20, backgroundColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12 }}
+                          style={{ width: 320, height: 220, borderRadius: 20, backgroundColor: '#F3F4F6' }}
                           resizeMode="cover"
                         />
                       </TouchableOpacity>
                     ) : currentMedia && currentMedia.type === 'video' ? (
                       <TouchableOpacity onPress={() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); }}>
-                        <ExpoVideo
+                        <Video
                           ref={carrosselVideoRef}
                           source={{ uri: currentMedia.url }}
                           style={{ width: 320, height: 220, borderRadius: 20 }}
                           useNativeControls
                           resizeMode={ResizeMode.COVER}
                           shouldPlay={shouldPlayCarrosselVideo && !fullscreenVisible}
-                          onPlaybackStatusUpdate={status => {
+                          onPlaybackStatusUpdate={(status: any) => {
                             setCarrosselVideoStatus(status);
                             if (
                               fullscreenVisible &&
@@ -781,7 +787,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                             <Image source={{ uri: m.url }} style={{ width: 48, height: 48, borderRadius: 8, marginHorizontal: 4, borderWidth: idx === mediaIndex ? 2 : 0, borderColor: '#F97316' }} />
                           ) : (
                             <View style={{ width: 48, height: 48, borderRadius: 8, marginHorizontal: 4, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center', borderWidth: idx === mediaIndex ? 2 : 0, borderColor: '#F97316' }}>
-                              <ExpoVideo source={{ uri: m.url }} style={{ width: 40, height: 40, borderRadius: 8 }} resizeMode={ResizeMode.COVER} />
+                              <Video source={{ uri: m.url }} style={{ width: 40, height: 40, borderRadius: 8 }} resizeMode={ResizeMode.COVER} />
                             </View>
                           )}
                         </TouchableOpacity>
@@ -801,7 +807,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                       {fullscreenMedia.type === 'photo' ? (
                         <Image source={{ uri: fullscreenMedia.url }} style={{ width: '100%', height: '90%', resizeMode: 'contain', borderRadius: 16 }} />
                       ) : (
-                        <ExpoVideo source={{ uri: fullscreenMedia.url }} style={{ width: '100%', height: '90%', borderRadius: 16 }} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay />
+                        <Video source={{ uri: fullscreenMedia.url }} style={{ width: '100%', height: '90%', borderRadius: 16 }} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay />
                       )}
                     </View>
                   </View>
@@ -809,7 +815,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               )}
             </View>
             {/* Seção: Informações Básicas - AGORA DEPOIS */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Informações Básicas</Text>
               </View>
@@ -819,7 +825,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.description}</Text>
             </View>
             {/* Seção: Status e Prioridade */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Riscos</Text>
               </View>
@@ -907,7 +913,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         {!detailsMode && (
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             {/* Seção: Informações Básicas */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Informações Básicas</Text>
                 <Text style={{ fontSize: 14, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>Obrigatório</Text>
@@ -985,7 +991,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               />
             </View>
             {/* Seção: Mídias */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Mídias</Text>
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                 <TouchableOpacity
@@ -1001,7 +1007,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                   onPress={pickVideo}
                   disabled={!canEdit}
                 >
-                  <Video size={20} color="#4B5563" />
+                  <Video />
                   <Text style={styles.mediaButtonText}>Adicionar Vídeo</Text>
                 </TouchableOpacity>
               </View>
@@ -1021,7 +1027,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 ))}
                 {formData.videos.map((url, idx) => (
                   <View key={idx} style={styles.mediaItem}>
-                    <ExpoVideo source={{ uri: url }} style={styles.videoPreview} useNativeControls resizeMode={ResizeMode.COVER} />
+                    <Video source={{ uri: url }} style={styles.videoPreview} useNativeControls resizeMode={ResizeMode.COVER} />
                     <TouchableOpacity
                       style={styles.removeMediaButton}
                       onPress={() => removeMedia('video', idx)}
@@ -1037,7 +1043,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               </View>
             </View>
             {/* Seção: Status e Prioridade */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', elevation: 4 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Riscos</Text>
                 <Text style={{ fontSize: 14, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>Configuração</Text>

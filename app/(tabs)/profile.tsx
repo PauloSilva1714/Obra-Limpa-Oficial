@@ -316,7 +316,7 @@ export default function ProfileScreen() {
               alignItems: 'center',
             }}
           >
-            <View style={{ backgroundColor: '#22C55E', borderRadius: 24, paddingVertical: 10, paddingHorizontal: 28, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 2, marginTop: 16 }}>
+            <View style={{ backgroundColor: '#22C55E', borderRadius: 24, paddingVertical: 10, paddingHorizontal: 28, flexDirection: 'row', alignItems: 'center', boxShadow: '0px 2px 8px rgba(0,0,0,0.08)', marginTop: 16 }}>
               <RNAnimated.Text style={{ fontSize: 22, marginRight: 10, color: '#fff', transform: [{ scale: showSuccessToast ? 1.2 : 1 }] }}>
                 ✔️
               </RNAnimated.Text>
@@ -333,11 +333,7 @@ export default function ProfileScreen() {
             borderRadius: 32,
             paddingHorizontal: 24,
             paddingVertical: 10,
-            shadowColor: '#2563EB',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.12,
-            shadowRadius: 8,
-            elevation: 2,
+            boxShadow: '0px 2px 8px rgba(37,99,235,0.12)',
           }}>
             <Text style={{ fontSize: 28, marginRight: 10 }}>{getGreetingEmoji()}</Text>
             <LinearGradient
@@ -363,7 +359,7 @@ export default function ProfileScreen() {
           colors={['#EEF2FF', '#F0FDFA']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 20, marginBottom: 18, shadowColor: '#2563EB', shadowOpacity: 0.06, shadowRadius: 8, elevation: 1, paddingHorizontal: 0 }}
+          style={{ borderRadius: 20, marginBottom: 18, boxShadow: '0px 2px 8px rgba(37,99,235,0.06)', paddingHorizontal: 0 }}
         >
           <View
             style={[
@@ -389,11 +385,7 @@ export default function ProfileScreen() {
                   borderRadius: 36,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  shadowColor: '#7C3AED',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.18,
-                  shadowRadius: 8,
-                  elevation: 6,
+                  boxShadow: '0px 4px 16px rgba(124,58,237,0.18)',
                   marginBottom: 4,
                 }}
               >
@@ -483,15 +475,12 @@ export default function ProfileScreen() {
                   justifyContent: 'center',
                   borderWidth: isNameFocused ? 1 : 0,
                   borderColor: '#2563EB',
-                  elevation: isNameFocused ? 2 : 0,
+                  boxShadow: isNameFocused ? '0px 2px 8px rgba(37,99,235,0.12)' : 'none',
                 }}
               >
                 <Pencil size={14} color={isNameFocused ? '#2563EB' : '#6B7280'} />
             </TouchableOpacity>
               {/* Cargo abaixo do nome */}
-              <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginTop: 2, fontWeight: '500' }}>
-                {userData.role === 'admin' ? 'Administrador' : 'Colaborador'}
-              </Text>
             </View>
           </View>
         </LinearGradient>
@@ -581,10 +570,7 @@ export default function ProfileScreen() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 marginBottom: privacyOpen ? 0 : 12,
-                shadowColor: '#000',
-                shadowOpacity: 0.03,
-                shadowRadius: 4,
-                elevation: 1,
+                boxShadow: '0px 2px 8px rgba(0,0,0,0.03)',
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>

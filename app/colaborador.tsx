@@ -65,10 +65,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     width: '100%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0,0,0,0.08)',
     elevation: 2,
   },
   cardTitle: {

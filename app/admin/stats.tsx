@@ -5,11 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, Users, ClipboardCheck, Clock, AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, Users, ClipboardCheck, Clock, AlertCircle, AlertTriangle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import TaskService from '@/services/TaskService';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useRouter } from 'expo-router';
 
 // Define Task type with status property
 type Task = {
@@ -20,23 +24,42 @@ type Task = {
 interface Stats {
   totalWorkers: number;
   activeWorkers: number;
+  totalAdmins: number;
+  activeAdmins: number;
   totalTasks: number;
   completedTasks: number;
   pendingTasks: number;
   inProgressTasks: number;
+  overdueTasks: number;
 }
 
 export default function StatsScreen() {
   const [stats, setStats] = useState<Stats>({
     totalWorkers: 0,
     activeWorkers: 0,
+    totalAdmins: 0,
+    activeAdmins: 0,
     totalTasks: 0,
     completedTasks: 0,
     pendingTasks: 0,
     inProgressTasks: 0,
+    overdueTasks: 0,
   });
   const [loading, setLoading] = useState(true);
   const [siteId, setSiteId] = useState<string | null>(null);
+  const { colors, isDarkMode } = useTheme();
+  const router = useRouter();
+  const { width: windowWidth } = useWindowDimensions();
+  const isSmallScreen = windowWidth < 600;
+  // Animação de entrada
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 700,
+      useNativeDriver: false,
+    }).start();
+  }, []);
 
   useEffect(() => {
     AuthService.getCurrentSite().then(site => {
@@ -47,40 +70,73 @@ export default function StatsScreen() {
   useEffect(() => {
     if (!siteId) return;
     setLoading(true);
+    // Buscar tarefas
     const unsubscribeTasks = TaskService.subscribeToTasksBySite(siteId, (tasks) => {
-      const completedTasks = tasks.filter((task: Task) => task.status === 'completed');
-      const pendingTasks = tasks.filter((task: Task) => task.status === 'pending');
-      const inProgressTasks = tasks.filter((task: Task) => task.status === 'in_progress');
+      const completedTasks = tasks.filter((task: any) => task.status === 'completed');
+      const pendingTasks = tasks.filter((task: any) => task.status === 'pending');
+      const inProgressTasks = tasks.filter((task: any) => task.status === 'in_progress');
+      const now = new Date();
+      const overdueTasks = tasks.filter((task: any) => {
+        if (!task.dueDate) return false;
+        if (task.status === 'completed') return false;
+        const due = new Date(task.dueDate);
+        return due < now;
+      });
       setStats(prev => ({
         ...prev,
         totalTasks: tasks.length,
         completedTasks: completedTasks.length,
         pendingTasks: pendingTasks.length,
         inProgressTasks: inProgressTasks.length,
+        overdueTasks: overdueTasks.length,
       }));
       setLoading(false);
     });
-    // Assinar workers em tempo real (se houver método, senão manter getWorkers)
-    // Exemplo:
-    // const unsubscribeWorkers = AuthService.subscribeToWorkers(siteId, (workers) => {
-    //   setStats(prev => ({
-    //     ...prev,
-    //     totalWorkers: workers.length,
-    //     activeWorkers: workers.filter(w => w.status === 'active').length,
-    //   }));
-    // });
+    // Buscar colaboradores (workers)
+    AuthService.getWorkersBySite(siteId).then(workers => {
+      setStats(prev => ({
+        ...prev,
+        totalWorkers: workers.length,
+        activeWorkers: workers.filter(w => w.status === 'active').length,
+      }));
+    });
+    // Buscar administradores (admins)
+    AuthService.getAdminsBySite(siteId).then(admins => {
+      setStats(prev => ({
+        ...prev,
+        totalAdmins: admins.length,
+        activeAdmins: admins.filter(a => a.status === 'active').length,
+      }));
+    });
     return () => {
       unsubscribeTasks && unsubscribeTasks();
-      // unsubscribeWorkers && unsubscribeWorkers();
     };
   }, [siteId]);
 
-  const StatCard = ({ icon: Icon, value, title }: { icon: any; value: number; title: string }) => (
-    <View style={styles.statCard}>
-      <Icon size={24} color="#2196F3" />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statTitle}>{title}</Text>
-    </View>
+  // Função para navegação rápida ao clicar no card
+  const handleCardPress = (status: string) => {
+    router.push({ pathname: '/(tabs)/index', params: { filter: status } });
+  };
+
+  // Cores dinâmicas por status
+  const statusColors = {
+    total: isDarkMode ? '#2563EB' : '#2563EB',
+    completed: isDarkMode ? '#22C55E' : '#16A34A',
+    inProgress: isDarkMode ? '#F59E42' : '#F59E42',
+    pending: isDarkMode ? '#3B82F6' : '#2563EB',
+    overdue: isDarkMode ? '#EF4444' : '#DC2626',
+  };
+
+  const StatCard = ({ icon: Icon, value, title, color, onPress }: { icon: any; value: number; title: string; color: string; onPress?: () => void }) => (
+    <Animated.View style={[styles.statCard, { backgroundColor: isDarkMode ? '#23272F' : '#fff', borderColor: color, shadowColor: color, opacity: fadeAnim }]}
+      accessible accessibilityLabel={`${title}: ${value}`}
+    >
+      <TouchableOpacity style={{ alignItems: 'center' }} onPress={onPress} activeOpacity={0.8}>
+        <Icon size={36} color={color} style={{ marginBottom: 4 }} />
+        <Text style={[styles.statValue, { color }]}>{value}</Text>
+        <Text style={[styles.statTitle, { color }]}>{title}</Text>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
   return (
@@ -107,35 +163,66 @@ export default function StatsScreen() {
               icon={Users}
               value={stats.totalWorkers}
               title="Total"
+              color={colors.primary}
             />
             <StatCard
               icon={Users}
               value={stats.activeWorkers}
               title="Ativos"
+              color={colors.success}
             />
           </View>
-
-          <Text style={styles.sectionTitle}>Tarefas</Text>
+          <Text style={styles.sectionTitle}>Administradores</Text>
           <View style={styles.statsGrid}>
+            <StatCard
+              icon={Users}
+              value={stats.totalAdmins}
+              title="Total"
+              color={colors.primary}
+            />
+            <StatCard
+              icon={Users}
+              value={stats.activeAdmins}
+              title="Ativos"
+              color={colors.success}
+            />
+          </View>
+          <Text style={styles.sectionTitle}>Tarefas</Text>
+          <View style={[styles.statsGrid, isSmallScreen && { flexDirection: 'column', alignItems: 'center' }]}>
             <StatCard
               icon={ClipboardCheck}
               value={stats.totalTasks}
               title="Total"
+              color={statusColors.total}
+              onPress={() => handleCardPress('all')}
             />
             <StatCard
               icon={ClipboardCheck}
               value={stats.completedTasks}
               title="Concluídas"
+              color={statusColors.completed}
+              onPress={() => handleCardPress('completed')}
             />
             <StatCard
               icon={Clock}
               value={stats.inProgressTasks}
               title="Em Andamento"
+              color={statusColors.inProgress}
+              onPress={() => handleCardPress('in_progress')}
             />
             <StatCard
               icon={AlertCircle}
               value={stats.pendingTasks}
               title="Pendentes"
+              color={statusColors.pending}
+              onPress={() => handleCardPress('pending')}
+            />
+            <StatCard
+              icon={AlertTriangle}
+              value={stats.overdueTasks}
+              title="Atrasadas"
+              color={statusColors.overdue}
+              onPress={() => handleCardPress('overdue')}
             />
           </View>
         </View>
@@ -161,7 +248,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     marginLeft: 16,
   },
@@ -169,7 +256,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     marginBottom: 16,
     marginTop: 24,
@@ -178,28 +265,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -8,
+    justifyContent: 'center',
   },
   statCard: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 12,
+    padding: 20,
     margin: 8,
     flex: 1,
-    minWidth: '45%',
+    minWidth: 180,
+    maxWidth: 260,
     alignItems: 'center',
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
+    boxShadow: '0px 2px 8px rgba(0,0,0,0.10)',
     elevation: 3,
+    borderWidth: 2,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#2196F3',
     marginTop: 8,
   },
   statTitle: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    color: '#444',
     marginTop: 4,
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,

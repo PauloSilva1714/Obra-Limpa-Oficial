@@ -254,11 +254,7 @@ export default function AdminScreen() {
               borderRadius: 12,
               borderWidth: 1,
               borderColor: colors.primary,
-              shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 4,
-              elevation: 3
+              boxShadow: '0px 2px 4px rgba(0,0,0,0.2)',
             }}>
               <Building2 size={18} color={colors.primary} style={{ marginRight: 6 }} />
               <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 15 }}>

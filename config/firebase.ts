@@ -19,7 +19,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDHJm219NVmB5KdQcLYRgOrp_coC_KbycQ",
   authDomain: "bralimpa2.firebaseapp.com",
   projectId: "bralimpa2",
-  storageBucket: "bralimpa2.firebasestorage.app",
+  storageBucket: "bralimpa2.appspot.com",
   messagingSenderId: "127747660506",
   appId: "1:127747660506:web:b1d89516a0bc22698de3e3"
 };
@@ -208,21 +208,21 @@ export const checkFirebaseConnection = async () => {
     console.log('✅ Conexão com internet OK');
 
     // Verificação adicional para problemas de CORS ou configuração
-    if (typeof window !== 'undefined') {
-      try {
-        // Testar se conseguimos fazer uma requisição básica para o Firebase
-        const testUrl = `https://${firebaseConfig.projectId}.firebaseapp.com/.well-known/__/firebase/init.json`;
-        const response = await fetch(testUrl, { 
-          method: 'HEAD',
-          mode: 'cors',
-          cache: 'no-cache'
-        });
-        console.log('✅ Firebase app acessível via HTTP');
-      } catch (httpError) {
-        console.warn('⚠️ Problema de acesso HTTP ao Firebase:', httpError);
-        // Não falhar aqui, apenas logar o aviso
-      }
-    }
+    // if (typeof window !== 'undefined') {
+    //   try {
+    //     // Testar se conseguimos fazer uma requisição básica para o Firebase
+    //     const testUrl = `https://${firebaseConfig.projectId}.firebaseapp.com/.well-known/__/firebase/init.json`;
+    //     const response = await fetch(testUrl, { 
+    //       method: 'HEAD',
+    //       mode: 'cors',
+    //       cache: 'no-cache'
+    //     });
+    //     console.log('✅ Firebase app acessível via HTTP');
+    //   } catch (httpError) {
+    //     console.warn('⚠️ Problema de acesso HTTP ao Firebase:', httpError);
+    //     // Não falhar aqui, apenas logar o aviso
+    //   }
+    // }
 
     // Verificação mais robusta: tentar uma operação real com timeout
     try {

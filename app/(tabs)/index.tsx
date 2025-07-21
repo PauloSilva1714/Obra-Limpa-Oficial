@@ -48,12 +48,13 @@ import { EmailService } from '@/services/EmailService';
 import { TaskModal } from '@/components/TaskModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
-import { Video as ExpoVideo, ResizeMode } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { TaskQuickView } from '@/components/TaskQuickView';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { TaskFeedCard } from '@/components/TaskFeedCard';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { useSite } from '@/contexts/SiteContext';
+import { useLocalSearchParams } from 'expo-router';
 
 // Declarar a lista de emojis sugeridos antes do componente principal
 const suggestedEmojis: string[] = ['😀', '👍', '🙏', '👏', '🚀', '🔥'];
@@ -99,6 +100,7 @@ export default function TasksScreen() {
   const [completionPercentage, setCompletionPercentage] = useState(0);
 
   const { currentSite } = useSite();
+  const params = useLocalSearchParams();
 
   useEffect(() => {
     if (tasks && tasks.length > 0) {
@@ -185,6 +187,21 @@ export default function TasksScreen() {
       setFilteredTasks(tasks);
     }
   }, [tasks, searchQuery]);
+
+  useEffect(() => {
+    if (params.filter) {
+      const status = params.filter.toString();
+      if (status === 'all') {
+        setFilteredTasks(tasks);
+      } else if (status === 'overdue') {
+        const now = new Date();
+        setFilteredTasks(tasks.filter(task => task.dueDate && task.status !== 'completed' && new Date(task.dueDate) < now));
+      } else {
+        setFilteredTasks(tasks.filter(task => task.status === status));
+      }
+      setIsSearching(true);
+    }
+  }, [params.filter, tasks]);
 
   const loadTasks = async () => {
     try {
@@ -694,11 +711,7 @@ export default function TasksScreen() {
             borderRadius: 12,
             borderWidth: 1,
             borderColor: colors.primary,
-            shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            elevation: 3
+            boxShadow: '0px 2px 4px rgba(0,0,0,0.2)',
           }}>
             <Building2 size={18} color={colors.primary} style={{ marginRight: 6 }} />
             <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 15 }}>
@@ -798,7 +811,7 @@ export default function TasksScreen() {
                     Platform.OS === 'web' ? (
                       <video src={item.url} controls style={styles.igMedia} />
                     ) : (
-                      <ExpoVideo source={{ uri: item.url }} style={styles.igMedia} useNativeControls resizeMode={ResizeMode.COVER} isLooping />
+                      <Video source={{ uri: item.url }} style={styles.igMedia} useNativeControls resizeMode={ResizeMode.COVER} isLooping />
                     )
                   )
                 )}
@@ -839,11 +852,7 @@ export default function TasksScreen() {
                         backgroundColor: balloonBg,
                         borderRadius: 8,
                         padding: 8,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.10,
-                        shadowRadius: 2,
-                        elevation: 2,
+                        boxShadow: '0px 1px 2px rgba(0,0,0,0.1)',
                       },
                       isOwnComment ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }
                     ]}>

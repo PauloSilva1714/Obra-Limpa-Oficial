@@ -410,14 +410,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: '85%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
+    boxShadow: '0px 2px 8px rgba(0,0,0,0.25)',
   },
   successIconContainer: {
     marginBottom: 16,

@@ -67,5 +67,5 @@ const styles = StyleSheet.create({
   faqA: { fontSize: 14, color: '#374151', marginTop: 2 },
   actionButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', borderRadius: 8, padding: 12, marginTop: 12 },
   actionButtonText: { marginLeft: 10, fontSize: 15, color: '#2196F3', fontWeight: '600' },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, elevation: 2, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8 },
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, elevation: 2, boxShadow: '0px 2px 8px rgba(0,0,0,0.04)' },
 }); 
