@@ -7,6 +7,8 @@ import {
   SafeAreaView,
   Animated,
   useWindowDimensions,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, Users, ClipboardCheck, Clock, AlertCircle, AlertTriangle } from 'lucide-react-native';
@@ -114,9 +116,34 @@ export default function StatsScreen() {
     };
   }, [siteId]);
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalUsers, setModalUsers] = useState<any[]>([]);
+
+  // Função para abrir modal de colaboradores
+  const openWorkersModal = async () => {
+    setModalTitle('Colaboradores da Obra');
+    const site = await AuthService.getCurrentSite();
+    if (site) {
+      const workers = await AuthService.getWorkersBySite(site.id);
+      setModalUsers(workers);
+      setModalVisible(true);
+    }
+  };
+  // Função para abrir modal de administradores
+  const openAdminsModal = async () => {
+    setModalTitle('Administradores da Obra');
+    const site = await AuthService.getCurrentSite();
+    if (site) {
+      const admins = await AuthService.getAdminsBySite(site.id);
+      setModalUsers(admins);
+      setModalVisible(true);
+    }
+  };
+
   // Função para navegação rápida ao clicar no card
   const handleCardPress = (status: string) => {
-    router.push({ pathname: '/(tabs)/index', params: { filter: status } });
+    router.push({ pathname: '/(tabs)', params: { filter: status } });
   };
 
   // Cores dinâmicas por status
@@ -165,12 +192,14 @@ export default function StatsScreen() {
               value={stats.totalWorkers}
               title="Total"
               color={colors.primary}
+              onPress={openWorkersModal}
             />
             <StatCard
               icon={Users}
               value={stats.activeWorkers}
               title="Ativos"
               color={colors.success}
+              onPress={openWorkersModal}
             />
           </View>
           <Text style={styles.sectionTitle}>Administradores</Text>
@@ -180,12 +209,14 @@ export default function StatsScreen() {
               value={stats.totalAdmins}
               title="Total"
               color={colors.primary}
+              onPress={openAdminsModal}
             />
             <StatCard
               icon={Users}
               value={stats.activeAdmins}
               title="Ativos"
               color={colors.success}
+              onPress={openAdminsModal}
             />
           </View>
           <Text style={styles.sectionTitle}>Tarefas</Text>
@@ -228,6 +259,36 @@ export default function StatsScreen() {
           </View>
         </View>
       )}
+
+      {/* Modal de lista de usuários */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, minWidth: 320, maxWidth: 400, maxHeight: '80%' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>{modalTitle}</Text>
+            {modalUsers.length === 0 ? (
+              <Text style={{ color: '#888', textAlign: 'center' }}>Nenhum usuário encontrado.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 350 }}>
+                {modalUsers.map((user, idx) => (
+                  <View key={user.id || idx} style={{ borderBottomWidth: idx < modalUsers.length - 1 ? 1 : 0, borderBottomColor: '#eee', paddingVertical: 10 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{user.name}</Text>
+                    <Text style={{ color: '#666', fontSize: 14 }}>{user.role === 'admin' ? 'Administrador' : 'Colaborador'}{user.funcao ? ` - ${user.funcao}` : ''}</Text>
+                    {user.company && <Text style={{ color: '#888', fontSize: 13 }}>Empresa: {user.company}</Text>}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity style={{ marginTop: 18, alignSelf: 'center' }} onPress={() => setModalVisible(false)}>
+              <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 16 }}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -261,6 +322,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
     marginTop: 24,
+    textAlign: 'center',
   },
   statsGrid: {
     flexDirection: 'row',

@@ -61,6 +61,7 @@ const suggestedEmojis: string[] = ['😀', '👍', '🙏', '👏', '🚀', '🔥
 
 export default function TasksScreen() {
   console.log('[DEBUG] TasksScreen - Componente montado');
+  console.log('[DEBUG] params.filter:', useLocalSearchParams().filter);
   
   const { colors } = useTheme();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -196,8 +197,16 @@ export default function TasksScreen() {
       } else if (status === 'overdue') {
         const now = new Date();
         setFilteredTasks(tasks.filter(task => task.dueDate && task.status !== 'completed' && new Date(task.dueDate) < now));
-      } else {
+      } else if (status === 'delayed') {
+        setFilteredTasks(tasks.filter(task => task.status === 'delayed'));
+      } else if ([
+        'pending',
+        'in_progress',
+        'completed'
+      ].includes(status)) {
         setFilteredTasks(tasks.filter(task => task.status === status));
+      } else {
+        setFilteredTasks(tasks); // fallback: mostra todas
       }
       setIsSearching(true);
     }
