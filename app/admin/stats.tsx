@@ -78,7 +78,8 @@ export default function StatsScreen() {
       const now = new Date();
       const overdueTasks = tasks.filter((task: any) => {
         if (!task.dueDate) return false;
-        if (task.status === 'completed') return false;
+        // Considere apenas tarefas com status 'delayed'
+        if (task.status !== 'delayed') return false;
         const due = new Date(task.dueDate);
         return due < now;
       });

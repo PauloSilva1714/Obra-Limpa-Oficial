@@ -508,7 +508,9 @@ export default function TasksScreen() {
     const filtered = tasks.filter(task => {
       const title = task.title?.toLowerCase() || '';
       const description = task.description?.toLowerCase() || '';
-      const assignedToText = task.assignedTo?.toLowerCase() || '';
+      const assignedToText = Array.isArray(task.assignedTo)
+        ? task.assignedTo.join(', ').toLowerCase()
+        : (task.assignedTo?.toLowerCase() || '');
       const area = task.area?.toLowerCase() || '';
       
       return title.includes(lowerQuery) ||
