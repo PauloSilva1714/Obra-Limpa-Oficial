@@ -88,7 +88,11 @@ service cloud.firestore {
     match /tasks/{taskId} {
       allow read: if hasSiteAccess(resource.data.siteId);
       allow create: if isAuthenticated() && isAdmin() && hasSiteAccess(request.resource.data.siteId);
-      allow update, delete: if isAdmin() && hasSiteAccess(resource.data.siteId);
+      allow update: if (
+        (isAuthenticated() && request.resource.data.diff(resource.data).changedKeys().hasOnly(['comments', 'updatedAt']) && hasSiteAccess(resource.data.siteId))
+        || (isAdmin() && hasSiteAccess(resource.data.siteId))
+      );
+      allow delete: if isAdmin() && hasSiteAccess(resource.data.siteId);
       allow list: if isAuthenticated();
     }
 

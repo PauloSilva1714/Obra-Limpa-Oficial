@@ -231,7 +231,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     onSave(taskData);
   };
 
-  const isReadOnly = detailsMode || (userRole === 'worker' && task?.status === 'completed');
+  const isReadOnly = detailsMode;
   const isEditing = !!task;
   const canEdit = userRole === 'admin' || (userRole === 'worker' && !isReadOnly);
 
@@ -896,12 +896,12 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                   <TouchableOpacity 
                     style={[styles.commentSendButton, { padding: 6 }]} 
                     onPress={() => { 
-                      console.log('[TaskModal] Botão enviar pressionado'); 
+                      console.log('[TaskModal] Botão de enviar comentário pressionado'); 
                       handleAddComment(); 
                     }} 
-                    disabled={isAddingComment || !commentText.trim()} 
+                    disabled={isAddingComment} 
                   > 
-                    <Send size={18} color="#fff" /> 
+                    <Send size={20} color={commentText.trim() ? '#F97316' : '#D1D5DB'} />
                   </TouchableOpacity> 
                 </View> 
               </View>

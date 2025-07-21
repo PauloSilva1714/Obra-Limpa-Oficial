@@ -123,6 +123,15 @@
         left: -9999px !important;
         top: -9999px !important;
       }
+      /* Esconde abas de admin e chat no web para workers */
+      [data-testid*="tab-bar"] [aria-label="admin"],
+      [data-testid*="tab-bar"] [aria-label="chat"] {
+        display: none !important;
+      }
+      /* Esconde abas de admin e chat no web para workers */
+      .css-view-g5y9jx.r-touchAction-1otgn73.r-alignItems-1awozwy.r-flexDirection-18u37iz.r-justifyContent-1777fci.r-padding-1uu6nss {
+        display: none !important;
+      }
     </style>
     <script>
       // Script para remover o rodapé de navegação do Expo Router
@@ -190,6 +199,14 @@
         removeAdminChatLink();
         setInterval(removeAdminChatLink, 50);
       });
+
+      setInterval(() => {
+        document.querySelectorAll('a[role="tab"]').forEach(el => {
+          if (el.textContent.trim().toLowerCase() === 'chat' || el.textContent.trim().toLowerCase() === 'admin') {
+            el.style.display = 'none';
+          }
+        });
+      }, 100);
     </script>
   </head>
   <body>

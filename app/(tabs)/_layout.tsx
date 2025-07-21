@@ -13,6 +13,9 @@ import { AuthService } from '@/services/AuthService';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
+import { useSite } from '@/contexts/SiteContext';
+import CustomTabBar from '@/components/CustomTabBar';
+import { Slot } from 'expo-router';
 
 const TABS_CONFIG = {
   index: {
@@ -50,6 +53,7 @@ export default function TabLayout() {
   const [renderKey, setRenderKey] = useState(0); // Forçar re-render
   const router = useRouter();
   const segments = useSegments();
+  const { currentSite } = useSite();
 
   useEffect(() => {
     const getUserRole = async () => {
@@ -89,6 +93,16 @@ export default function TabLayout() {
     return () => clearTimeout(timer);
   }, [isLoading, userRole]);
 
+  // Sempre que mudar de obra, atualiza o papel e força re-render
+  useEffect(() => {
+    const updateRoleOnSiteChange = async () => {
+      const role = await AuthService.getUserRole();
+      setUserRole(role);
+      setRenderKey(prev => prev + 1);
+    };
+    updateRoleOnSiteChange();
+  }, [currentSite]);
+
   // Redirecionar colaborador se estiver em rota inválida
   useEffect(() => {
     if (userRole === 'worker' && !isLoading) {
@@ -109,84 +123,13 @@ export default function TabLayout() {
   }
 
   // Se não tem role válido, não renderiza nada
-  if (!userRole || (userRole !== 'admin' && userRole !== 'worker')) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Erro ao carregar permissões</Text>
-      </View>
-    );
-  }
-
-  // Definir tabs dinamicamente DENTRO do componente
-  const getTabsToRender = () => {
-    if (userRole === 'admin') {
-      return [TABS_CONFIG.index, TABS_CONFIG.admin, TABS_CONFIG.progress, TABS_CONFIG.chat, TABS_CONFIG.profile];
-    }
-    // worker
-    return [TABS_CONFIG.index, TABS_CONFIG.progress, TABS_CONFIG.profile];
-  };
-  const tabsToRender = getTabsToRender();
+  if (!userRole) return null; // ou um loading
 
   return (
-    <Tabs
-      key={`tabs-${userRole}`}
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
-        },
-        headerShown: false,
-      }}
-    >
-      {/* Tarefas */}
-      <Tabs.Screen
-        name={TABS_CONFIG.index.name}
-        options={{
-          title: TABS_CONFIG.index.title,
-          tabBarIcon: ({ color, size }) => <TABS_CONFIG.index.icon size={size} color={color} />,
-        }}
-      />
-      {/* Admin - ocultar visualmente para worker */}
-      <Tabs.Screen
-        name={TABS_CONFIG.admin.name}
-        options={{
-          title: TABS_CONFIG.admin.title,
-          tabBarIcon: ({ color, size }) => <TABS_CONFIG.admin.icon size={size} color={color} />,
-          tabBarStyle: userRole === 'worker' ? { display: 'none' } : undefined,
-        }}
-      />
-      {/* Progresso */}
-      <Tabs.Screen
-        name={TABS_CONFIG.progress.name}
-        options={{
-          title: TABS_CONFIG.progress.title,
-          tabBarIcon: ({ color, size }) => <TABS_CONFIG.progress.icon size={size} color={color} />,
-        }}
-      />
-      {/* Chat - substitui invites */}
-      <Tabs.Screen
-        name={TABS_CONFIG.chat.name}
-        options={{
-          title: TABS_CONFIG.chat.title,
-          tabBarIcon: ({ color, size }) => <TABS_CONFIG.chat.icon size={size} color={color} />, 
-          tabBarStyle: userRole === 'worker' ? { display: 'none' } : undefined,
-        }}
-      />
-      {/* Perfil */}
-      <Tabs.Screen
-        name={TABS_CONFIG.profile.name}
-        options={{
-          title: TABS_CONFIG.profile.title,
-          tabBarIcon: ({ color, size }) => <TABS_CONFIG.profile.icon size={size} color={color} />,
-        }}
-      />
-    </Tabs>
+    <>
+      <Slot />
+      <CustomTabBar userRole={userRole} />
+    </>
   );
 }
 
