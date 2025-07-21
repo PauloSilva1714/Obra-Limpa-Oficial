@@ -9,6 +9,7 @@ import { uploadProfilePhoto } from '@/services/PhotoService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TextInput as RNTextInput } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { AboutAppModal } from '@/components/AboutAppModal';
 
 interface UserProfile {
   name: string;
@@ -40,6 +41,7 @@ export default function ProfileScreen() {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { reloadUser } = useAuth();
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -634,7 +636,7 @@ export default function ProfileScreen() {
               icon={<Settings size={20} color="#6B7280" />}
               title="Sobre"
               subtitle="Versão 1.0.0"
-              onPress={() => Alert.alert('Sobre', 'Gestão de Obras v1.0.0\nSistema de limpeza e organização para construtoras.')}
+              onPress={() => setShowAboutModal(true)}
             />
           </MenuSection>
         </View>
@@ -692,6 +694,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+      <AboutAppModal visible={showAboutModal} onClose={() => setShowAboutModal(false)} />
     </SafeAreaView>
   );
 }

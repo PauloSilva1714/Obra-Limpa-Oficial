@@ -14,11 +14,7 @@ const FAQ = [
 
 export default function SupportScreen() {
   const handleEmail = () => {
-    Linking.openURL('mailto:suporte@obralimpa.com?subject=Ajuda%20Obra%20Limpa');
-  };
-
-  const handleWhatsApp = () => {
-    Linking.openURL('https://wa.me/5511999999999?text=Olá%20suporte%20Obra%20Limpa');
+    Linking.openURL('mailto:suporteobralimpa1.0.0@gmail.com?subject=Ajuda%20Obra%20Limpa');
   };
 
   return (
@@ -46,10 +42,6 @@ export default function SupportScreen() {
           <Mail size={20} color="#2196F3" />
           <Text style={styles.actionButtonText}>Enviar e-mail para o suporte</Text>
         </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#DCFCE7' }]} onPress={handleWhatsApp}>
-            <ExternalLink size={20} color="#22C55E" />
-            <Text style={[styles.actionButtonText, { color: '#22C55E' }]}>Falar no WhatsApp</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </LinearGradient>

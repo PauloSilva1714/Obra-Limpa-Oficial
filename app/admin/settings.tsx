@@ -41,6 +41,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t, setLanguage } from '@/config/i18n';
 import * as Linking from 'expo-linking';
+import { AboutAppModal } from '@/components/AboutAppModal';
 
 interface SettingsSection {
   title: string;
@@ -73,6 +74,7 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loadingPermission, setLoadingPermission] = useState<string | null>(null);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   useEffect(() => {
     checkPermissions();
@@ -381,7 +383,7 @@ export default function SettingsScreen() {
           subtitle: t('aboutAppSubtitle'),
           icon: <Info size={20} color={colors.textMuted} />,
           type: 'button',
-          onPress: () => Alert.alert('Sobre', 'Obra Limpa v1.0.0\n\nAplicativo para gerenciamento de tarefas em canteiros de obra.\n\nDesenvolvido com React Native e Expo.'),
+          onPress: () => setShowAboutModal(true),
         },
       ],
     },
@@ -689,6 +691,8 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      <AboutAppModal visible={showAboutModal} onClose={() => setShowAboutModal(false)} />
     </SafeAreaView>
   );
 }
