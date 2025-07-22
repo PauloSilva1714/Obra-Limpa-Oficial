@@ -76,6 +76,7 @@ export default function SettingsScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loadingPermission, setLoadingPermission] = useState<string | null>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   // Referências para os campos de texto
   const currentPasswordRef = useRef<TextInput>(null);
@@ -284,26 +285,18 @@ export default function SettingsScreen() {
 
 
   const handleLogout = () => {
-    Alert.alert(
-      t('logout'),
-      'Tem certeza que deseja sair?',
-      [
-        { text: t('cancel'), style: 'cancel' },
-        {
-          text: t('logout'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await AuthService.logout();
-              router.replace('/(auth)/login');
-            } catch (error) {
-              Alert.alert(t('error'), 'Não foi possível sair da conta.');
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    try {
+      await AuthService.logout();
+      setShowLogoutModal(false);
+      router.replace('/(auth)/login');
+    } catch (error) {
+      setShowLogoutModal(false);
+      Alert.alert(t('error'), 'Não foi possível sair da conta.');
+    }
   };
 
   const getLanguageLabel = (code: string) => {
@@ -746,6 +739,17 @@ export default function SettingsScreen() {
         onCancel={() => setShowPasswordConfirmModal(false)}
         confirmText="Confirmar"
         cancelText="Cancelar"
+      />
+
+      {/* Confirmation Modal for Logout */}
+      <ConfirmationModal
+        visible={showLogoutModal}
+        title={t('logout')}
+        message="Tem certeza que deseja sair da sua conta?"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+        confirmText={t('logout')}
+        cancelText={t('cancel')}
       />
     </SafeAreaView>
   );

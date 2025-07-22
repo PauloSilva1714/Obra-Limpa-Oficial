@@ -43,6 +43,15 @@ export default function ProfileScreen() {
   const { reloadUser } = useAuth();
   const [showAboutModal, setShowAboutModal] = useState(false);
 
+  // Função para capitalizar nomes
+  const capitalizeName = (text: string) => {
+    return text
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       // Buscar usuário autenticado
@@ -454,7 +463,7 @@ export default function ProfileScreen() {
                   },
                 ]}
                 value={userData.name}
-                onChangeText={name => setUserData(prev => prev ? { ...prev, name } : prev)}
+                onChangeText={name => setUserData(prev => prev ? { ...prev, name: capitalizeName(name) } : prev)}
                 placeholder="Seu nome"
                 placeholderTextColor="#9CA3AF"
                 maxLength={40}

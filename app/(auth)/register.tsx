@@ -86,6 +86,15 @@ export default function RegisterScreen() {
   const [showDuplicateSiteModal, setShowDuplicateSiteModal] = useState(false);
   const [checkingExistingUser, setCheckingExistingUser] = useState(true);
 
+  // Função para capitalizar nomes
+  const capitalizeName = (text: string) => {
+    return text
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
@@ -398,7 +407,7 @@ export default function RegisterScreen() {
                 style={styles.input}
                 placeholder="Nome completo"
                 value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
+                onChangeText={(text) => setFormData({ ...formData, name: capitalizeName(text) })}
                 placeholderTextColor="#9CA3AF"
                 returnKeyType="next"
                 onSubmitEditing={() => emailRef.current && emailRef.current.focus()}
@@ -451,7 +460,7 @@ export default function RegisterScreen() {
                     style={styles.input}
                     placeholder="Nome da empresa"
                     value={formData.company}
-                    onChangeText={(text) => setFormData({ ...formData, company: text })}
+                    onChangeText={(text) => setFormData({ ...formData, company: capitalizeName(text) })}
                     placeholderTextColor="#9CA3AF"
                     returnKeyType="next"
                     onSubmitEditing={() => inviteCodeRef.current && inviteCodeRef.current.focus()}
@@ -482,7 +491,7 @@ export default function RegisterScreen() {
                     style={styles.input}
                     placeholder="Nome da obra"
                     value={formData.siteName}
-                    onChangeText={(text) => setFormData({ ...formData, siteName: text })}
+                    onChangeText={(text) => setFormData({ ...formData, siteName: capitalizeName(text) })}
                     placeholderTextColor="#9CA3AF"
                     returnKeyType="next"
                     onSubmitEditing={() => siteAddressRef.current && siteAddressRef.current.focus()}
@@ -563,7 +572,7 @@ export default function RegisterScreen() {
                       style={styles.input}
                       placeholder="Digite sua função"
                       value={formData.funcaoOutro}
-                      onChangeText={(text) => setFormData({ ...formData, funcaoOutro: text })}
+                      onChangeText={(text) => setFormData({ ...formData, funcaoOutro: capitalizeName(text) })}
                       placeholderTextColor="#9CA3AF"
                       returnKeyType="next"
                       onSubmitEditing={() => confirmPasswordRef.current && confirmPasswordRef.current.focus()}
@@ -911,4 +920,4 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-}); 
+});
