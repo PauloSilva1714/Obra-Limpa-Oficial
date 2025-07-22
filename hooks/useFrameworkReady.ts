@@ -175,7 +175,8 @@ export const useAdminRealTimeSync = (siteId: string) => {
         AdminService.getNotifications(20),
         AdminService.getRecentActivities(siteId, 30),
         AuthService.getAdminInvites(siteId),
-        AuthService.getSiteAdmins(siteId)
+        AuthService.getSiteAdmins(siteId),
+        AdminService.getWorkers(siteId) // add
       ]);
 
       setData(prev => ({
@@ -185,7 +186,7 @@ export const useAdminRealTimeSync = (siteId: string) => {
         notifications,
         activities,
         invites,
-        workers,
+        workers: workers || [], // Garante que workers seja um array, mesmo que seja vazio
         lastUpdate: new Date().toISOString()
       }));
 

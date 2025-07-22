@@ -96,7 +96,7 @@ class AddressService {
 
       let url = getPlacesApiUrl('autocomplete', params);
       console.log('Tentativa 1 - URL:', url);
-      // @ts-expect-error: window might not be defined in some environments
+      
             console.log('Tentativa 1 - Usando proxy:', Platform.OS === 'web' && typeof window !== 'undefined' && (typeof __DEV__ !== 'undefined' && __DEV__));
       
       let response = await fetch(url, {

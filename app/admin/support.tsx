@@ -41,7 +41,7 @@ export default function SupportScreen() {
           <TouchableOpacity style={styles.actionButton} onPress={handleEmail}>
           <Mail size={20} color="#2196F3" />
           <Text style={styles.actionButtonText}>Enviar e-mail para o suporte</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </LinearGradient>

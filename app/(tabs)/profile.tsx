@@ -489,6 +489,20 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
+            <Settings size={24} color="#111827" />
+            <Text style={styles.sectionTitle}>Configurações do Sistema</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.settingRow}
+            onPress={() => router.push('/admin/settings')}
+          >
+            <Text style={styles.settingLabel}>Configurações do Sistema</Text>
+            <ChevronDown size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
             <Bell size={24} color="#111827" />
             <Text style={styles.sectionTitle}>Notificações por Email</Text>
           </View>

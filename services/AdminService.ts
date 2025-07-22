@@ -1,25 +1,26 @@
 import { db } from '../config/firebase';
-import { 
-  collection, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
   onSnapshot,
   serverTimestamp,
   Timestamp,
   setDoc,
   writeBatch,
-  FieldValue
+  FieldValue,
+  DocumentData
 } from 'firebase/firestore';
 import { AuthService, User, Site } from './AuthService';
-import { httpsCallable } from "firebase/functions";
+import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/config/firebase';
 
 export interface AdminMessage {
@@ -58,9 +59,26 @@ export interface AdminActivity {
   siteId: string;
   adminId: string;
   adminName: string;
-  action: 'login' | 'logout' | 'task_created' | 'task_updated' | 'worker_invited' | 'admin_invited' | 'site_updated';
+  action:
+    | 'login'
+    | 'logout'
+    | 'task_created'
+    | 'task_updated'
+    | 'worker_invited'
+    | 'admin_invited'
+    | 'site_updated';
   details: string;
   timestamp: string;
+}
+
+export interface Worker {
+  id: string;
+  name: string;
+  email: string;
+  status: 'active' | 'inactive';
+  phone?: string;
+  company?: string;
+  siteId?: string;
 }
 
 export interface AdminDirectMessage {
@@ -93,13 +111,12 @@ export interface AdminChatSession {
 }
 
 export class AdminService {
-  
   /**
    * Envia uma mensagem para outros administradores da mesma obra
    */
   static async sendMessage(
-    siteId: string, 
-    message: string, 
+    siteId: string,
+    message: string,
     type: AdminMessage['type'] = 'general',
     priority: AdminMessage['priority'] = 'medium'
   ): Promise<AdminMessage> {
@@ -130,9 +147,15 @@ export class AdminService {
       };
 
       const docRef = await addDoc(collection(db, 'adminMessages'), messageData);
-      
+
       // Enviar notificações para outros administradores
-      await this.notifyOtherAdmins(siteId, currentUser.id, 'message', 'Nova mensagem de administrador', message);
+      await this.notifyOtherAdmins(
+        siteId,
+        currentUser.id,
+        'message',
+        'Nova mensagem de administrador',
+        message
+      );
 
       return {
         id: docRef.id,
@@ -147,32 +170,58 @@ export class AdminService {
   /**
    * Busca mensagens da obra atual
    */
-  static async getMessages(siteId: string, limitCount: number = 50): Promise<AdminMessage[]> {
+  static async getMessages(
+    siteId: string,
+    limitCount: number = 50
+  ): Promise<AdminMessage[]> {
     try {
-      console.log('🔍 AdminService.getMessages() - Iniciando com siteId:', siteId, 'tipo:', typeof siteId);
-      
+      console.log(
+        '🔍 AdminService.getMessages() - Iniciando com siteId:',
+        siteId,
+        'tipo:',
+        typeof siteId
+      );
+
       if (!siteId) {
-        console.warn('❌ AdminService.getMessages() - siteId é undefined, retornando array vazio');
+        console.warn(
+          '❌ AdminService.getMessages() - siteId é undefined, retornando array vazio'
+        );
         return [];
       }
 
       const currentUser = await AuthService.getCurrentUser();
-      console.log('👤 AdminService.getMessages() - Usuário atual:', currentUser?.id, 'role:', currentUser?.role);
-      
+      console.log(
+        '👤 AdminService.getMessages() - Usuário atual:',
+        currentUser?.id,
+        'role:',
+        currentUser?.role
+      );
+
       if (!currentUser || currentUser.role !== 'admin') {
-        console.warn('❌ AdminService.getMessages() - Usuário não é admin, retornando array vazio');
+        console.warn(
+          '❌ AdminService.getMessages() - Usuário não é admin, retornando array vazio'
+        );
         return [];
       }
 
-      console.log('🏗️ AdminService.getMessages() - Sites do usuário:', currentUser.sites);
-      
+      console.log(
+        '🏗️ AdminService.getMessages() - Sites do usuário:',
+        currentUser.sites
+      );
+
       if (!currentUser.sites?.includes(siteId)) {
-        console.warn('❌ AdminService.getMessages() - Usuário não tem acesso ao site:', siteId);
+        console.warn(
+          '❌ AdminService.getMessages() - Usuário não tem acesso ao site:',
+          siteId
+        );
         return [];
       }
 
-      console.log('✅ AdminService.getMessages() - Criando query com siteId:', siteId);
-      
+      console.log(
+        '✅ AdminService.getMessages() - Criando query com siteId:',
+        siteId
+      );
+
       const q = query(
         collection(db, 'adminMessages'),
         where('siteId', '==', siteId),
@@ -182,18 +231,33 @@ export class AdminService {
 
       console.log('📡 AdminService.getMessages() - Executando query...');
       const querySnapshot = await getDocs(q);
-      console.log('✅ AdminService.getMessages() - Query executada com sucesso, documentos encontrados:', querySnapshot.docs.length);
-      
-      const messages = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as AdminMessage));
-      
-      console.log('📨 AdminService.getMessages() - Mensagens processadas:', messages.length);
+      console.log(
+        '✅ AdminService.getMessages() - Query executada com sucesso, documentos encontrados:',
+        querySnapshot.docs.length
+      );
+
+      const messages = querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as AdminMessage)
+      );
+
+      console.log(
+        '📨 AdminService.getMessages() - Mensagens processadas:',
+        messages.length
+      );
       return messages;
     } catch (error) {
-      console.error('❌ AdminService.getMessages() - Erro ao buscar mensagens:', error);
-      console.error('❌ AdminService.getMessages() - Stack trace:', error instanceof Error ? error.stack : 'N/A');
+      console.error(
+        '❌ AdminService.getMessages() - Erro ao buscar mensagens:',
+        error
+      );
+      console.error(
+        '❌ AdminService.getMessages() - Stack trace:',
+        error instanceof Error ? error.stack : 'N/A'
+      );
       return [];
     }
   }
@@ -208,7 +272,7 @@ export class AdminService {
 
       const messageRef = doc(db, 'adminMessages', messageId);
       const messageDoc = await getDoc(messageRef);
-      
+
       if (!messageDoc.exists()) return;
 
       const message = messageDoc.data() as AdminMessage;
@@ -226,20 +290,34 @@ export class AdminService {
   /**
    * Busca notificações do administrador atual
    */
-  static async getNotifications(limitCount: number = 20): Promise<AdminNotification[]> {
+  static async getNotifications(
+    limitCount: number = 20
+  ): Promise<AdminNotification[]> {
     try {
-      console.log('🔔 AdminService.getNotifications() - Iniciando busca de notificações');
-      
+      console.log(
+        '🔔 AdminService.getNotifications() - Iniciando busca de notificações'
+      );
+
       const currentUser = await AuthService.getCurrentUser();
-      console.log('👤 AdminService.getNotifications() - Usuário atual:', currentUser?.id, 'role:', currentUser?.role);
-      
+      console.log(
+        '👤 AdminService.getNotifications() - Usuário atual:',
+        currentUser?.id,
+        'role:',
+        currentUser?.role
+      );
+
       if (!currentUser) {
-        console.warn('❌ AdminService.getNotifications() - Usuário não autenticado, retornando array vazio');
+        console.warn(
+          '❌ AdminService.getNotifications() - Usuário não autenticado, retornando array vazio'
+        );
         return [];
       }
 
-      console.log('✅ AdminService.getNotifications() - Criando query para recipientId:', currentUser.id);
-      
+      console.log(
+        '✅ AdminService.getNotifications() - Criando query para recipientId:',
+        currentUser.id
+      );
+
       const q = query(
         collection(db, 'adminNotifications'),
         where('recipientId', '==', currentUser.id),
@@ -249,18 +327,33 @@ export class AdminService {
 
       console.log('📡 AdminService.getNotifications() - Executando query...');
       const querySnapshot = await getDocs(q);
-      console.log('✅ AdminService.getNotifications() - Query executada com sucesso, documentos encontrados:', querySnapshot.docs.length);
-      
-      const notifications = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as AdminNotification));
-      
-      console.log('🔔 AdminService.getNotifications() - Notificações processadas:', notifications.length);
+      console.log(
+        '✅ AdminService.getNotifications() - Query executada com sucesso, documentos encontrados:',
+        querySnapshot.docs.length
+      );
+
+      const notifications = querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as AdminNotification)
+      );
+
+      console.log(
+        '🔔 AdminService.getNotifications() - Notificações processadas:',
+        notifications.length
+      );
       return notifications;
     } catch (error) {
-      console.error('❌ AdminService.getNotifications() - Erro ao buscar notificações:', error);
-      console.error('❌ AdminService.getNotifications() - Stack trace:', error instanceof Error ? error.stack : 'N/A');
+      console.error(
+        '❌ AdminService.getNotifications() - Erro ao buscar notificações:',
+        error
+      );
+      console.error(
+        '❌ AdminService.getNotifications() - Stack trace:',
+        error instanceof Error ? error.stack : 'N/A'
+      );
       return [];
     }
   }
@@ -282,7 +375,10 @@ export class AdminService {
   /**
    * Busca atividades recentes da obra
    */
-  static async getRecentActivities(siteId: string, limitCount: number = 30): Promise<AdminActivity[]> {
+  static async getRecentActivities(
+    siteId: string,
+    limitCount: number = 30
+  ): Promise<AdminActivity[]> {
     try {
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser || currentUser.role !== 'admin') {
@@ -301,10 +397,13 @@ export class AdminService {
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as AdminActivity));
+      return querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as AdminActivity)
+      );
     } catch (error) {
       console.error('Erro ao buscar atividades:', error);
       return [];
@@ -352,7 +451,7 @@ export class AdminService {
       if (!currentUser) return [];
 
       const admins = await AuthService.getSiteAdmins(siteId);
-      return admins.filter(admin => admin.id !== currentUser.id);
+      return admins.filter((admin) => admin.id !== currentUser.id);
     } catch (error) {
       console.error('Erro ao buscar outros administradores:', error);
       return [];
@@ -377,11 +476,11 @@ export class AdminService {
       }
 
       const otherAdmins = await this.getOtherAdmins(siteId);
-      
+
       const currentUser = await AuthService.getCurrentUser();
       const senderName = currentUser?.name || 'Administrador';
 
-      const notifications = otherAdmins.map(admin => ({
+      const notifications = otherAdmins.map((admin) => ({
         siteId,
         recipientId: admin.id,
         senderId,
@@ -395,7 +494,7 @@ export class AdminService {
       }));
 
       // Adicionar notificações em lote
-      const batch = notifications.map(notification => 
+      const batch = notifications.map((notification) =>
         addDoc(collection(db, 'adminNotifications'), notification)
       );
 
@@ -408,56 +507,101 @@ export class AdminService {
   /**
    * Configura listener em tempo real para mensagens
    */
-  static async subscribeToMessages(siteId: string, callback: (messages: AdminMessage[]) => void) {
+  static async subscribeToMessages(
+    siteId: string,
+    callback: (messages: AdminMessage[]) => void
+  ) {
     try {
-      console.log('📡 AdminService.subscribeToMessages - Iniciando subscribe com siteId:', siteId);
-      
+      console.log(
+        '📡 AdminService.subscribeToMessages - Iniciando subscribe com siteId:',
+        siteId
+      );
+
       if (!siteId) {
-        console.warn('❌ AdminService.subscribeToMessages - siteId é undefined, retornando função vazia');
+        console.warn(
+          '❌ AdminService.subscribeToMessages - siteId é undefined, retornando função vazia'
+        );
         return () => {};
       }
 
       const currentUser = await AuthService.getCurrentUser();
-      console.log('👤 AdminService.subscribeToMessages - Usuário atual:', currentUser?.id, 'role:', currentUser?.role);
-      
+      console.log(
+        '👤 AdminService.subscribeToMessages - Usuário atual:',
+        currentUser?.id,
+        'role:',
+        currentUser?.role
+      );
+
       if (!currentUser || currentUser.role !== 'admin') {
-        console.warn('❌ AdminService.subscribeToMessages - Usuário não é admin, retornando função vazia');
+        console.warn(
+          '❌ AdminService.subscribeToMessages - Usuário não é admin, retornando função vazia'
+        );
         return () => {};
       }
 
-      console.log('🏗️ AdminService.subscribeToMessages - Sites do usuário:', currentUser.sites);
-      
+      console.log(
+        '🏗️ AdminService.subscribeToMessages - Sites do usuário:',
+        currentUser.sites
+      );
+
       if (!currentUser.sites?.includes(siteId)) {
-        console.warn('❌ AdminService.subscribeToMessages - Usuário não tem acesso ao site:', siteId);
+        console.warn(
+          '❌ AdminService.subscribeToMessages - Usuário não tem acesso ao site:',
+          siteId
+        );
         return () => {};
       }
 
-      console.log('✅ AdminService.subscribeToMessages - Criando listener para siteId:', siteId);
-      
+      console.log(
+        '✅ AdminService.subscribeToMessages - Criando listener para siteId:',
+        siteId
+      );
+
       const q = query(
         collection(db, 'adminMessages'),
         where('siteId', '==', siteId),
         orderBy('createdAt', 'desc')
       );
 
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const messages = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        } as AdminMessage));
-        
-        console.log('📨 AdminService.subscribeToMessages - Mensagens atualizadas em tempo real:', messages.length);
-        console.log('📨 AdminService.subscribeToMessages - Última mensagem:', messages[0]?.message?.substring(0, 50) + '...');
-        
-        callback(messages);
-      }, (error) => {
-        console.error('❌ AdminService.subscribeToMessages - Erro no listener:', error);
-      });
+      const unsubscribe = onSnapshot(
+        q,
+        (querySnapshot) => {
+          const messages = querySnapshot.docs.map(
+            (doc) =>
+              ({
+                id: doc.id,
+                ...doc.data(),
+              } as AdminMessage)
+          );
 
-      console.log('✅ AdminService.subscribeToMessages - Listener configurado com sucesso');
+          console.log(
+            '📨 AdminService.subscribeToMessages - Mensagens atualizadas em tempo real:',
+            messages.length
+          );
+          console.log(
+            '📨 AdminService.subscribeToMessages - Última mensagem:',
+            messages[0]?.message?.substring(0, 50) + '...'
+          );
+
+          callback(messages);
+        },
+        (error) => {
+          console.error(
+            '❌ AdminService.subscribeToMessages - Erro no listener:',
+            error
+          );
+        }
+      );
+
+      console.log(
+        '✅ AdminService.subscribeToMessages - Listener configurado com sucesso'
+      );
       return unsubscribe;
     } catch (error) {
-      console.error('❌ AdminService.subscribeToMessages - Erro ao configurar listener:', error);
+      console.error(
+        '❌ AdminService.subscribeToMessages - Erro ao configurar listener:',
+        error
+      );
       return () => {};
     }
   }
@@ -465,7 +609,9 @@ export class AdminService {
   /**
    * Configura listener em tempo real para notificações
    */
-  static async subscribeToNotifications(callback: (notifications: AdminNotification[]) => void) {
+  static async subscribeToNotifications(
+    callback: (notifications: AdminNotification[]) => void
+  ) {
     const currentUser = await AuthService.getCurrentUser();
     if (!currentUser) return () => {};
 
@@ -477,10 +623,13 @@ export class AdminService {
     );
 
     return onSnapshot(q, (querySnapshot) => {
-      const notifications = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as AdminNotification));
+      const notifications = querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as AdminNotification)
+      );
       callback(notifications);
     });
   }
@@ -497,7 +646,7 @@ export class AdminService {
 
       const messageRef = doc(db, 'adminMessages', messageId);
       const messageDoc = await getDoc(messageRef);
-      
+
       if (!messageDoc.exists()) {
         throw new Error('Mensagem não encontrada');
       }
@@ -553,9 +702,13 @@ export class AdminService {
         where('siteId', '==', siteId)
       );
       const messagesSnapshot = await getDocs(messagesQuery);
-      const messages = messagesSnapshot.docs.map(doc => doc.data() as AdminMessage);
-      
-      const unreadMessages = messages.filter(msg => !msg.readBy.includes(currentUser.id)).length;
+      const messages = messagesSnapshot.docs.map(
+        (doc) => doc.data() as AdminMessage
+      );
+
+      const unreadMessages = messages.filter(
+        (msg) => !msg.readBy.includes(currentUser.id)
+      ).length;
 
       // Buscar notificações
       const notificationsQuery = query(
@@ -563,9 +716,13 @@ export class AdminService {
         where('recipientId', '==', currentUser.id)
       );
       const notificationsSnapshot = await getDocs(notificationsQuery);
-      const notifications = notificationsSnapshot.docs.map(doc => doc.data() as AdminNotification);
-      
-      const unreadNotifications = notifications.filter(notif => !notif.read).length;
+      const notifications = notificationsSnapshot.docs.map(
+        (doc) => doc.data() as AdminNotification
+      );
+
+      const unreadNotifications = notifications.filter(
+        (notif) => !notif.read
+      ).length;
 
       // Buscar administradores ativos
       const admins = await this.getOtherAdmins(siteId);
@@ -600,19 +757,22 @@ export class AdminService {
     error?: string;
   }> {
     try {
-      console.log('🔍 AdminService.debugAdminCommunication - Iniciando debug com siteId:', siteId);
-      
+      console.log(
+        '🔍 AdminService.debugAdminCommunication - Iniciando debug com siteId:',
+        siteId
+      );
+
       // Verificar usuário atual
       const currentUser = await AuthService.getCurrentUser();
       console.log('👤 Usuário atual:', currentUser);
-      
+
       if (!currentUser) {
         return {
           success: false,
           currentUser: null,
           siteAdmins: [],
           messages: [],
-          error: 'Usuário não autenticado'
+          error: 'Usuário não autenticado',
         };
       }
 
@@ -622,21 +782,23 @@ export class AdminService {
           currentUser,
           siteAdmins: [],
           messages: [],
-          error: 'Usuário não é administrador'
+          error: 'Usuário não é administrador',
         };
       }
 
       // Verificar se o usuário tem acesso ao site
       console.log('🏗️ Sites do usuário:', currentUser.sites);
       console.log('🎯 SiteId sendo verificado:', siteId);
-      
+
       if (!currentUser.sites?.includes(siteId)) {
         return {
           success: false,
           currentUser,
           siteAdmins: [],
           messages: [],
-          error: `Usuário não tem acesso ao site ${siteId}. Sites disponíveis: ${currentUser.sites?.join(', ') || 'nenhum'}`
+          error: `Usuário não tem acesso ao site ${siteId}. Sites disponíveis: ${
+            currentUser.sites?.join(', ') || 'nenhum'
+          }`,
         };
       }
 
@@ -662,32 +824,33 @@ export class AdminService {
           email: currentUser.email,
           role: currentUser.role,
           sites: currentUser.sites,
-          siteId: currentUser.siteId
+          siteId: currentUser.siteId,
         },
-        siteAdmins: siteAdmins.map(admin => ({
+        siteAdmins: siteAdmins.map((admin) => ({
           id: admin.id,
           name: admin.name,
           email: admin.email,
-          role: admin.role
+          role: admin.role,
         })),
-        messages: messages.map(msg => ({
+        messages: messages.map((msg) => ({
           id: msg.id,
           senderName: msg.senderName,
           message: msg.message,
           createdAt: msg.createdAt,
           type: msg.type,
-          priority: msg.priority
+          priority: msg.priority,
         })),
-        currentSite: currentSite ? {
-          id: currentSite.id,
-          name: currentSite.name,
-          address: currentSite.address
-        } : null
+        currentSite: currentSite
+          ? {
+              id: currentSite.id,
+              name: currentSite.name,
+              address: currentSite.address,
+            }
+          : null,
       };
 
       console.log('✅ Debug concluído com sucesso:', result);
       return result;
-
     } catch (error) {
       console.error('❌ Erro no debug de comunicação:', error);
       return {
@@ -695,7 +858,7 @@ export class AdminService {
         currentUser: null,
         siteAdmins: [],
         messages: [],
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
       };
     }
   }
@@ -717,14 +880,21 @@ export class AdminService {
         workers = workers.concat(siteWorkers, siteAdmins);
       }
       // Remover duplicados (caso algum worker/admin esteja em mais de uma obra)
-      const uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
-      const activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
-      console.log('[AdminService] Colaboradores ativos encontrados:', activeWorkers.length);
+      const uniqueWorkers = Array.from(
+        new Map(workers.map((w) => [w.id, w])).values()
+      );
+      const activeWorkers = uniqueWorkers.filter((w) => w.status === 'active');
+      console.log(
+        '[AdminService] Colaboradores ativos encontrados:',
+        activeWorkers.length
+      );
 
       // Buscar tarefas do site atual
       const currentSite = await AuthService.getCurrentSite();
       if (!currentSite) {
-        console.log('[AdminService] Nenhum site selecionado, retornando estatísticas vazias');
+        console.log(
+          '[AdminService] Nenhum site selecionado, retornando estatísticas vazias'
+        );
         return {
           totalSites,
           totalWorkers: activeWorkers.length,
@@ -737,7 +907,10 @@ export class AdminService {
         where('siteId', '==', currentSite.id)
       );
       const tasksSnapshot = await getDocs(tasksQuery);
-      console.log('[AdminService] Total de tarefas encontradas para o site:', tasksSnapshot.size);
+      console.log(
+        '[AdminService] Total de tarefas encontradas para o site:',
+        tasksSnapshot.size
+      );
 
       const completedTasksQuery = query(
         collection(db, 'tasks'),
@@ -745,7 +918,10 @@ export class AdminService {
         where('status', '==', 'completed')
       );
       const completedTasksSnapshot = await getDocs(completedTasksQuery);
-      console.log('[AdminService] Tarefas concluídas do site:', completedTasksSnapshot.size);
+      console.log(
+        '[AdminService] Tarefas concluídas do site:',
+        completedTasksSnapshot.size
+      );
 
       const stats = {
         totalSites,
@@ -770,7 +946,10 @@ export class AdminService {
   /**
    * Configura listener em tempo real para tarefas
    */
-  static async subscribeToTasks(siteId: string, callback: (tasks: any[]) => void) {
+  static async subscribeToTasks(
+    siteId: string,
+    callback: (tasks: any[]) => void
+  ) {
     if (!siteId) {
       console.warn('siteId é undefined, retornando função vazia');
       return () => {};
@@ -786,7 +965,7 @@ export class AdminService {
     );
 
     return onSnapshot(q, (querySnapshot) => {
-      const tasks = querySnapshot.docs.map(doc => {
+      const tasks = querySnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -801,7 +980,10 @@ export class AdminService {
   /**
    * Configura listener em tempo real para progresso
    */
-  static async subscribeToProgress(siteId: string, callback: (progress: any) => void) {
+  static async subscribeToProgress(
+    siteId: string,
+    callback: (progress: any) => void
+  ) {
     if (!siteId) {
       console.warn('siteId é undefined, retornando função vazia');
       return () => {};
@@ -811,13 +993,10 @@ export class AdminService {
     if (!currentUser || currentUser.role !== 'admin') return () => {};
 
     // Listener para tarefas que afetam o progresso
-    const q = query(
-      collection(db, 'tasks'),
-      where('siteId', '==', siteId)
-    );
+    const q = query(collection(db, 'tasks'), where('siteId', '==', siteId));
 
     return onSnapshot(q, async (querySnapshot) => {
-      const tasks = querySnapshot.docs.map(doc => {
+      const tasks = querySnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -828,10 +1007,17 @@ export class AdminService {
 
       // Calcular progresso em tempo real
       const totalTasks = tasks.length;
-      const completedTasks = tasks.filter(task => task.status === 'completed').length;
-      const inProgressTasks = tasks.filter(task => task.status === 'in_progress').length;
-      const pendingTasks = tasks.filter(task => task.status === 'pending').length;
-      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      const completedTasks = tasks.filter(
+        (task) => task.status === 'completed'
+      ).length;
+      const inProgressTasks = tasks.filter(
+        (task) => task.status === 'in_progress'
+      ).length;
+      const pendingTasks = tasks.filter(
+        (task) => task.status === 'pending'
+      ).length;
+      const completionRate =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
       const progress = {
         totalTasks,
@@ -839,7 +1025,7 @@ export class AdminService {
         inProgressTasks,
         pendingTasks,
         completionRate,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
 
       callback(progress);
@@ -849,7 +1035,10 @@ export class AdminService {
   /**
    * Configura listener em tempo real para atividades administrativas
    */
-  static async subscribeToAdminActivities(siteId: string, callback: (activities: AdminActivity[]) => void) {
+  static async subscribeToAdminActivities(
+    siteId: string,
+    callback: (activities: AdminActivity[]) => void
+  ) {
     if (!siteId) {
       console.warn('siteId é undefined, retornando função vazia');
       return () => {};
@@ -866,11 +1055,17 @@ export class AdminService {
     );
 
     return onSnapshot(q, (querySnapshot) => {
-      const activities = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as AdminActivity));
-      console.log('📝 Atividades administrativas atualizadas:', activities.length);
+      const activities = querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as AdminActivity)
+      );
+      console.log(
+        '📝 Atividades administrativas atualizadas:',
+        activities.length
+      );
       callback(activities);
     });
   }
@@ -878,7 +1073,10 @@ export class AdminService {
   /**
    * Configura listener em tempo real para convites
    */
-  static async subscribeToInvites(siteId: string, callback: (invites: any[]) => void) {
+  static async subscribeToInvites(
+    siteId: string,
+    callback: (invites: any[]) => void
+  ) {
     if (!siteId) {
       console.warn('siteId é undefined, retornando função vazia');
       return () => {};
@@ -894,7 +1092,7 @@ export class AdminService {
     );
 
     return onSnapshot(q, (querySnapshot) => {
-      const invites = querySnapshot.docs.map(doc => ({
+      const invites = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
@@ -906,7 +1104,10 @@ export class AdminService {
   /**
    * Configura listener em tempo real para colaboradores
    */
-  static async subscribeToWorkers(siteId: string, callback: (workers: any[]) => void) {
+  static async subscribeToWorkers(
+    siteId: string,
+    callback: (workers: any[]) => void
+  ) {
     if (!siteId) {
       console.warn('siteId é undefined, retornando função vazia');
       return () => {};
@@ -922,11 +1123,14 @@ export class AdminService {
     );
 
     return onSnapshot(q, (querySnapshot) => {
-      const workers = querySnapshot.docs.map(doc => ({
+      const workers = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      console.log('👷 Colaboradores atualizados em tempo real:', workers.length);
+      console.log(
+        '👷 Colaboradores atualizados em tempo real:',
+        workers.length
+      );
       callback(workers);
     });
   }
@@ -955,7 +1159,11 @@ export class AdminService {
 
       // Verificar se o destinatário existe e é admin da mesma obra
       const recipient = await AuthService.getUserById(recipientId);
-      if (!recipient || recipient.role !== 'admin' || !recipient.sites?.includes(siteId)) {
+      if (
+        !recipient ||
+        recipient.role !== 'admin' ||
+        !recipient.sites?.includes(siteId)
+      ) {
         throw new Error('Destinatário não encontrado ou sem acesso à obra');
       }
 
@@ -972,10 +1180,18 @@ export class AdminService {
         readBy: [currentUser.id], // O remetente já leu
       };
 
-      const docRef = await addDoc(collection(db, 'adminDirectMessages'), messageData);
-      
+      const docRef = await addDoc(
+        collection(db, 'adminDirectMessages'),
+        messageData
+      );
+
       // Atualizar ou criar sessão
-      await this.updateChatSession(siteId, currentUser.id, recipientId, message);
+      await this.updateChatSession(
+        siteId,
+        currentUser.id,
+        recipientId,
+        message
+      );
 
       return {
         id: docRef.id,
@@ -1016,14 +1232,19 @@ export class AdminService {
       );
 
       const querySnapshot = await getDocs(q);
-      const messages = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as AdminDirectMessage));
+      const messages = querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as AdminDirectMessage)
+      );
 
       // Marcar mensagens como lidas
-      const unreadMessages = messages.filter(msg => 
-        msg.recipientId === currentUser.id && !msg.readBy.includes(currentUser.id)
+      const unreadMessages = messages.filter(
+        (msg) =>
+          msg.recipientId === currentUser.id &&
+          !msg.readBy.includes(currentUser.id)
       );
 
       for (const msg of unreadMessages) {
@@ -1059,10 +1280,13 @@ export class AdminService {
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as AdminChatSession));
+      return querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as AdminChatSession)
+      );
     } catch (error) {
       console.error('Erro ao buscar sessões de chat:', error);
       return [];
@@ -1081,22 +1305,22 @@ export class AdminService {
     try {
       const participants = [senderId, recipientId].sort();
       const sessionId = `${siteId}_${participants.join('_')}`;
-      
+
       const sessionRef = doc(db, 'adminChatSessions', sessionId);
       const sessionDoc = await getDoc(sessionRef);
-      
+
       const currentUser = await AuthService.getCurrentUser();
       const recipient = await AuthService.getUserById(recipientId);
-      
+
       if (!currentUser || !recipient) return;
 
       // Garantir que os nomes estejam na mesma ordem dos IDs ordenados
-      const participantNames = participants.map(id => {
+      const participantNames = participants.map((id) => {
         if (id === currentUser.id) return currentUser.name;
         if (id === recipient.id) return recipient.name;
         return 'Usuário desconhecido';
       });
-      
+
       if (sessionDoc.exists()) {
         // Atualizar sessão existente
         await updateDoc(sessionRef, {
@@ -1117,7 +1341,7 @@ export class AdminService {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        
+
         await setDoc(sessionRef, sessionData);
       }
     } catch (error) {
@@ -1135,7 +1359,7 @@ export class AdminService {
 
       const messageRef = doc(db, 'adminDirectMessages', messageId);
       const messageDoc = await getDoc(messageRef);
-      
+
       if (!messageDoc.exists()) return;
 
       const message = messageDoc.data() as AdminDirectMessage;
@@ -1148,10 +1372,10 @@ export class AdminService {
             updatedAt: new Date().toISOString(),
           });
         } else {
-        await updateDoc(messageRef, {
-          readBy: [...message.readBy, currentUser.id],
-          updatedAt: new Date().toISOString(),
-        });
+          await updateDoc(messageRef, {
+            readBy: [...message.readBy, currentUser.id],
+            updatedAt: new Date().toISOString(),
+          });
         }
       }
     } catch (error) {
@@ -1171,7 +1395,7 @@ export class AdminService {
 
       const messageRef = doc(db, 'adminDirectMessages', messageId);
       const messageDoc = await getDoc(messageRef);
-      
+
       if (!messageDoc.exists()) {
         throw new Error('Mensagem não encontrada');
       }
@@ -1211,10 +1435,13 @@ export class AdminService {
       );
 
       return onSnapshot(q, (snapshot) => {
-        const messages = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        } as AdminDirectMessage));
+        const messages = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            } as AdminDirectMessage)
+        );
         callback(messages);
       });
     } catch (error) {
@@ -1244,10 +1471,13 @@ export class AdminService {
       );
 
       return onSnapshot(q, (snapshot) => {
-        const sessions = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        } as AdminChatSession));
+        const sessions = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            } as AdminChatSession)
+        );
         callback(sessions);
       });
     } catch (error) {
@@ -1257,7 +1487,10 @@ export class AdminService {
   }
 
   // Deleta todas as mensagens entre os participantes de uma sessão
-  static async deleteDirectMessagesForSession(siteId: string, participants: string[]): Promise<void> {
+  static async deleteDirectMessagesForSession(
+    siteId: string,
+    participants: string[]
+  ): Promise<void> {
     try {
       console.log('Deletando mensagens da sessão:', siteId, participants);
       const q = query(
@@ -1268,7 +1501,7 @@ export class AdminService {
       );
       const snapshot = await getDocs(q);
       const batch = writeBatch(db);
-      snapshot.forEach(docSnap => batch.delete(docSnap.ref));
+      snapshot.forEach((docSnap) => batch.delete(docSnap.ref));
       await batch.commit();
       console.log('Mensagens da sessão deletadas com sucesso!');
     } catch (error) {
@@ -1288,11 +1521,23 @@ export class AdminService {
       throw error;
     }
   }
+
+  static async getWorkers(siteId: string): Promise<Worker[]> {
+    // Implement the logic to fetch workers from your data source
+    // Using Firestore v9 modular API
+    const workersCollection = collection(db, 'sites', siteId, 'workers');
+    const snapshot = await getDocs(workersCollection);
+
+    return snapshot.docs.map((doc: DocumentData) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Worker[];
+  }
 }
 
 // Exemplo de chamada para uma Cloud Function
 export async function getAdminStats() {
-  const getStats = httpsCallable(functions, "getAdminStats");
+  const getStats = httpsCallable(functions, 'getAdminStats');
   const result = await getStats();
   return result.data;
 }
