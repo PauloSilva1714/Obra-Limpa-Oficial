@@ -1211,9 +1211,18 @@ export class AuthService {
       await reauthenticateWithCredential(currentUser, credential);
 
       await updatePassword(currentUser, newPassword);
-
+      
+      // Registrar a alteração de senha no console para debug
+      console.log('[AuthService] Senha alterada com sucesso para o usuário:', currentUser.email);
+      
+      // Atualizar o perfil do usuário no Firebase Auth para garantir que a alteração seja persistida
+      await updateProfile(currentUser, {
+        displayName: currentUser.displayName // Mantém o mesmo nome, apenas para forçar uma atualização
+      });
+      
       return true;
     } catch (error) {
+      console.error('[AuthService] Erro ao alterar senha:', error);
       throw error;
     }
   }

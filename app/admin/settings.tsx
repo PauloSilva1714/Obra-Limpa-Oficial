@@ -231,13 +231,28 @@ export default function SettingsScreen() {
     }
 
     try {
-      await AuthService.changePassword(currentPassword, newPassword);
-      Alert.alert(t('success'), t('passwordChanged'));
-      setShowPasswordModal(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      console.log('Iniciando alteração de senha...');
+      // Mostrar indicador de carregamento ou desabilitar o botão aqui se necessário
+      
+      const result = await AuthService.changePassword(currentPassword, newPassword);
+      console.log('Resultado da alteração de senha:', result);
+      
+      if (result) {
+        Alert.alert(t('success'), t('passwordChanged'));
+        setShowPasswordModal(false);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        
+        // Forçar logout após alteração de senha para garantir que as credenciais sejam atualizadas
+        // Comentado por enquanto para não forçar o logout do usuário
+        // await AuthService.logout();
+        // router.replace('/(auth)/login');
+      } else {
+        Alert.alert(t('error'), 'Não foi possível alterar a senha. Tente novamente.');
+      }
     } catch (error: any) {
+      console.error('Erro ao alterar senha:', error);
       let errorMessage = 'Não foi possível alterar a senha. Tente novamente.';
       
       if (error.code === 'auth/wrong-password') {
@@ -869,4 +884,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-}); 
+});
