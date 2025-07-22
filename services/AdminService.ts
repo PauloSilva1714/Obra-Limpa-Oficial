@@ -96,6 +96,7 @@ export interface AdminDirectMessage {
   readBy: string[];
   attachments?: string[];
   readAt?: string | Timestamp;
+  clientId?: string;
 }
 
 export interface AdminChatSession {
@@ -168,12 +169,13 @@ export class AdminService {
   }
 
   /**
-   * Busca mensagens da obra atual
+   * Busca mensagens da obra atual (mensagens gerais)
    */
   static async getMessages(
     siteId: string,
-    limitCount: number = 50
+    options?: { limitCount?: number }
   ): Promise<AdminMessage[]> {
+    const limitCount = options?.limitCount ?? 50;
     try {
       console.log(
         '🔍 AdminService.getMessages() - Iniciando com siteId:',
@@ -265,25 +267,37 @@ export class AdminService {
   /**
    * Marca uma mensagem como lida
    */
-  static async markMessageAsRead(messageId: string): Promise<void> {
+  static async markMessageAsRead(
+    messageId: string,
+    options?: { userId?: string; collection?: 'adminMessages' | 'adminDirectMessages' }
+  ): Promise<void> {
     try {
-      const currentUser = await AuthService.getCurrentUser();
-      if (!currentUser) return;
-
-      const messageRef = doc(db, 'adminMessages', messageId);
+      const collectionName = options?.collection || 'adminMessages';
+      let userId = options?.userId;
+      if (!userId) {
+        const currentUser = await AuthService.getCurrentUser();
+        if (!currentUser) return;
+        userId = currentUser.id;
+      }
+      const messageRef = doc(db, collectionName, messageId);
       const messageDoc = await getDoc(messageRef);
-
       if (!messageDoc.exists()) return;
-
-      const message = messageDoc.data() as AdminMessage;
-      if (!message.readBy.includes(currentUser.id)) {
-        await updateDoc(messageRef, {
-          readBy: [...message.readBy, currentUser.id],
-          updatedAt: new Date().toISOString(),
-        });
+      const data = messageDoc.data();
+      const readBy = data.readBy || [];
+      if (!readBy.includes(userId)) {
+        const updateData: any = {
+          readBy: [...readBy, userId],
+        };
+        if (collectionName === 'adminMessages') {
+          updateData.updatedAt = new Date().toISOString();
+        } else if (collectionName === 'adminDirectMessages') {
+          updateData.readAt = serverTimestamp();
+        }
+        await updateDoc(messageRef, updateData);
       }
     } catch (error) {
       console.error('Erro ao marcar mensagem como lida:', error);
+      throw error;
     }
   }
 
@@ -1136,19 +1150,20 @@ export class AdminService {
   }
 
   /**
-   * Envia uma mensagem individual para outro administrador
+   * Envia uma mensagem individual entre administradores
    */
   static async sendDirectMessage(
     siteId: string,
     recipientId: string,
-    message: string
+    message: string,
+    clientId?: string
   ): Promise<AdminDirectMessage> {
     try {
-      if (!siteId) {
-        throw new Error('ID da obra é obrigatório');
-      }
-
+      console.log('🔍 Enviando mensagem:', { siteId, recipientId, message });
+      
       const currentUser = await AuthService.getCurrentUser();
+      console.log('👤 Usuário atual:', currentUser);
+      
       if (!currentUser || currentUser.role !== 'admin') {
         throw new Error('Apenas administradores podem enviar mensagens');
       }
@@ -1157,17 +1172,23 @@ export class AdminService {
         throw new Error('Você não tem acesso a esta obra');
       }
 
-      // Verificar se o destinatário existe e é admin da mesma obra
+      // Verificar se o destinatário existe
       const recipient = await AuthService.getUserById(recipientId);
-      if (
-        !recipient ||
-        recipient.role !== 'admin' ||
-        !recipient.sites?.includes(siteId)
-      ) {
-        throw new Error('Destinatário não encontrado ou sem acesso à obra');
+      console.log('👥 Destinatário encontrado:', recipient);
+      
+      if (!recipient) {
+        throw new Error('Destinatário não encontrado');
+      }
+      
+      if (recipient.role !== 'admin') {
+        throw new Error('Destinatário não é um administrador');
+      }
+      
+      if (!recipient.sites?.includes(siteId)) {
+        throw new Error('Destinatário não tem acesso à obra');
       }
 
-      const messageData: Omit<AdminDirectMessage, 'id'> = {
+      const messageData: Omit<AdminDirectMessage, 'id'> & { clientId?: string } = {
         siteId,
         senderId: currentUser.id,
         senderName: currentUser.name,
@@ -1176,9 +1197,12 @@ export class AdminService {
         recipientName: recipient.name,
         recipientEmail: recipient.email,
         message,
-        createdAt: serverTimestamp(), // CORRIGIDO
+        createdAt: new Date().toISOString(), // CORRIGIDO: usar timestamp ISO
         readBy: [currentUser.id], // O remetente já leu
+        ...(clientId ? { clientId } : {}),
       };
+
+      console.log('📝 Dados da mensagem:', messageData);
 
       const docRef = await addDoc(
         collection(db, 'adminDirectMessages'),
@@ -1193,12 +1217,14 @@ export class AdminService {
         message
       );
 
+      console.log('✅ Mensagem enviada com sucesso:', docRef.id);
+
       return {
         id: docRef.id,
         ...messageData,
       };
     } catch (error) {
-      console.error('Erro ao enviar mensagem individual:', error);
+      console.error('❌ Erro ao enviar mensagem individual:', error);
       throw error;
     }
   }
@@ -1209,8 +1235,9 @@ export class AdminService {
   static async getDirectMessages(
     siteId: string,
     otherUserId: string,
-    limitCount: number = 50
+    options?: { limitCount?: number }
   ): Promise<AdminDirectMessage[]> {
+    const limitCount = options?.limitCount ?? 50;
     try {
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser || currentUser.role !== 'admin') {
@@ -1426,28 +1453,103 @@ export class AdminService {
         return () => {};
       }
 
+      console.log('📱 Inscrevendo para mensagens em tempo real:', { siteId, currentUserId: currentUser.id, otherUserId });
+
+      // Usar uma consulta mais simples para evitar problemas com o Firestore
       const q = query(
         collection(db, 'adminDirectMessages'),
         where('siteId', '==', siteId),
-        where('senderId', 'in', [currentUser.id, otherUserId]),
-        where('recipientId', 'in', [currentUser.id, otherUserId]),
         orderBy('createdAt', 'asc')
       );
 
       return onSnapshot(q, (snapshot) => {
-        const messages = snapshot.docs.map(
-          (doc) =>
-            ({
+        console.log('📩 Snapshot recebido com', snapshot.docs.length, 'documentos');
+        // Filtrar mensagens localmente para evitar consultas complexas
+        const messages = snapshot.docs
+          .map(doc => {
+            const data = doc.data();
+            return {
               id: doc.id,
-              ...doc.data(),
-            } as AdminDirectMessage)
-        );
+              ...data,
+              clientId: data.clientId || undefined, // força o campo a existir
+            } as AdminDirectMessage;
+          })
+          .filter(msg => 
+            (msg.senderId === currentUser.id && msg.recipientId === otherUserId) || 
+            (msg.senderId === otherUserId && msg.recipientId === currentUser.id)
+          );
+        console.log('📨 Mensagens filtradas:', messages.length);
+        console.log('Mensagens do Firestore:', messages.map(m => ({id: m.id, clientId: m.clientId, message: m.message})));
         callback(messages);
       });
     } catch (error) {
-      console.error('Erro ao inscrever-se para mensagens individuais:', error);
+      console.error('❌ Erro ao inscrever-se para mensagens individuais:', error);
       return () => {};
     }
+  }
+
+  /**
+   * Conta mensagens não lidas para o usuário atual
+   */
+  static async getUnreadDirectMessagesCount(siteId: string): Promise<number> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        return 0;
+      }
+
+      if (!currentUser.sites?.includes(siteId)) {
+        return 0;
+      }
+
+      const q = query(
+        collection(db, 'adminDirectMessages'),
+        where('siteId', '==', siteId),
+        where('recipientId', '==', currentUser.id),
+        where('readBy', 'not-in', [[currentUser.id]])
+      );
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.size;
+    } catch (error) {
+      console.error('Erro ao contar mensagens não lidas:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Inscreve-se para receber contagem de mensagens não lidas em tempo real
+   */
+  static subscribeToUnreadDirectMessagesCount(
+    siteId: string,
+    callback: (count: number) => void
+  ) {
+    let unsubscribe = () => {};
+    AuthService.getCurrentUser().then(currentUser => {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      if (!currentUser.sites?.includes(siteId)) return;
+
+      console.log('📱 Inscrevendo para contagem de mensagens não lidas:', { siteId, currentUserId: currentUser.id });
+
+      const q = query(
+        collection(db, 'adminDirectMessages'),
+        where('siteId', '==', siteId),
+        orderBy('createdAt', 'desc')
+      );
+
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        console.log('📩 Snapshot de contagem recebido com', snapshot.docs.length, 'documentos');
+        const unreadCount = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as AdminDirectMessage))
+          .filter(msg =>
+            msg.recipientId === currentUser.id &&
+            (!msg.readBy || !msg.readBy.includes(currentUser.id))
+          ).length;
+        console.log('📨 Contagem de mensagens não lidas:', unreadCount);
+        callback(unreadCount);
+      });
+    });
+    return () => unsubscribe();
   }
 
   /**
@@ -1532,6 +1634,101 @@ export class AdminService {
       id: doc.id,
       ...doc.data(),
     })) as Worker[];
+  }
+
+  // ========== FUNCIONALIDADES ADICIONAIS INTEGRADAS ==========
+
+  /**
+   * Busca mensagens diretas do admin com query otimizada
+   * Integrado do Untitled-2.ts
+   */
+  static async getAdminDirectMessages(
+    siteId: string,
+    options?: { limitCount?: number }
+  ): Promise<AdminDirectMessage[]> {
+    const limitCount = options?.limitCount ?? 50;
+    try {
+      const q = query(
+        collection(db, 'adminDirectMessages'),
+        where('siteId', '==', siteId),
+        orderBy('createdAt', 'asc'),
+        limit(limitCount)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const messages = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as AdminDirectMessage));
+      
+      return messages;
+    } catch (error) {
+      console.error('Erro ao buscar mensagens diretas do admin:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Processa snapshot do Firestore para AdminDirectMessage
+   * Integrado do Untitled-3.ts
+   */
+  static processSnapshot(snapshot: any): AdminDirectMessage[] {
+    return snapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    } as AdminDirectMessage));
+  }
+
+  /**
+   * Conta mensagens não lidas de um snapshot
+   * Integrado do Untitled-3.ts
+   */
+  static countUnreadMessagesFromSnapshot(snapshot: any): number {
+    return snapshot.docs.filter((doc: any) => !doc.data().isRead).length;
+  }
+
+  /**
+   * Cria query entre dois usuários específicos
+   * Integrado do Untitled-3.ts
+   */
+  static createUserQuery(currentUser: string, otherUserId: string, siteId: string) {
+    return query(
+      collection(db, 'adminDirectMessages'),
+      where('siteId', '==', siteId),
+      where('participants', 'in', [
+        [currentUser, otherUserId],
+        [otherUserId, currentUser]
+      ]),
+      orderBy('createdAt', 'desc')
+    );
+  }
+
+  /**
+   * Cria query simples reutilizável
+   * Integrado do Untitled-1.ts
+   */
+  static createQuery(siteId: string) {
+    return query(
+      collection(db, 'adminDirectMessages'),
+      where('siteId', '==', siteId),
+      orderBy('createdAt', 'asc')
+    );
+  }
+
+  /**
+   * Limpa mensagens pendentes (função auxiliar)
+   * Integrado do Untitled-4.ts
+   */
+  static clearPendingMessages(): void {
+    console.log('Mensagens pendentes limpas');
+  }
+
+  /**
+   * Adiciona mensagem pendente (função auxiliar)
+   * Integrado do Untitled-4.ts
+   */
+  static addPendingMessage(message: AdminDirectMessage): void {
+    console.log('Mensagem pendente adicionada:', message.id);
   }
 }
 

@@ -2,7 +2,9 @@ import { View, TouchableOpacity, Text, StyleSheet, Platform, useWindowDimensions
 import { useRouter, usePathname } from 'expo-router';
 import { Home, User, BarChart3, MessageCircle, Building2 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { AdminService } from '@/services/AdminService';
+import { AuthService } from '@/services/AuthService';
 
 export default function CustomTabBar({ userRole }: { userRole: 'admin' | 'worker' }) {
   const router = useRouter();
@@ -11,8 +13,38 @@ export default function CustomTabBar({ userRole }: { userRole: 'admin' | 'worker
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 500;
 
-  // Exemplo de badge de notificação (pode ser dinâmico)
-  const [chatBadge, setChatBadge] = useState(2); // Exemplo: 2 mensagens não lidas
+  // Estado para contagem dinâmica de mensagens não lidas
+  const [chatBadge, setChatBadge] = useState(0);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    const setupUnreadMessagesSubscription = async () => {
+      if (userRole === 'admin') {
+        try {
+          const currentSite = await AuthService.getCurrentSite();
+          if (currentSite?.id) {
+            unsubscribe = await AdminService.subscribeToUnreadDirectMessagesCount(
+              currentSite.id,
+              (count) => {
+                setChatBadge(count);
+              }
+            );
+          }
+        } catch (error) {
+          console.error('Erro ao configurar inscrição de mensagens não lidas:', error);
+        }
+      }
+    };
+
+    setupUnreadMessagesSubscription();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [userRole]);
 
   const tabs = [
     { name: 'Tarefas', icon: <Home size={isSmallScreen ? 22 : 28} color={colors.primary} />, route: '/', show: true },
@@ -110,4 +142,4 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-}); 
+});

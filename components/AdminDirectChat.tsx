@@ -17,7 +17,8 @@ import { Send, ArrowLeft, Trash2, User, Check } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
-import { Timestamp, FieldValue } from 'firebase/firestore';
+import { Timestamp, FieldValue, query, collection, where, orderBy } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AdminDirectChatProps {
@@ -73,21 +74,24 @@ export default function AdminDirectChat({
     const initializeComponent = async () => {
       try {
         setLoading(true);
-        const messagesData = await AdminService.getDirectMessages(siteId, otherUserId);
+        const messagesData = await AdminService.getDirectMessages(siteId, otherUserId, {});
         if (isMounted) setMessages(sortMessages(messagesData));
         if (unsubscribeMessages.current) unsubscribeMessages.current();
         const unsubscribe = await AdminService.subscribeToDirectMessages(
           siteId,
           otherUserId,
+          // Dentro do callback do subscribeToDirectMessages
           (newMessages) => {
+            console.log('Callback do Firestore chamado com', newMessages.length, 'mensagens');
             if (isMounted) {
-              // Remover mensagens pendentes que já foram confirmadas pelo Firestore
               setPendingMessages((pending) => {
-                const confirmed = newMessages.map(msg => msg.message + msg.senderId);
-                return pending.filter(pmsg => !confirmed.includes(pmsg.message + pmsg.senderId));
+                // Usar clientId para identificar mensagens confirmadas
+                const confirmedClientIds = newMessages.map(msg => msg.clientId).filter(Boolean);
+                const updatedPending = pending.filter(pmsg => !confirmedClientIds.includes(pmsg.clientId));
+                const updatedMessages = sortMessages([...newMessages, ...updatedPending]);
+                setMessages(updatedMessages);
+                return updatedPending;
               });
-              // Mesclar mensagens confirmadas e pendentes
-              setMessages(sortMessages([...newMessages, ...pendingMessages]));
             }
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: true });
@@ -129,8 +133,9 @@ export default function AdminDirectChat({
     if (!newMessage.trim()) return;
     try {
       setSending(true);
-      // Mensagem otimista
-      const tempId = 'temp-' + uuidv4();
+      // Mensagem otimista com clientId
+      const clientId = uuidv4();
+      const tempId = 'temp-' + clientId;
       const optimisticMsg: AdminDirectMessage = {
         id: tempId,
         siteId,
@@ -144,10 +149,12 @@ export default function AdminDirectChat({
         createdAt: new Date().toISOString(),
         readBy: [currentUser?.id || ''],
         attachments: [],
+        clientId, // novo campo
       };
       setPendingMessages((prev) => [...prev, optimisticMsg]);
+      setMessages((prev) => sortMessages([...prev, optimisticMsg])); // Garante exibição imediata
       setNewMessage('');
-      await AdminService.sendDirectMessage(siteId, otherUserId, optimisticMsg.message);
+      await AdminService.sendDirectMessage(siteId, otherUserId, optimisticMsg.message, clientId);
     } catch (error: any) {
       Alert.alert('Erro', 'Não foi possível enviar a mensagem: ' + (error?.message || ''));
     } finally {
@@ -655,4 +662,4 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     flex: 1,
   },
-}); 
+});

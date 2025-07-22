@@ -70,12 +70,14 @@ try {
   if (typeof window !== 'undefined') {
     // Configurar timeout mais longo para operações do Firestore
     const originalFetch = window.fetch;
-    window.fetch = function(url, options = {}) {
+    window.fetch = function(url: RequestInfo | URL, options: RequestInit = {}): Promise<Response> {
       const urlString = url.toString();
       if (urlString.includes('firestore.googleapis.com')) {
-        const newOptions = {
+        console.log('🔄 Requisição Firestore:', urlString.substring(0, 100) + '...');
+        const newOptions: RequestInit = {
           ...options,
-          signal: options.signal || AbortSignal.timeout(60000), // 60 segundos de timeout
+          signal: options.signal || AbortSignal.timeout(120000), // 120 segundos de timeout
+          credentials: 'same-origin' as RequestCredentials, // Especificar tipo correto
         };
         return originalFetch(url, newOptions);
       }

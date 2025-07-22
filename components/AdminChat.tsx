@@ -12,9 +12,21 @@ import {
   Platform,
   Modal,
 } from 'react-native';
-import { Send, MessageCircle, Bell, Users, Trash2, AlertCircle, Info } from 'lucide-react-native';
+import {
+  Send,
+  MessageCircle,
+  Bell,
+  Users,
+  Trash2,
+  AlertCircle,
+  Info,
+} from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
-import { AdminService, AdminMessage, AdminNotification } from '../services/AdminService';
+import {
+  AdminService,
+  AdminMessage,
+  AdminNotification,
+} from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { Timestamp, FieldValue } from 'firebase/firestore';
 
@@ -30,14 +42,20 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [activeTab, setActiveTab] = useState<'messages' | 'notifications'>('messages');
-  const [messageType, setMessageType] = useState<'general' | 'task' | 'alert' | 'announcement'>('general');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
+  const [activeTab, setActiveTab] = useState<'messages' | 'notifications'>(
+    'messages'
+  );
+  const [messageType, setMessageType] = useState<
+    'general' | 'task' | 'alert' | 'announcement'
+  >('general');
+  const [priority, setPriority] = useState<
+    'low' | 'medium' | 'high' | 'urgent'
+  >('medium');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false);
-  
+
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
   const unsubscribeNotifications = useRef<(() => void) | null>(null);
@@ -81,7 +99,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
           console.error('❌ Erro ao desinscrever mensagens:', error);
         }
       }
-      
+
       if (unsubscribeNotifications.current) {
         try {
           unsubscribeNotifications.current();
@@ -95,15 +113,18 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      
-      const messagesData = await AdminService.getMessages(siteId);
-      
+
+      const messagesData = await AdminService.getMessages(siteId, {});
+
       const notificationsData = await AdminService.getNotifications();
-      
+
       setMessages(sortMessages(messagesData));
       setNotifications(notificationsData);
     } catch (error) {
-      console.error('❌ AdminChat.loadInitialData() - Erro ao carregar dados iniciais:', error);
+      console.error(
+        '❌ AdminChat.loadInitialData() - Erro ao carregar dados iniciais:',
+        error
+      );
       Alert.alert('Erro', 'Não foi possível carregar as mensagens');
     } finally {
       setLoading(false);
@@ -113,15 +134,19 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
   const setupRealtimeListeners = async () => {
     try {
       // Listener para mensagens em tempo real
-      const messagesUnsubscribe = await AdminService.subscribeToMessages(siteId, (newMessages) => {
-        setMessages(sortMessages(newMessages));
-      });
+      const messagesUnsubscribe = await AdminService.subscribeToMessages(
+        siteId,
+        (newMessages) => {
+          setMessages(sortMessages(newMessages));
+        }
+      );
       unsubscribeMessages.current = messagesUnsubscribe;
 
       // Listener para notificações em tempo real
-      const notificationsUnsubscribe = await AdminService.subscribeToNotifications((newNotifications) => {
-        setNotifications(newNotifications);
-      });
+      const notificationsUnsubscribe =
+        await AdminService.subscribeToNotifications((newNotifications) => {
+          setNotifications(newNotifications);
+        });
       unsubscribeNotifications.current = notificationsUnsubscribe;
     } catch (error) {
       console.error('❌ Erro ao configurar listeners em tempo real:', error);
@@ -133,11 +158,16 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
 
     try {
       setSending(true);
-      await AdminService.sendMessage(siteId, newMessage.trim(), messageType, priority);
+      await AdminService.sendMessage(
+        siteId,
+        newMessage.trim(),
+        messageType,
+        priority
+      );
       setNewMessage('');
       setMessageType('general');
       setPriority('medium');
-      
+
       // Scroll para a última mensagem
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -165,7 +195,10 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     } catch (error: any) {
       setDeleteModalVisible(false);
       setMessageToDelete(null);
-      Alert.alert('Erro', 'Não foi possível excluir a mensagem: ' + (error?.message || ''));
+      Alert.alert(
+        'Erro',
+        'Não foi possível excluir a mensagem: ' + (error?.message || '')
+      );
     }
   };
 
@@ -184,24 +217,35 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return '#DC2626';
-      case 'high': return '#EA580C';
-      case 'medium': return '#D97706';
-      case 'low': return '#059669';
-      default: return colors.primary;
+      case 'urgent':
+        return '#DC2626';
+      case 'high':
+        return '#EA580C';
+      case 'medium':
+        return '#D97706';
+      case 'low':
+        return '#059669';
+      default:
+        return colors.primary;
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'alert': return <AlertCircle size={16} color="#DC2626" />;
-      case 'announcement': return <Info size={16} color="#2563EB" />;
-      case 'task': return <MessageCircle size={16} color="#059669" />;
-      default: return <MessageCircle size={16} color={colors.primary} />;
+      case 'alert':
+        return <AlertCircle size={16} color="#DC2626" />;
+      case 'announcement':
+        return <Info size={16} color="#2563EB" />;
+      case 'task':
+        return <MessageCircle size={16} color="#059669" />;
+      default:
+        return <MessageCircle size={16} color={colors.primary} />;
     }
   };
 
-  const formatDate = (createdAt: string | Timestamp | FieldValue | undefined) => {
+  const formatDate = (
+    createdAt: string | Timestamp | FieldValue | undefined
+  ) => {
     if (!createdAt) return 'Enviando...';
     let date: Date;
     if (typeof createdAt === 'string') {
@@ -236,21 +280,38 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     const isUnread = !item.readBy.includes(currentUser?.id || '');
 
     return (
-      <View style={[
-        styles.messageContainer,
-        isOwnMessage ? styles.ownMessage : styles.otherMessage,
-        { backgroundColor: isOwnMessage ? colors.primary : colors.surface }
-      ]}>
+      <View
+        style={[
+          styles.messageContainer,
+          isOwnMessage ? styles.ownMessage : styles.otherMessage,
+          { backgroundColor: isOwnMessage ? colors.primary : colors.surface },
+        ]}
+      >
         <View style={styles.messageHeader}>
-          <Text style={[styles.senderName, { color: isOwnMessage ? 'white' : colors.text }]}>
+          <Text
+            style={[
+              styles.senderName,
+              { color: isOwnMessage ? 'white' : colors.text },
+            ]}
+          >
             {item.senderName}
           </Text>
           <View style={styles.messageMeta}>
             {getTypeIcon(item.type)}
-            <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) }]}>
+            <View
+              style={[
+                styles.priorityBadge,
+                { backgroundColor: getPriorityColor(item.priority) },
+              ]}
+            >
               <Text style={styles.priorityText}>{item.priority}</Text>
             </View>
-            <Text style={[styles.messageTime, { color: isOwnMessage ? '#E0E7FF' : colors.textMuted }]}>
+            <Text
+              style={[
+                styles.messageTime,
+                { color: isOwnMessage ? '#E0E7FF' : colors.textMuted },
+              ]}
+            >
               {formatDate(item.createdAt)}
             </Text>
             {isOwnMessage && currentUser && (
@@ -264,8 +325,13 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
             )}
           </View>
         </View>
-        
-        <Text style={[styles.messageText, { color: isOwnMessage ? 'white' : colors.text }]}>
+
+        <Text
+          style={[
+            styles.messageText,
+            { color: isOwnMessage ? 'white' : colors.text },
+          ]}
+        >
           {item.message}
         </Text>
 
@@ -282,10 +348,10 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     <TouchableOpacity
       style={[
         styles.notificationContainer,
-        { 
+        {
           backgroundColor: item.read ? colors.surface : '#FEF3C7',
-          borderLeftColor: item.read ? colors.border : '#F59E0B'
-        }
+          borderLeftColor: item.read ? colors.border : '#F59E0B',
+        },
       ]}
       onPress={() => handleMarkNotificationAsRead(item.id)}
     >
@@ -297,11 +363,11 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
           {formatDate(item.createdAt)}
         </Text>
       </View>
-      
+
       <Text style={[styles.notificationMessage, { color: colors.textMuted }]}>
         {item.message}
       </Text>
-      
+
       <Text style={[styles.notificationSender, { color: colors.primary }]}>
         Por: {item.senderName}
       </Text>
@@ -310,7 +376,13 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }, style]}>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: colors.background },
+          style,
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -319,7 +391,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
   const EMOJIS = ['😀', '😂', '😍', '👍', '🙏', '😎', '😢', '🎉', '🚀', '❤️'];
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }, style]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
@@ -329,31 +401,75 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
           <TouchableOpacity
             style={[
               styles.tab,
-              activeTab === 'messages' && { borderBottomColor: colors.primary }
+              activeTab === 'messages' && { borderBottomColor: colors.primary },
             ]}
-            onPress={() => setActiveTab('messages')}
+            onPress={() => {
+              setActiveTab('messages');
+              // Marcar todas as notificações como lidas quando mudar para a aba de mensagens
+              if (activeTab === 'notifications') {
+                notifications
+                  .filter((n) => !n.read)
+                  .forEach((notification) => {
+                    handleMarkNotificationAsRead(notification.id);
+                  });
+              }
+            }}
           >
-            <MessageCircle size={20} color={activeTab === 'messages' ? colors.primary : colors.textMuted} />
-            <Text style={[styles.tabText, { color: activeTab === 'messages' ? colors.primary : colors.textMuted }]}>
+            <MessageCircle
+              size={20}
+              color={
+                activeTab === 'messages' ? colors.primary : colors.textMuted
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    activeTab === 'messages'
+                      ? colors.primary
+                      : colors.textMuted,
+                },
+              ]}
+            >
               Chat em Grupo
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.tab,
-              activeTab === 'notifications' && { borderBottomColor: colors.primary }
+              activeTab === 'notifications' && {
+                borderBottomColor: colors.primary,
+              },
             ]}
             onPress={() => setActiveTab('notifications')}
           >
-            <Bell size={20} color={activeTab === 'notifications' ? colors.primary : colors.textMuted} />
-            <Text style={[styles.tabText, { color: activeTab === 'notifications' ? colors.primary : colors.textMuted }]}>
+            <Bell
+              size={20}
+              color={
+                activeTab === 'notifications'
+                  ? colors.primary
+                  : colors.textMuted
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    activeTab === 'notifications'
+                      ? colors.primary
+                      : colors.textMuted,
+                },
+              ]}
+            >
               Notificações
             </Text>
-            {notifications.filter(n => !n.read).length > 0 && (
+            {notifications.filter((n) => !n.read).length > 0 && (
               <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                 <Text style={styles.badgeText}>
-                  {notifications.filter(n => !n.read).length}
+                  {notifications.filter((n) => !n.read).length}
                 </Text>
               </View>
             )}
@@ -373,9 +489,19 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
             contentContainerStyle={styles.messagesContent}
             showsVerticalScrollIndicator={false}
           />
-          
+
           {/* Message Input */}
-          <View style={[styles.inputContainer, { borderTopColor: colors.border, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'flex-end' }]}> 
+          <View
+            style={[
+              styles.inputContainer,
+              {
+                borderTopColor: colors.border,
+                flexDirection: 'row',
+                alignItems: 'flex-end',
+                justifyContent: 'flex-end',
+              },
+            ]}
+          >
             {/* Botão para mostrar/ocultar toda a área de digitação */}
             {!showOptions && (
               <TouchableOpacity
@@ -397,7 +523,13 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                   <Text style={{ fontSize: 22 }}>❌</Text>
                 </TouchableOpacity>
                 {/* Emojis sugeridos */}
-                <View style={{ flexDirection: 'row', marginBottom: 8, flexWrap: 'wrap' }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    marginBottom: 8,
+                    flexWrap: 'wrap',
+                  }}
+                >
                   {EMOJIS.map((emoji) => (
                     <TouchableOpacity
                       key={emoji}
@@ -409,46 +541,58 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                     </TouchableOpacity>
                   ))}
                 </View>
-            {/* Chat Type Indicator */}
-            <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20' }]}>
-              <Users size={16} color={colors.primary} />
-              <Text style={[styles.chatTypeText, { color: colors.primary }]}>
-                Chat em Grupo - Enviando para todos os administradores
-              </Text>
-            </View>
+                {/* Chat Type Indicator */}
+                <View
+                  style={[
+                    styles.chatTypeIndicator,
+                    { backgroundColor: colors.primary + '20' },
+                  ]}
+                >
+                  <Users size={16} color={colors.primary} />
+                  <Text
+                    style={[styles.chatTypeText, { color: colors.primary }]}
+                  >
+                    Chat em Grupo - Enviando para todos os administradores
+                  </Text>
+                </View>
                 {/* Campo de mensagem e botão de enviar */}
-            <View style={styles.inputRow}>
-              <TextInput
-                style={[styles.messageInput, { 
-                  backgroundColor: colors.surface, 
-                  color: colors.text,
-                  borderColor: colors.border 
-                }]}
-                placeholder="Digite sua mensagem para o grupo..."
-                placeholderTextColor={colors.textMuted}
-                value={newMessage}
-                onChangeText={setNewMessage}
-                multiline
-                maxLength={500}
-                onKeyPress={e => {
-                  if (e.nativeEvent.key === 'Enter') {
-                    handleSendMessage();
-                  }
-                }}
-              />
-              <TouchableOpacity
-                    style={[styles.sendButton, { backgroundColor: colors.primary }]
-                    }
-                onPress={handleSendMessage}
-                disabled={sending || !newMessage.trim()}
-              >
-                {sending ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Send size={20} color="white" />
-                )}
-              </TouchableOpacity>
-            </View>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={[
+                      styles.messageInput,
+                      {
+                        backgroundColor: colors.surface,
+                        color: colors.text,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    placeholder="Digite sua mensagem para o grupo..."
+                    placeholderTextColor={colors.textMuted}
+                    value={newMessage}
+                    onChangeText={setNewMessage}
+                    multiline
+                    maxLength={500}
+                    onKeyPress={(e) => {
+                      if (e.nativeEvent.key === 'Enter') {
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.sendButton,
+                      { backgroundColor: colors.primary },
+                    ]}
+                    onPress={handleSendMessage}
+                    disabled={sending || !newMessage.trim()}
+                  >
+                    {sending ? (
+                      <ActivityIndicator size="small" color="white" />
+                    ) : (
+                      <Send size={20} color="white" />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </View>
@@ -472,18 +616,37 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         onRequestClose={cancelDeleteMessage}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.deleteModal, { backgroundColor: colors.surface }]}> 
-            <Text style={[styles.deleteModalTitle, { color: colors.text }]}>Confirmar Exclusão</Text>
-            <Text style={[styles.deleteModalText, { color: colors.textSecondary }]}>Tem certeza que deseja excluir esta mensagem? Esta ação não pode ser desfeita.</Text>
+          <View
+            style={[styles.deleteModal, { backgroundColor: colors.surface }]}
+          >
+            <Text style={[styles.deleteModalTitle, { color: colors.text }]}>
+              Confirmar Exclusão
+            </Text>
+            <Text
+              style={[styles.deleteModalText, { color: colors.textSecondary }]}
+            >
+              Tem certeza que deseja excluir esta mensagem? Esta ação não pode
+              ser desfeita.
+            </Text>
             <View style={styles.deleteModalActions}>
               <TouchableOpacity
-                style={[styles.deleteModalButton, styles.cancelButton, { borderColor: colors.border }]}
+                style={[
+                  styles.deleteModalButton,
+                  styles.cancelButton,
+                  { borderColor: colors.border },
+                ]}
                 onPress={cancelDeleteMessage}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.text }]}>Cancelar</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.text }]}>
+                  Cancelar
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.deleteModalButton, styles.confirmButton, { backgroundColor: colors.error }]}
+                style={[
+                  styles.deleteModalButton,
+                  styles.confirmButton,
+                  { backgroundColor: colors.error },
+                ]}
                 onPress={confirmDeleteMessage}
               >
                 <Text style={styles.confirmButtonText}>Excluir</Text>
@@ -771,4 +934,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-}); 
+});

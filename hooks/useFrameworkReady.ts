@@ -171,7 +171,7 @@ export const useAdminRealTimeSync = (siteId: string) => {
       
       // Recarregar dados iniciais
       const [tasks, messages, notifications, activities, invites, workers] = await Promise.all([
-        AdminService.getMessages(siteId, 50),
+        AdminService.getMessages(siteId, {}),
         AdminService.getNotifications(20),
         AdminService.getRecentActivities(siteId, 30),
         AuthService.getAdminInvites(siteId),
