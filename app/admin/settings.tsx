@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -42,6 +42,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { t, setLanguage } from '@/config/i18n';
 import * as Linking from 'expo-linking';
 import { AboutAppModal } from '@/components/AboutAppModal';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 
 interface SettingsSection {
   title: string;
@@ -75,6 +76,11 @@ export default function SettingsScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loadingPermission, setLoadingPermission] = useState<string | null>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  
+  // Referências para os campos de texto
+  const currentPasswordRef = useRef<TextInput>(null);
+  const newPasswordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   useEffect(() => {
     checkPermissions();
@@ -214,6 +220,9 @@ export default function SettingsScreen() {
     }
   };
 
+  const [showPasswordConfirmModal, setShowPasswordConfirmModal] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert(t('error'), 'Preencha todos os campos.');
@@ -230,12 +239,20 @@ export default function SettingsScreen() {
       return;
     }
 
+    // Mostrar modal de confirmação personalizado em vez de Alert.alert
+    setShowPasswordConfirmModal(true);
+  };
+
+  const confirmPasswordChange = async () => {
     try {
+      setIsChangingPassword(true);
       console.log('Iniciando alteração de senha...');
-      // Mostrar indicador de carregamento ou desabilitar o botão aqui se necessário
       
       const result = await AuthService.changePassword(currentPassword, newPassword);
       console.log('Resultado da alteração de senha:', result);
+      
+      setIsChangingPassword(false);
+      setShowPasswordConfirmModal(false);
       
       if (result) {
         Alert.alert(t('success'), t('passwordChanged'));
@@ -243,29 +260,28 @@ export default function SettingsScreen() {
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        
-        // Forçar logout após alteração de senha para garantir que as credenciais sejam atualizadas
-        // Comentado por enquanto para não forçar o logout do usuário
-        // await AuthService.logout();
-        // router.replace('/(auth)/login');
       } else {
-        Alert.alert(t('error'), 'Não foi possível alterar a senha. Tente novamente.');
+        Alert.alert(t('error'), t('passwordChangeFailed'));
       }
     } catch (error: any) {
       console.error('Erro ao alterar senha:', error);
-      let errorMessage = 'Não foi possível alterar a senha. Tente novamente.';
+      setIsChangingPassword(false);
+      setShowPasswordConfirmModal(false);
+      
+      let errorMessage = t('passwordChangeFailed');
       
       if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Senha atual incorreta.';
+        errorMessage = t('wrongCurrentPassword');
       } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'A nova senha é muito fraca. Use uma senha mais forte.';
+        errorMessage = t('weakPassword');
       } else if (error.code === 'auth/requires-recent-login') {
-        errorMessage = 'Por segurança, faça login novamente antes de alterar a senha.';
+        errorMessage = t('requiresRecentLogin');
       }
       
       Alert.alert(t('error'), errorMessage);
     }
   };
+
 
   const handleLogout = () => {
     Alert.alert(
@@ -285,7 +301,8 @@ export default function SettingsScreen() {
             }
           },
         },
-      ]
+      ],
+      { cancelable: true }
     );
   };
 
@@ -610,6 +627,10 @@ export default function SettingsScreen() {
                   placeholder="Digite sua senha atual"
                   secureTextEntry
                   placeholderTextColor={colors.textMuted}
+                  returnKeyType="next"
+                  onSubmitEditing={() => newPasswordRef.current?.focus()}
+                  blurOnSubmit={false}
+                  ref={currentPasswordRef}
                 />
               </View>
               <View style={styles.inputGroup}>
@@ -625,6 +646,10 @@ export default function SettingsScreen() {
                   placeholder="Digite a nova senha"
                   secureTextEntry
                   placeholderTextColor={colors.textMuted}
+                  returnKeyType="next"
+                  onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                  blurOnSubmit={false}
+                  ref={newPasswordRef}
                 />
               </View>
               <View style={styles.inputGroup}>
@@ -640,6 +665,9 @@ export default function SettingsScreen() {
                   placeholder="Confirme a nova senha"
                   secureTextEntry
                   placeholderTextColor={colors.textMuted}
+                  returnKeyType="done"
+                  onSubmitEditing={handlePasswordChange}
+                  ref={confirmPasswordRef}
                 />
               </View>
               <TouchableOpacity
@@ -708,6 +736,17 @@ export default function SettingsScreen() {
       </Modal>
 
       <AboutAppModal visible={showAboutModal} onClose={() => setShowAboutModal(false)} />
+
+      {/* Confirmation Modal for Password Change */}
+      <ConfirmationModal
+        visible={showPasswordConfirmModal}
+        title="Confirmar alteração de senha"
+        message="Tem certeza que deseja alterar sua senha? Esta ação não pode ser desfeita."
+        onConfirm={confirmPasswordChange}
+        onCancel={() => setShowPasswordConfirmModal(false)}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
     </SafeAreaView>
   );
 }
