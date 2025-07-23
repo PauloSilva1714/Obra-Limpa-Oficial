@@ -60,14 +60,8 @@ const styles = StyleSheet.create({
     marginBottom: 16, 
     borderBottomWidth: 1, 
     borderBottomColor: '#e0e0e0', 
-    ...Platform.select({
-      web: {
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-      },
-      default: {
-        elevation: 2,
-      },
-    }),
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+    elevation: 2,
   },
   backButton: { padding: 8 },
   title: { flex: 1, fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: '#111827' },
@@ -82,13 +76,7 @@ const styles = StyleSheet.create({
     borderRadius: 16, 
     padding: 16, 
     marginBottom: 20, 
-    ...Platform.select({
-      web: {
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-      },
-      default: {
-        elevation: 2,
-      },
-    }),
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+    elevation: 2,
   },
 });

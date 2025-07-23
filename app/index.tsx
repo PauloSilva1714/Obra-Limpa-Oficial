@@ -3,6 +3,20 @@ import { router } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { AuthService } from '@/services/AuthService';
 
+// Suprimir warning de shadow* style props are deprecated no React Native Web
+if (typeof window !== 'undefined') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('shadow* style props are deprecated')
+    ) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
+
 export default function Index() {
   useEffect(() => {
     const initialize = async () => {
