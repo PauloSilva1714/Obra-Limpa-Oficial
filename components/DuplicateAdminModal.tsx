@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+    elevation: 5,
   },
   iconContainer: {
     marginBottom: 16,

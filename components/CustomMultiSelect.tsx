@@ -193,14 +193,10 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        boxShadow: '0px 4px 6px rgba(0,0,0,0.1)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 6,
+        elevation: 5,
       },
     }),
   },

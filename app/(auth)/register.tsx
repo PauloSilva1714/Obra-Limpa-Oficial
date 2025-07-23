@@ -737,7 +737,11 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     borderWidth: 3,
     borderColor: '#38A3C0', // azul do logo
-    boxShadow: '0px 4px 8px rgba(56,163,192,0.3)', // azul do logo
+    elevation: 5, // Android
+    shadowColor: '#38A3C0', // iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   title: {
     fontSize: 48,

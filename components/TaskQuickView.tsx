@@ -168,18 +168,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 0,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 20 },
-        shadowOpacity: 0.1,
-        shadowRadius: 25,
-        elevation: 20,
-      },
-    }),
+    boxShadow: '0px 20px 25px rgba(0,0,0,0.1)',
+    elevation: 5,
     overflow: 'hidden',
     maxHeight: height * 0.95,
   },
