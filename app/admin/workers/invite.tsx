@@ -10,10 +10,12 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, Mail, CheckCircle, Trash2 } from 'lucide-react-native';
 import { AuthService, Invite } from '@/services/AuthService';
+import { shadows } from '../../../utils/shadowUtils';
 
 export default function InviteWorkerScreen() {
   const [email, setEmail] = useState('');
@@ -463,7 +465,18 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
     flexDirection: 'column',
-    elevation: 2,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+      },
+    }),
   },
   inviteInfo: {
     flexDirection: 'row',
@@ -496,4 +509,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#6B7280',
   },
-}); 
+});

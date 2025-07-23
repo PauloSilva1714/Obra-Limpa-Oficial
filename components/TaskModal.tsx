@@ -25,7 +25,8 @@ import { Video, ResizeMode, Audio } from 'expo-av';
 import type { Video as ExpoVideoType } from 'expo-av';
 import { PDFService } from '../services/PDFService';
 import { Picker } from '@react-native-picker/picker';
-import { MultiSelect } from 'react-native-element-dropdown';
+import { CustomMultiSelect } from './CustomMultiSelect';
+import { shadows } from '../utils/shadowUtils';
 // Remover: import Share, { Social } from 'react-native-share';
 
 interface TaskModalProps {
@@ -725,7 +726,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         {detailsMode && task && (
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             {/* Seção: Mídias Destacadas - AGORA PRIMEIRA */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
+            <View style={styles.sectionContainer}>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Mídias</Text>
               {/* Carrossel de mídia (detalhes da tarefa) */}
               {hasMedia && (
@@ -815,7 +816,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               )}
             </View>
             {/* Seção: Informações Básicas - AGORA DEPOIS */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
+            <View style={styles.sectionContainer}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Informações Básicas</Text>
               </View>
@@ -825,7 +826,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.description}</Text>
             </View>
             {/* Seção: Status e Prioridade */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
+            <View style={styles.sectionContainer}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Riscos</Text>
               </View>
@@ -913,7 +914,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         {!detailsMode && (
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             {/* Seção: Informações Básicas */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
+            <View style={styles.sectionContainer}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Informações Básicas</Text>
                 <Text style={{ fontSize: 14, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>Obrigatório</Text>
@@ -936,11 +937,9 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 multiline
               />
               <Text style={styles.label}>Responsáveis pela Tarefa (múltiplos, opcional)</Text>
-              <MultiSelect
-                style={{ marginBottom: 12, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8 }}
+              <CustomMultiSelect
+                style={{ marginBottom: 12 }}
                 data={workers.map(w => ({ label: w.name, value: w.id }))}
-                labelField="label"
-                valueField="value"
                 placeholder="Selecione os responsáveis"
                 search
                 value={selectedAssignees}
@@ -991,7 +990,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               />
             </View>
             {/* Seção: Mídias */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
+            <View style={styles.sectionContainer}>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Mídias</Text>
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                 <TouchableOpacity
@@ -1043,7 +1042,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               </View>
             </View>
             {/* Seção: Status e Prioridade */}
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 20, boxShadow: '0px 2px 12px rgba(0,0,0,0.12)', elevation: 4 }}>
+            <View style={styles.sectionContainer}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>Status e Riscos</Text>
                 <Text style={{ fontSize: 14, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>Configuração</Text>
@@ -1314,8 +1313,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 4,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
-    elevation: 5,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 6,
+      },
+    }),
   },
   fullscreenOverlay: {
     flex: 1,
@@ -1385,8 +1394,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 4,
+      },
+    }),
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1412,8 +1431,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 4,
+      },
+    }),
   },
   sectionTitle: {
     fontSize: 18,
@@ -1539,8 +1568,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 4,
+      },
+    }),
   },
   cardHeaderEdit: {
     flexDirection: 'row',
@@ -1594,8 +1633,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 4,
+      },
+    }),
   },
   modernStatusContainer: {
     flexDirection: 'row',
@@ -1610,8 +1659,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 4,
+      },
+    }),
   },
   labelWithIcon: {
     flexDirection: 'row',
@@ -1623,8 +1682,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 4,
+      },
+    }),
   },
   dateRow: {
     flexDirection: 'row',
@@ -1689,8 +1758,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 4,
+      },
+    }),
   },
   modernMediaButtons: {
     flexDirection: 'row',
@@ -1778,8 +1857,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 4,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
-    elevation: 5,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 6,
+      },
+    }),
   },
   modernVideoPreview: {
     width: '100%',
@@ -1835,8 +1924,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 4,
+      },
+    }),
   },
   commentsHeader: {
     flexDirection: 'row',
@@ -2068,5 +2167,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
+  },
+  // Estilos para seções com shadow
+  sectionContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
+    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
+  },
+  // Estilos para cards com shadow
+  cardContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+  },
+  // Estilos para elementos com shadow médio
+  mediumShadowContainer: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 4,
+    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
   },
 });

@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect } from 'react';
 import { AdminService } from '@/services/AdminService';
 import { AuthService } from '@/services/AuthService';
+import { shadows } from '../utils/shadowUtils';
 
 export default function CustomTabBar({ userRole }: { userRole: 'admin' | 'worker' }) {
   const router = useRouter();
@@ -96,8 +97,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     alignItems: 'center',
     justifyContent: 'space-around',
-    boxShadow: '0px -2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 8,
+      },
+    }),
   },
   tab: {
     flex: 1,

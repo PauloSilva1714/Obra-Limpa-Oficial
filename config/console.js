@@ -4,11 +4,11 @@ const originalError = console.error;
 
 // Lista de avisos para suprimir
 const suppressedWarnings = [
-  'shadow* style props are deprecated',
   'props.pointerEvents is deprecated',
   'Unexpected text node',
   'Layout children must be of type Screen',
-  'expo-notifications] Listening to push token changes is not yet fully supported on web'
+  'expo-notifications] Listening to push token changes is not yet fully supported on web',
+  '"shadow*" style props are deprecated. Use "boxShadow"'
 ];
 
 // Função para verificar se o aviso deve ser suprimido
@@ -108,4 +108,4 @@ if (__DEV__) {
   console.log('📱 Warnings de toque e Firebase suprimidos');
 }
 
-export default console; 
+export default console;

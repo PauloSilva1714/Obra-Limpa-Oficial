@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Linking, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Linking, ScrollView, StyleSheet, Platform } from 'react-native';
 import { ArrowLeft, Mail, ExternalLink, Info } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import FAQAccordionComBusca from '../../components/FAQAccordionComBusca';
+import { shadows } from '../../utils/shadowUtils';
 
 const FAQ = [
   { q: 'Como redefinir minha senha?', a: 'Vá em Perfil > Privacidade > Redefinir senha.' },
@@ -50,7 +51,28 @@ export default function SupportScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e0e0e0', elevation: 2 },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    padding: 16, 
+    backgroundColor: '#fff', 
+    borderRadius: 16, 
+    marginBottom: 16, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#e0e0e0', 
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+      },
+    }),
+  },
   backButton: { padding: 8 },
   title: { flex: 1, fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: '#111827' },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginTop: 8, marginBottom: 8, color: '#374151' },
@@ -59,5 +81,22 @@ const styles = StyleSheet.create({
   faqA: { fontSize: 14, color: '#374151', marginTop: 2 },
   actionButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', borderRadius: 8, padding: 12, marginTop: 12 },
   actionButtonText: { marginLeft: 10, fontSize: 15, color: '#2196F3', fontWeight: '600' },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, elevation: 2, boxShadow: '0px 2px 8px rgba(0,0,0,0.04)' },
-}); 
+  card: { 
+    backgroundColor: '#fff', 
+    borderRadius: 16, 
+    padding: 16, 
+    marginBottom: 20, 
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+      },
+    }),
+  },
+});

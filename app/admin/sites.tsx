@@ -8,9 +8,11 @@ import {
   Alert,
   SafeAreaView,
   Modal,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Plus, Edit, Trash2, ArrowLeft } from 'lucide-react-native';
+import { shadows } from '../../utils/shadowUtils';
 import { AuthService } from '@/services/AuthService';
 import TaskService from '@/services/TaskService';
 
@@ -239,8 +241,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+      },
+    }),
   },
   siteHeader: {
     flexDirection: 'row',
@@ -300,4 +312,4 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-}); 
+});

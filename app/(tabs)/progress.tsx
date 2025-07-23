@@ -9,7 +9,7 @@
  * - Layout responsivo e moderno similar ao Instagram/Facebook
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChartBar as BarChart3, TrendingUp, Clock, CircleCheck as CheckCircle, RefreshCw, Eye, Calendar, User, MapPin } from 'lucide-react-native';
 import { ProgressService, ProgressData } from '@/services/ProgressService';
@@ -17,6 +17,7 @@ import taskService, { Task } from '@/services/TaskService';
 import { router } from 'expo-router';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import { TaskModal } from '@/components/TaskModal';
+import { shadows } from '@/utils/shadowUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -403,8 +404,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
+      },
+    }),
   },
   sectionTitle: {
     fontSize: 20,
@@ -437,8 +448,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
+      },
+    }),
   },
   taskHeader: {
     flexDirection: 'row',

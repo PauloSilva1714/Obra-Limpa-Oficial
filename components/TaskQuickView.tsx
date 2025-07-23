@@ -9,11 +9,13 @@ import {
   FlatList,
   Image,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { X, MessageCircle, ChevronLeft, ChevronRight, Video as VideoIcon } from 'lucide-react-native';
 import type { Task } from '../services/TaskService';
 import { Video, ResizeMode } from 'expo-av';
 import { PDFService } from '../services/PDFService';
+import { shadows } from '../utils/shadowUtils';
 
 interface TaskQuickViewProps {
   visible: boolean;
@@ -166,8 +168,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 0,
-    boxShadow: '0px 2px 16px rgba(0,0,0,0.2)',
-    elevation: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.1,
+        shadowRadius: 25,
+        elevation: 20,
+      },
+    }),
     overflow: 'hidden',
     maxHeight: height * 0.95,
   },
@@ -331,4 +343,4 @@ const styles = StyleSheet.create({
     color: '#222',
     marginBottom: 10,
   },
-}); 
+});

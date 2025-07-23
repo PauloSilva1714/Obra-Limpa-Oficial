@@ -24,6 +24,7 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import logo from './obra-limpa-logo.png';
+import { shadows } from '../../utils/shadowUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -298,8 +299,18 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     borderWidth: 3,
     borderColor: '#38A3C0', // azul do logo
-    boxShadow: '0px 4px 8px rgba(56, 163, 192, 0.3)', // azul do logo
-    elevation: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 8,
+      },
+    }),
   },
   title: {
     fontSize: 48,
@@ -324,8 +335,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    boxShadow: '0px -4px 12px rgba(0,0,0,0.1)',
-    elevation: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 8,
+      },
+    }),
     zIndex: 2,
   },
   form: {
@@ -390,8 +411,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
-    boxShadow: '0px 4px 8px rgba(59, 130, 246, 0.3)',
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 6,
+      },
+    }),
   },
   buttonDisabled: {
     backgroundColor: '#9CA3AF',

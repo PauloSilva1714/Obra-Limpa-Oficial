@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Platform, Image } from 'react-native';
+import { shadows } from '../utils/shadowUtils';
 
 interface AboutAppModalProps {
   visible: boolean;
@@ -49,10 +50,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Platform.select({
       web: {
-        boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
       },
       default: {
-        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 6,
       },
     }),
     width: '80%',
@@ -101,4 +106,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
   },
-}); 
+});

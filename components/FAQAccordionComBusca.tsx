@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, LayoutAnimation, Platform, UIManager, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
+import { shadows } from '../utils/shadowUtils';
 
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental &&
@@ -83,8 +84,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#fff',
   },
-  card: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 12, padding: 12, elevation: 1 },
+  card: { 
+    backgroundColor: '#fff', 
+    borderRadius: 12, 
+    marginBottom: 12, 
+    padding: 12, 
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2,
+      },
+    }),
+  },
   questionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   question: { fontWeight: 'bold', fontSize: 15, color: '#111827' },
   answer: { marginTop: 8, fontSize: 14, color: '#374151' },
-}); 
+});

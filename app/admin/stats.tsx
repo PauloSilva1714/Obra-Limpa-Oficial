@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
   Modal,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, Users, ClipboardCheck, Clock, AlertCircle, AlertTriangle } from 'lucide-react-native';
@@ -16,6 +17,7 @@ import { AuthService } from '@/services/AuthService';
 import TaskService from '@/services/TaskService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
+import { shadows } from '../../utils/shadowUtils';
 
 // Define Task type with status property
 type Task = {
@@ -156,7 +158,7 @@ export default function StatsScreen() {
   };
 
   const StatCard = ({ icon: Icon, value, title, color, onPress }: { icon: any; value: number; title: string; color: string; onPress?: () => void }) => (
-    <Animated.View style={[styles.statCard, { backgroundColor: isDarkMode ? '#23272F' : '#fff', borderColor: color, shadowColor: color, opacity: fadeAnim }]}
+    <Animated.View style={[styles.statCard, { backgroundColor: isDarkMode ? '#23272F' : '#fff', borderColor: color, opacity: fadeAnim }]}
       accessible accessibilityLabel={`${title}: ${value}`}
     >
       <TouchableOpacity style={{ alignItems: 'center' }} onPress={onPress} activeOpacity={0.8}>
@@ -339,8 +341,18 @@ const styles = StyleSheet.create({
     minWidth: 180,
     maxWidth: 260,
     alignItems: 'center',
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.10)',
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
+      },
+    }),
     borderWidth: 2,
   },
   statValue: {
@@ -360,4 +372,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-}); 
+});

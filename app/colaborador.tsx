@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, CheckCircle } from 'lucide-react-native';
+import { shadows } from '../utils/shadowUtils';
 
 export default function ColaboradorScreen() {
   const router = useRouter();
@@ -65,8 +66,18 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     width: '100%',
     maxWidth: 400,
-    boxShadow: '0px 2px 8px rgba(0,0,0,0.08)',
-    elevation: 2,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+      },
+    }),
   },
   cardTitle: {
     fontSize: 18,
@@ -97,4 +108,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-}); 
+});

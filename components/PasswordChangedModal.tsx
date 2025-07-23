@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { CheckCircle, ArrowRight } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { shadows } from '../utils/shadowUtils';
 
 interface PasswordChangedModalProps {
   visible: boolean;
@@ -93,14 +94,15 @@ export const PasswordChangedModal: React.FC<PasswordChangedModalProps> = ({
       width: '100%',
       maxWidth: 400,
       ...Platform.select({
-        ios: {
-          boxShadow: '0 10px 20px rgba(0, 0, 0, 0.25)',
-        },
-        android: {
-          elevation: 15,
-        },
         web: {
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 20 },
+          shadowOpacity: 0.1,
+          shadowRadius: 25,
+          elevation: 20,
         },
       }),
     },
@@ -139,14 +141,15 @@ export const PasswordChangedModal: React.FC<PasswordChangedModalProps> = ({
       justifyContent: 'center',
       minWidth: 160,
       ...Platform.select({
-        ios: {
-          boxShadow: '0 4px 8px rgba(59, 130, 246, 0.3)',
-        },
-        android: {
-          elevation: 6,
-        },
         web: {
-          boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 6,
+          elevation: 6,
         },
       }),
     },
