@@ -48,7 +48,7 @@ import { EmailService } from '@/services/EmailService';
 import { TaskModal } from '@/components/TaskModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode } from 'expo-video';
 import { TaskQuickView } from '@/components/TaskQuickView';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { TaskFeedCard } from '@/components/TaskFeedCard';

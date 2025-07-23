@@ -2034,13 +2034,47 @@ export class AuthService {
   // Novo método para buscar colaboradores de uma obra
   static async getWorkersBySite(siteId: string): Promise<User[]> {
     try {
-      const usersQuery = query(
+      console.log('[AuthService] Buscando colaboradores para siteId:', siteId);
+      
+      // Primeiro, vamos tentar buscar todos os usuários com role 'worker'
+      const workersQuery = query(
         collection(db, 'users'),
-        where('role', '==', 'worker'),
-        where('sites', 'array-contains', siteId)
+        where('role', '==', 'worker')
       );
-      const snapshot = await getDocs(usersQuery);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      const workersSnapshot = await getDocs(workersQuery);
+      console.log('[AuthService] Total de workers encontrados:', workersSnapshot.docs.length);
+      
+      // Log dos workers encontrados
+      const allWorkers: User[] = [];
+      workersSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        console.log('[AuthService] Worker encontrado:', {
+          id: doc.id,
+          name: data.name,
+          email: data.email,
+          sites: data.sites,
+          siteId: data.siteId
+        });
+        allWorkers.push({ id: doc.id, ...data } as User);
+      });
+      
+      // Filtrar workers que pertencem ao site (verificando tanto sites array quanto siteId string)
+      const filteredWorkers = allWorkers.filter(worker => {
+        const belongsToSite = 
+          (worker.sites && Array.isArray(worker.sites) && worker.sites.includes(siteId)) ||
+          (worker.siteId === siteId);
+        
+        if (belongsToSite) {
+          console.log('[AuthService] Worker pertence ao site:', worker.name);
+        }
+        
+        return belongsToSite;
+      });
+      
+      console.log('[AuthService] Workers filtrados por site:', filteredWorkers.length);
+      console.log('[AuthService] Workers retornados:', filteredWorkers);
+      
+      return filteredWorkers;
     } catch (error) {
       console.error('Erro ao buscar colaboradores da obra:', error);
       return [];
@@ -2050,13 +2084,47 @@ export class AuthService {
   // Novo método para buscar administradores de uma obra
   static async getAdminsBySite(siteId: string): Promise<User[]> {
     try {
-      const usersQuery = query(
+      console.log('[AuthService] Buscando administradores para siteId:', siteId);
+      
+      // Buscar todos os usuários com role 'admin'
+      const adminsQuery = query(
         collection(db, 'users'),
-        where('role', '==', 'admin'),
-        where('sites', 'array-contains', siteId)
+        where('role', '==', 'admin')
       );
-      const snapshot = await getDocs(usersQuery);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      const adminsSnapshot = await getDocs(adminsQuery);
+      console.log('[AuthService] Total de admins encontrados:', adminsSnapshot.docs.length);
+      
+      // Log dos admins encontrados
+      const allAdmins: User[] = [];
+      adminsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        console.log('[AuthService] Admin encontrado:', {
+          id: doc.id,
+          name: data.name,
+          email: data.email,
+          sites: data.sites,
+          siteId: data.siteId
+        });
+        allAdmins.push({ id: doc.id, ...data } as User);
+      });
+      
+      // Filtrar admins que pertencem ao site (verificando tanto sites array quanto siteId string)
+      const filteredAdmins = allAdmins.filter(admin => {
+        const belongsToSite = 
+          (admin.sites && Array.isArray(admin.sites) && admin.sites.includes(siteId)) ||
+          (admin.siteId === siteId);
+        
+        if (belongsToSite) {
+          console.log('[AuthService] Admin pertence ao site:', admin.name);
+        }
+        
+        return belongsToSite;
+      });
+      
+      console.log('[AuthService] Admins filtrados por site:', filteredAdmins.length);
+      console.log('[AuthService] Admins retornados:', filteredAdmins);
+      
+      return filteredAdmins;
     } catch (error) {
       console.error('Erro ao buscar administradores da obra:', error);
       return [];

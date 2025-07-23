@@ -13,7 +13,7 @@ import {
   Dimensions,
   Linking,
 } from 'react-native';
-import { X, User, Calendar, Flag, MapPin, ImagePlus, Trash2, Send, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { X, User, Calendar, Flag, MapPin, ImagePlus, Trash2, Send, MessageCircle, ChevronLeft, ChevronRight, Video as VideoIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import type { Task } from '../services/TaskService';
 import { TaskService } from '../services/TaskService';
@@ -21,8 +21,10 @@ import { AuthService } from '../services/AuthService';
 import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadImageAsync } from '../services/PhotoService';
-import { Video, ResizeMode, Audio } from 'expo-av';
-import type { Video as ExpoVideoType } from 'expo-av';
+// Removendo imports problemáticos: Video, ResizeMode, Audio
+// import { Video, ResizeMode } from 'expo-video';
+// import { Audio } from 'expo-audio';
+// import type { Video as ExpoVideoType } from 'expo-video';
 import { PDFService } from '../services/PDFService';
 import { Picker } from '@react-native-picker/picker';
 import { CustomMultiSelect } from './CustomMultiSelect';
@@ -66,7 +68,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const isWide = width > 900;
   const [carrosselVideoStatus, setCarrosselVideoStatus] = useState({});
   const [shouldPlayCarrosselVideo, setShouldPlayCarrosselVideo] = useState(false);
-  const carrosselVideoRef = useRef<ExpoVideoType | null>(null);
+  const carrosselVideoRef = useRef<any | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [workers, setWorkers] = useState<any[]>([]);
   const [company, setCompany] = useState('');
@@ -346,12 +348,12 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         input.accept = 'image/*';
         input.multiple = true;
         input.onchange = async (e: Event) => {
-          const files = (e.target as HTMLInputElement).files;
+          const files = (e.target as any).files;
           if (files) {
             const uploadedUrls: string[] = [];
             const user = await AuthService.getCurrentUser();
             for (const file of Array.from(files)) {
-              const url = await uploadImageAsync(file, user?.id || 'anon');
+              const url = await uploadImageAsync(file as any, user?.id || 'anon');
               uploadedUrls.push(url);
             }
             if (uploadedUrls.length > 0) {
@@ -401,12 +403,12 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         input.accept = 'video/*';
         input.multiple = true;
         input.onchange = async (e: Event) => {
-          const files = (e.target as HTMLInputElement).files;
+          const files = (e.target as any).files;
           if (files) {
             const uploadedUrls: string[] = [];
             const user = await AuthService.getCurrentUser();
             for (const file of Array.from(files)) {
-              const url = await uploadImageAsync(file, user?.id || 'anon');
+              const url = await uploadImageAsync(file as any, user?.id || 'anon');
               uploadedUrls.push(url);
             }
             if (uploadedUrls.length > 0) {
@@ -680,7 +682,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       Linking.openURL(url);
     } else {
       if (!task.photos || task.photos.length === 0) {
-        alert('Esta tarefa não possui imagem para compartilhar.');
+        Alert.alert('Aviso', 'Esta tarefa não possui imagem para compartilhar.');
         return;
       }
       try {
@@ -702,6 +704,18 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   // 1. Checagem de null para 'task' (exemplo no início do bloco de detalhes):
   if (detailsMode && !task) return null;
+
+  function renderMedia(media: any, style: any, videoRef?: any, extraProps = {}) {
+    if (!media) return null;
+    if (media.type === 'photo') {
+      return <Image source={{ uri: media.url }} style={style} resizeMode="cover" />;
+    }
+    if (Platform.OS === 'web') {
+      return <video src={media.url} controls style={style} {...extraProps} />;
+    }
+    // Video component removido temporariamente devido a problemas de importação
+    return null;
+  }
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -737,42 +751,33 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                         <ChevronLeft size={32} color="#111827" />
                       </TouchableOpacity>
                     )}
-                    {currentMedia && currentMedia.type === 'photo' ? (
+                    {currentMedia && (
                       <TouchableOpacity onPress={() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); }}>
-                        <Image
-                          source={{ uri: currentMedia.url }}
-                          style={{ width: 320, height: 220, borderRadius: 20, backgroundColor: '#F3F4F6' }}
-                          resizeMode="cover"
-                        />
-                      </TouchableOpacity>
-                    ) : currentMedia && currentMedia.type === 'video' ? (
-                      <TouchableOpacity onPress={() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); }}>
-                        <Video
-                          ref={carrosselVideoRef}
-                          source={{ uri: currentMedia.url }}
-                          style={{ width: 320, height: 220, borderRadius: 20 }}
-                          useNativeControls
-                          resizeMode={ResizeMode.COVER}
-                          shouldPlay={shouldPlayCarrosselVideo && !fullscreenVisible}
-                          onPlaybackStatusUpdate={(status: any) => {
-                            setCarrosselVideoStatus(status);
-                            if (
-                              fullscreenVisible &&
-                              status.isLoaded &&
-                              (status as any).isPlaying &&
-                              carrosselVideoRef.current &&
-                              typeof carrosselVideoRef.current.pauseAsync === 'function'
-                            ) {
-                              carrosselVideoRef.current.pauseAsync();
+                        {renderMedia(
+                          currentMedia,
+                          { width: 320, height: 220, borderRadius: 20, backgroundColor: currentMedia.type === 'video' ? '#222' : '#F3F4F6' },
+                          currentMedia.type === 'video' ? carrosselVideoRef : undefined,
+                          currentMedia.type === 'video' ? {
+                            shouldPlay: shouldPlayCarrosselVideo && !fullscreenVisible,
+                            onPlaybackStatusUpdate: (status: any) => {
+                              setCarrosselVideoStatus(status);
+                              if (
+                                fullscreenVisible &&
+                                status.isLoaded &&
+                                (status).isPlaying &&
+                                carrosselVideoRef.current &&
+                                typeof carrosselVideoRef.current.pauseAsync === 'function'
+                              ) {
+                                carrosselVideoRef.current.pauseAsync();
+                              }
+                              if (status.isLoaded && (status).isPlaying && !shouldPlayCarrosselVideo) {
+                                setShouldPlayCarrosselVideo(true);
+                              }
                             }
-                            // Se o usuário apertar play manualmente, liberar o play
-                            if (status.isLoaded && (status as any).isPlaying && !shouldPlayCarrosselVideo) {
-                              setShouldPlayCarrosselVideo(true);
-                            }
-                          }}
-                        />
+                          } : {}
+                        )}
                       </TouchableOpacity>
-                    ) : null}
+                    )}
                     {medias.length > 1 && (
                       <TouchableOpacity onPress={handleNext} style={{ padding: 8 }}>
                         <ChevronRight size={32} color="#111827" />
@@ -784,12 +789,12 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                     <View style={{ flexDirection: 'row', marginTop: 12 }}>
                       {medias.map((m, idx) => (
                         <TouchableOpacity key={idx} onPress={() => setMediaIndex(idx)}>
-                          {m.type === 'photo' ? (
-                            <Image source={{ uri: m.url }} style={{ width: 48, height: 48, borderRadius: 8, marginHorizontal: 4, borderWidth: idx === mediaIndex ? 2 : 0, borderColor: '#F97316' }} />
-                          ) : (
-                            <View style={{ width: 48, height: 48, borderRadius: 8, marginHorizontal: 4, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center', borderWidth: idx === mediaIndex ? 2 : 0, borderColor: '#F97316' }}>
-                              <Video source={{ uri: m.url }} style={{ width: 40, height: 40, borderRadius: 8 }} resizeMode={ResizeMode.COVER} />
-                            </View>
+                          {renderMedia(
+                            m,
+                            m.type === 'photo'
+                              ? { width: 48, height: 48, borderRadius: 8, marginHorizontal: 4, borderWidth: idx === mediaIndex ? 2 : 0, borderColor: '#F97316' }
+                              : { width: 40, height: 40, borderRadius: 8 },
+                            undefined
                           )}
                         </TouchableOpacity>
                       ))}
@@ -808,7 +813,11 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                       {fullscreenMedia.type === 'photo' ? (
                         <Image source={{ uri: fullscreenMedia.url }} style={{ width: '100%', height: '90%', resizeMode: 'contain', borderRadius: 16 }} />
                       ) : (
-                        <Video source={{ uri: fullscreenMedia.url }} style={{ width: '100%', height: '90%', borderRadius: 16 }} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay />
+                        Platform.OS === 'web' ? (
+                          <video src={fullscreenMedia.url} controls style={{ width: '100%', height: '90%', borderRadius: 16 }} />
+                        ) : (
+                          <Text style={{ color: '#fff', textAlign: 'center' }}>Vídeo não disponível</Text>
+                        )
                       )}
                     </View>
                   </View>
@@ -1006,7 +1015,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                   onPress={pickVideo}
                   disabled={!canEdit}
                 >
-                  <Video />
+                  <VideoIcon size={20} color="#4B5563" />
                   <Text style={styles.mediaButtonText}>Adicionar Vídeo</Text>
                 </TouchableOpacity>
               </View>
@@ -1026,7 +1035,13 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 ))}
                 {formData.videos.map((url, idx) => (
                   <View key={idx} style={styles.mediaItem}>
-                    <Video source={{ uri: url }} style={styles.videoPreview} useNativeControls resizeMode={ResizeMode.COVER} />
+                    {Platform.OS === 'web' ? (
+                      <video src={url} controls style={styles.videoPreview} />
+                    ) : (
+                      <View style={[styles.videoPreview, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Text style={{ color: '#fff' }}>Vídeo</Text>
+                      </View>
+                    )}
                     <TouchableOpacity
                       style={styles.removeMediaButton}
                       onPress={() => removeMedia('video', idx)}

@@ -13,15 +13,36 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, Users, ClipboardCheck, Clock, AlertCircle, AlertTriangle } from 'lucide-react-native';
-import { AuthService } from '@/services/AuthService';
-import TaskService from '@/services/TaskService';
-import { useTheme } from '@/contexts/ThemeContext';
+import { AuthService } from '../../services/AuthService';
+import TaskService from '../../services/TaskService';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { shadows } from '../../utils/shadowUtils';
 
 // Define Task type with status property
 type Task = {
   status: string;
+  dueDate?: string;
+  // add other properties if needed
+};
+
+// Define User type
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status?: string;
+  company?: string;
+  sites?: string[];
+  siteId?: string;
+  funcao?: string;
+};
+
+// Define Site type
+type Site = {
+  id: string;
+  name: string;
   // add other properties if needed
 };
 
@@ -66,7 +87,7 @@ export default function StatsScreen() {
   }, []);
 
   useEffect(() => {
-    AuthService.getCurrentSite().then(site => {
+    AuthService.getCurrentSite().then((site: Site | null) => {
       setSiteId(site?.id ?? null);
     });
   }, []);
@@ -75,12 +96,12 @@ export default function StatsScreen() {
     if (!siteId) return;
     setLoading(true);
     // Buscar tarefas
-    const unsubscribeTasks = TaskService.subscribeToTasksBySite(siteId, (tasks) => {
-      const completedTasks = tasks.filter((task: any) => task.status === 'completed');
-      const pendingTasks = tasks.filter((task: any) => task.status === 'pending');
-      const inProgressTasks = tasks.filter((task: any) => task.status === 'in_progress');
+    const unsubscribeTasks = TaskService.subscribeToTasksBySite(siteId, (tasks: Task[]) => {
+      const completedTasks = tasks.filter((task: Task) => task.status === 'completed');
+      const pendingTasks = tasks.filter((task: Task) => task.status === 'pending');
+      const inProgressTasks = tasks.filter((task: Task) => task.status === 'in_progress');
       const now = new Date();
-      const overdueTasks = tasks.filter((task: any) => {
+      const overdueTasks = tasks.filter((task: Task) => {
         if (!task.dueDate) return false;
         // Considere apenas tarefas com status 'delayed'
         if (task.status !== 'delayed') return false;
@@ -98,19 +119,19 @@ export default function StatsScreen() {
       setLoading(false);
     });
     // Buscar colaboradores (workers)
-    AuthService.getWorkersBySite(siteId).then(workers => {
+    AuthService.getWorkersBySite(siteId).then((workers: User[]) => {
       setStats(prev => ({
         ...prev,
         totalWorkers: workers.length,
-        activeWorkers: workers.filter(w => w.status === 'active').length,
+        activeWorkers: workers.filter((w: User) => w.status === 'active').length,
       }));
     });
     // Buscar administradores (admins)
-    AuthService.getAdminsBySite(siteId).then(admins => {
+    AuthService.getAdminsBySite(siteId).then((admins: User[]) => {
       setStats(prev => ({
         ...prev,
         totalAdmins: admins.length,
-        activeAdmins: admins.filter(a => a.status === 'active').length,
+        activeAdmins: admins.filter((a: User) => a.status === 'active').length,
       }));
     });
     return () => {
@@ -120,15 +141,23 @@ export default function StatsScreen() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
-  const [modalUsers, setModalUsers] = useState<any[]>([]);
+  const [modalUsers, setModalUsers] = useState<User[]>([]);
 
   // Função para abrir modal de colaboradores
   const openWorkersModal = async () => {
+    console.log('[Stats] Abrindo modal de colaboradores...');
     setModalTitle('Colaboradores da Obra');
     const site = await AuthService.getCurrentSite();
+    console.log('[Stats] Site atual:', site);
     if (site) {
+      console.log('[Stats] Buscando workers para site:', site.id);
       const workers = await AuthService.getWorkersBySite(site.id);
+      console.log('[Stats] Workers recebidos:', workers);
       setModalUsers(workers);
+      setModalVisible(true);
+    } else {
+      console.log('[Stats] Nenhum site encontrado');
+      setModalUsers([]);
       setModalVisible(true);
     }
   };
@@ -178,7 +207,7 @@ export default function StatsScreen() {
         >
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>Estatísticas</Text>
+        <Text style={styles.title}>Estatísticas da Obra</Text>
       </View>
 
       {loading ? (

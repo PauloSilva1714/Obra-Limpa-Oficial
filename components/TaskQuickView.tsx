@@ -13,9 +13,13 @@ import {
 } from 'react-native';
 import { X, MessageCircle, ChevronLeft, ChevronRight, Video as VideoIcon } from 'lucide-react-native';
 import type { Task } from '../services/TaskService';
-import { Video, ResizeMode } from 'expo-av';
 import { PDFService } from '../services/PDFService';
 import { shadows } from '../utils/shadowUtils';
+
+let Video, ResizeMode;
+if (Platform.OS !== 'web') {
+  ({ Video, ResizeMode } = require('expo-video'));
+}
 
 interface TaskQuickViewProps {
   visible: boolean;
@@ -54,6 +58,27 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
     }
   };
 
+  function renderMedia(media, styles) {
+    if (!media) return null;
+    if (media.type === 'photo') {
+      return <Image source={{ uri: media.url }} style={styles.mediaImage} resizeMode="cover" />;
+    }
+    if (Platform.OS === 'web') {
+      return <video src={media.url} controls style={styles.mediaImage} />;
+    }
+    if (Video) {
+      return (
+        <Video
+          source={{ uri: media.url }}
+          style={styles.mediaImage}
+          resizeMode={ResizeMode && ResizeMode.COVER}
+          useNativeControls
+        />
+      );
+    }
+    return null;
+  }
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -62,16 +87,7 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
           <View style={styles.mediaContainer}>
             {hasMedia ? (
               <>
-                {currentMedia?.type === 'photo' ? (
-                  <Image source={{ uri: currentMedia.url }} style={styles.mediaImage} resizeMode="cover" />
-                ) : (
-                  <Video
-                    source={{ uri: currentMedia.url }}
-                    style={styles.mediaImage}
-                    resizeMode={ResizeMode.COVER}
-                    useNativeControls
-                  />
-                )}
+                {renderMedia(currentMedia, styles)}
                 {medias.length > 1 && (
                   <View style={styles.mediaNav}>
                     <TouchableOpacity onPress={handlePrev} style={styles.mediaNavButton}>
