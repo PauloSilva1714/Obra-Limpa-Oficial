@@ -149,7 +149,7 @@ export default function ForgotPasswordScreen() {
             ]}
           >
             <View style={styles.successContainer}>
-              <CheckCircle size={80} color="#1013a5ff" style={styles.successIcon} />
+              <CheckCircle size={80} color="#10B981" style={styles.successIcon} />
               <Text style={styles.successTitle}>Email Enviado!</Text>
               <Text style={styles.successMessage}>
                 Enviamos um link de recuperação para:
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   sendButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#3bf644ff',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,

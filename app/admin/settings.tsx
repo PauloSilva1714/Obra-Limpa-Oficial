@@ -43,6 +43,7 @@ import { t, setLanguage } from '@/config/i18n';
 import * as Linking from 'expo-linking';
 import { AboutAppModal } from '@/components/AboutAppModal';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { PasswordChangedModal } from '@/components/PasswordChangedModal';
 
 interface SettingsSection {
   title: string;
@@ -223,6 +224,7 @@ export default function SettingsScreen() {
 
   const [showPasswordConfirmModal, setShowPasswordConfirmModal] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPasswordChangedModal, setShowPasswordChangedModal] = useState(false);
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -256,7 +258,7 @@ export default function SettingsScreen() {
       setShowPasswordConfirmModal(false);
       
       if (result) {
-        Alert.alert(t('success'), t('passwordChanged'));
+        setShowPasswordChangedModal(true);
         setShowPasswordModal(false);
         setCurrentPassword('');
         setNewPassword('');
@@ -287,17 +289,16 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     setShowLogoutModal(true);
   };
+
   const confirmLogout = async () => {
-    setShowLogoutModal(false);
-            try {
-              await AuthService.logout();
-              router.replace('/(auth)/login');
-            } catch (error) {
-      Alert.alert('Erro', 'Não foi possível sair da conta.');
-            }
-  };
-  const cancelLogout = () => {
-    setShowLogoutModal(false);
+    try {
+      await AuthService.logout();
+      setShowLogoutModal(false);
+      router.replace('/(auth)/login');
+    } catch (error) {
+      setShowLogoutModal(false);
+      Alert.alert(t('error'), 'Não foi possível sair da conta.');
+    }
   };
 
   const getLanguageLabel = (code: string) => {
@@ -742,29 +743,22 @@ export default function SettingsScreen() {
         cancelText="Cancelar"
       />
 
-      <Modal
+      {/* Confirmation Modal for Logout */}
+      <ConfirmationModal
         visible={showLogoutModal}
-        transparent
-        animationType="fade"
-        onRequestClose={cancelLogout}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#222', padding: 24, borderRadius: 12, width: 300, alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Sair da conta</Text>
-            <Text style={{ color: '#ccc', fontSize: 15, marginBottom: 24, textAlign: 'center' }}>
-              Tem certeza que deseja sair?
-            </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-              <TouchableOpacity onPress={cancelLogout} style={{ flex: 1, marginRight: 8, padding: 10, borderRadius: 6, backgroundColor: '#444', alignItems: 'center' }}>
-                <Text style={{ color: '#fff' }}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={confirmLogout} style={{ flex: 1, marginLeft: 8, padding: 10, borderRadius: 6, backgroundColor: '#dc2626', alignItems: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Sair</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        title={t('logout')}
+        message="Tem certeza que deseja sair da sua conta?"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+        confirmText={t('logout')}
+        cancelText={t('cancel')}
+      />
+
+      {/* Password Changed Success Modal */}
+      <PasswordChangedModal
+        visible={showPasswordChangedModal}
+        onClose={() => setShowPasswordChangedModal(false)}
+      />
     </SafeAreaView>
   );
 }

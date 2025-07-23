@@ -375,9 +375,11 @@ export class AuthService {
 
   static async logout(): Promise<void> {
     try {
+      // Fazer logout do Firebase Auth
+      await signOut(auth);
+      // Remover dados do AsyncStorage
       await AsyncStorage.removeItem(AuthService.USER_KEY);
       await AsyncStorage.removeItem(AuthService.SITE_KEY);
-      await signOut(auth); // Encerra a sessão do Firebase
     } catch (error) {
       throw error;
     }
@@ -1178,15 +1180,18 @@ export class AuthService {
     try {
       const q = query(collection(db, 'users'), where('email', '==', email));
       const querySnapshot = await getDocs(q);
+      
       if (querySnapshot.empty) {
         return null;
       }
+      
       const doc = querySnapshot.docs[0];
       return {
         id: doc.id,
         ...doc.data(),
       } as User;
     } catch (error) {
+      console.error('Erro no getUserByEmail:', error);
       return null;
     }
   }
@@ -1230,11 +1235,31 @@ export class AuthService {
 
   static async sendPasswordResetEmail(email: string): Promise<void> {
     try {
-      await sendPasswordResetEmail(auth, email);
+      // Configurações para usar o fluxo padrão do Firebase
+      const actionCodeSettings = {
+        // URL para onde o usuário será redirecionado após redefinir a senha
+        // Usando o esquema correto do app para deep linking
+        url: 'com.obralimpa.app://',
+        // Indica que o link deve ser aberto no app
+        handleCodeInApp: true,
+      };
+
+      // Enviar email com configurações padrão do Firebase
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      
     } catch (error: any) {
+      // Tratar erros específicos do Firebase Auth
       if (error.code === 'auth/user-not-found') {
         throw new Error('Email não encontrado no sistema');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Email inválido');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Muitas tentativas. Tente novamente em alguns minutos.');
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
       }
+      
+      // Para outros erros, relançar o erro original
       throw error;
     }
   }
