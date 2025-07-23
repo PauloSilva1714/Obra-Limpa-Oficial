@@ -1230,23 +1230,11 @@ export class AuthService {
 
   static async sendPasswordResetEmail(email: string): Promise<void> {
     try {
-      const user = await AuthService.getUserByEmail(email);
-      if (!user) {
-        throw new Error('Email não encontrado no sistema');
-      }
-
       await sendPasswordResetEmail(auth, email);
-      
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
-        const user = await AuthService.getUserByEmail(email);
-        if (user) {
-          throw new Error('Problema de sincronização. Entre em contato com o administrador.');
-        } else {
-          throw new Error('Email não encontrado no sistema');
-        }
+        throw new Error('Email não encontrado no sistema');
       }
-      
       throw error;
     }
   }

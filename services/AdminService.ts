@@ -275,8 +275,8 @@ export class AdminService {
       const collectionName = options?.collection || 'adminMessages';
       let userId = options?.userId;
       if (!userId) {
-        const currentUser = await AuthService.getCurrentUser();
-        if (!currentUser) return;
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) return;
         userId = currentUser.id;
       }
       const messageRef = doc(db, collectionName, messageId);
@@ -1541,8 +1541,8 @@ export class AdminService {
         console.log('📩 Snapshot de contagem recebido com', snapshot.docs.length, 'documentos');
         const unreadCount = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as AdminDirectMessage))
-          .filter(msg =>
-            msg.recipientId === currentUser.id &&
+          .filter(msg => 
+            msg.recipientId === currentUser.id && 
             (!msg.readBy || !msg.readBy.includes(currentUser.id))
           ).length;
         console.log('📨 Contagem de mensagens não lidas:', unreadCount);

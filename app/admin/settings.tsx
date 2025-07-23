@@ -289,12 +289,12 @@ export default function SettingsScreen() {
   };
   const confirmLogout = async () => {
     setShowLogoutModal(false);
-    try {
-      await AuthService.logout();
-      router.replace('/(auth)/login');
-    } catch (error) {
+            try {
+              await AuthService.logout();
+              router.replace('/(auth)/login');
+            } catch (error) {
       Alert.alert('Erro', 'Não foi possível sair da conta.');
-    }
+            }
   };
   const cancelLogout = () => {
     setShowLogoutModal(false);
