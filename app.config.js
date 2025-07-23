@@ -4,6 +4,7 @@ module.exports = {
   version: '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
+  scheme: 'com.obralimpa.app',
   web: {
     bundler: 'metro',
     favicon: './assets/favicon.png'
@@ -26,4 +27,4 @@ module.exports = {
     },
     EXPO_GOOGLE_PLACES_API_KEY: "AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA"
   }
-}; 
+};

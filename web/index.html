@@ -208,8 +208,47 @@
         });
       }, 100);
     </script>
+    
+    <!-- Script para garantir que o elemento root esteja disponível -->
+    <script>
+      // Garantir que o elemento root existe antes do React tentar renderizar
+      document.addEventListener('DOMContentLoaded', function() {
+        if (!document.getElementById('root')) {
+          const rootDiv = document.createElement('div');
+          rootDiv.id = 'root';
+          document.body.appendChild(rootDiv);
+        }
+      });
+      
+      // Fallback para casos onde o DOMContentLoaded já foi disparado
+      if (document.readyState === 'loading') {
+        // DOM ainda está carregando
+      } else {
+        // DOM já carregou
+        if (!document.getElementById('root')) {
+          const rootDiv = document.createElement('div');
+          rootDiv.id = 'root';
+          document.body.appendChild(rootDiv);
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Script adicional para verificar se o root existe após o carregamento -->
+    <script>
+      window.addEventListener('load', function() {
+        const rootElement = document.getElementById('root');
+        if (!rootElement) {
+          console.error('Elemento root não encontrado, criando um novo...');
+          const newRoot = document.createElement('div');
+          newRoot.id = 'root';
+          document.body.appendChild(newRoot);
+        } else {
+          console.log('Elemento root encontrado com sucesso');
+        }
+      });
+    </script>
   </body>
-</html> 
+</html>

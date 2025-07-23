@@ -96,8 +96,12 @@ export default function ForgotPasswordScreen() {
       
       if (error.message === 'Email não encontrado no sistema') {
         errorMessage = 'Este e-mail não está cadastrado no sistema.';
-      } else if (error.message === 'Problema de sincronização. Entre em contato com o administrador.') {
-        errorMessage = 'Problema de sincronização. Entre em contato com o administrador.';
+      } else if (error.message === 'Email inválido') {
+        errorMessage = 'E-mail inválido.';
+      } else if (error.message === 'Muitas tentativas. Tente novamente em alguns minutos.') {
+        errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos.';
+      } else if (error.message === 'Erro de conexão. Verifique sua internet e tente novamente.') {
+        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos.';
       } else if (error.code === 'auth/invalid-email') {
@@ -450,4 +454,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Medium',
   },
-}); 
+});

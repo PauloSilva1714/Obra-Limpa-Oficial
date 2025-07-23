@@ -375,11 +375,9 @@ export class AuthService {
 
   static async logout(): Promise<void> {
     try {
-      // Fazer logout do Firebase Auth
-      await signOut(auth);
-      // Remover dados do AsyncStorage
       await AsyncStorage.removeItem(AuthService.USER_KEY);
       await AsyncStorage.removeItem(AuthService.SITE_KEY);
+      await signOut(auth); // Encerra a sessão do Firebase
     } catch (error) {
       throw error;
     }
