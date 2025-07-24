@@ -16,6 +16,7 @@ import { t } from '@/config/i18n';
 import { useSite } from '@/contexts/SiteContext';
 import CustomTabBar from '@/components/CustomTabBar';
 import { Slot } from 'expo-router';
+import { TabBarProvider, useTabBar } from '@/contexts/TabBarContext';
 
 const TABS_CONFIG = {
   index: {
@@ -45,7 +46,7 @@ const TABS_CONFIG = {
   },
 };
 
-export default function TabLayout() {
+function TabLayoutContent() {
   const colorScheme = useColorScheme();
   const { colors, isDarkMode } = useTheme();
   const [userRole, setUserRole] = useState<'admin' | 'worker' | null>(null);
@@ -54,6 +55,7 @@ export default function TabLayout() {
   const router = useRouter();
   const segments = useSegments();
   const { currentSite } = useSite();
+  const { isTabBarVisible } = useTabBar();
 
   useEffect(() => {
     const getUserRole = async () => {
@@ -126,14 +128,31 @@ export default function TabLayout() {
   if (!userRole) return null; // ou um loading
 
   return (
-    <>
-      <Slot />
-      <CustomTabBar userRole={userRole} />
-    </>
+    <View style={styles.container}>
+      <View style={[styles.content, { paddingBottom: isTabBarVisible ? 64 : 0 }]}>
+        <Slot />
+      </View>
+      <CustomTabBar userRole={userRole} isVisible={isTabBarVisible} />
+    </View>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <TabBarProvider>
+      <TabLayoutContent />
+    </TabBarProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#1F2937',
+  },
+  content: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

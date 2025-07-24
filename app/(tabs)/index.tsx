@@ -54,6 +54,7 @@ import { TaskFeedCard } from '../../components/TaskFeedCard';
 import { ConnectionStatus } from '../../components/ConnectionStatus';
 import { useSite } from '../../contexts/SiteContext';
 import { useLocalSearchParams } from 'expo-router';
+import TabBarToggleButton from '../../components/TabBarToggleButton';
 
 // Conditional import for Video and ResizeMode to avoid import errors
 let Video: any, ResizeMode: any;
@@ -746,6 +747,9 @@ export default function TasksScreen() {
             </Text>
           </View>
         )}
+        
+        {/* Botão Hamburger para esconder/mostrar tab bar */}
+        <TabBarToggleButton size={20} style={{ marginLeft: 8 }} />
       </View>
 
       {/* Feed de Tarefas */}

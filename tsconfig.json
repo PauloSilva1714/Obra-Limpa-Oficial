@@ -20,7 +20,11 @@
       "react",
       "react-native"
     ],
-    "customConditions": ["react-native"]
+    "customConditions": ["react-native"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "exclude": [
     "node_modules",

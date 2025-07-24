@@ -2,20 +2,36 @@ import { View, TouchableOpacity, Text, StyleSheet, Platform, useWindowDimensions
 import { useRouter, usePathname } from 'expo-router';
 import { Home, User, BarChart3, MessageCircle, Building2 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AdminService } from '@/services/AdminService';
 import { AuthService } from '@/services/AuthService';
 import { shadows } from '../utils/shadowUtils';
 
-export default function CustomTabBar({ userRole }: { userRole: 'admin' | 'worker' }) {
+interface CustomTabBarProps {
+  userRole: 'admin' | 'worker';
+  isVisible?: boolean;
+}
+
+export default function CustomTabBar({ userRole, isVisible = true }: CustomTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { colors, isDarkMode } = useTheme();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 500;
 
+  // Animação para esconder/mostrar tab bar
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
   // Estado para contagem dinâmica de mensagens não lidas
   const [chatBadge, setChatBadge] = useState(0);
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: isVisible ? 0 : 80, // 80 é a altura da tab bar + margem
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isVisible]);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -27,7 +43,7 @@ export default function CustomTabBar({ userRole }: { userRole: 'admin' | 'worker
           if (currentSite?.id) {
             unsubscribe = await AdminService.subscribeToUnreadDirectMessagesCount(
               currentSite.id,
-              (count) => {
+              (count: number) => {
                 setChatBadge(count);
               }
             );
@@ -56,7 +72,16 @@ export default function CustomTabBar({ userRole }: { userRole: 'admin' | 'worker
   ].filter(tab => tab.show);
 
   return (
-    <View style={[styles.tabBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}> 
+    <Animated.View 
+      style={[
+        styles.tabBar, 
+        { 
+          backgroundColor: colors.surface, 
+          borderTopColor: colors.border,
+          transform: [{ translateY: slideAnim }]
+        }
+      ]}
+    > 
       {tabs.map(tab => {
         const isActive = pathname === tab.route;
         return (
@@ -86,12 +111,16 @@ export default function CustomTabBar({ userRole }: { userRole: 'admin' | 'worker
           </TouchableOpacity>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     height: 64,
     borderTopWidth: 1,

@@ -39,6 +39,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSite } from '../../contexts/SiteContext';
 import { t } from '../../config/i18n';
 import logo from '../(auth)/obra-limpa-logo.png';
+import TabBarToggleButton from '../../components/TabBarToggleButton';
 
 interface AdminStats {
   totalSites: number;
@@ -324,6 +325,12 @@ export default function AdminScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Cabeçalho agora dentro do ScrollView */}
         <View style={styles.header}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <TouchableOpacity style={styles.refreshButton} onPress={loadAdminStats}>
+              <RefreshCw size={24} color={colors.primary} />
+            </TouchableOpacity>
+            <TabBarToggleButton size={20} />
+          </View>
           <Text style={styles.title}>Painel Administrativo</Text>
           {currentSite?.name && (
             <View style={{
@@ -347,9 +354,6 @@ export default function AdminScreen() {
             </View>
           )}
           <Text style={styles.subtitle}>Gerencie suas obras e colaboradores</Text>
-          <TouchableOpacity style={styles.refreshButton} onPress={loadAdminStats}>
-            <RefreshCw size={24} color={colors.primary} />
-          </TouchableOpacity>
         </View>
         {/* Estatísticas */}
         <View style={styles.statsSection}>
