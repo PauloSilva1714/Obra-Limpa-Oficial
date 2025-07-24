@@ -49,7 +49,6 @@ export const fetchWithRetry = async (url, options = {}, retries = 3) => {
     return response;
   } catch (error) {
     if (retries > 0) {
-      console.log(`Tentativa falhou, tentando novamente... (${retries} tentativas restantes)`);
       await new Promise(resolve => setTimeout(resolve, networkConfig.fetch.retryDelay));
       return fetchWithRetry(url, options, retries - 1);
     }

@@ -131,7 +131,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const handleNext = () => setMediaIndex(i => (i < medias.length - 1 ? i + 1 : 0));
 
   useEffect(() => {
-    console.log('[TaskModal] useEffect - visible:', visible, 'task:', task?.id);
     if (task) {
       setFormData({
         title: task.title || '',
@@ -147,7 +146,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       });
       // Limpar comentário quando abrir nova tarefa
       setCommentText('');
-      console.log('[TaskModal] Tarefa carregada, comentário limpo');
     } else {
       // Reset form for new task
       setFormData({
@@ -237,14 +235,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const canEdit = userRole === 'admin' || (userRole === 'worker' && !isReadOnly);
 
   // LOGS DE DEPURAÇÃO
-  console.log('[TaskModal][DEBUG] Renderizando modal:', {
-    visible,
-    userRole,
-    isEditing,
-    canEdit,
-    detailsMode,
-    task
-  });
 
   // Funções utilitárias para cor dos botões de status
   const getStatusButtonStyle = (status: Task['status']) => {
@@ -568,7 +558,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   // Função para adicionar comentário
   const handleAddComment = async () => {
-    console.log('[TaskModal] handleAddComment chamado com:', { commentText, task });
     
     if (!commentText.trim()) {
       console.error('[TaskModal] commentText vazio');
@@ -583,16 +572,12 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     
     try {
       setIsAddingComment(true);
-      console.log('[TaskModal] Obtendo usuário atual...');
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser) {
         console.error('[TaskModal] Usuário não encontrado');
         Alert.alert('Erro', 'Usuário não encontrado.');
         return;
       }
-      
-      console.log('[TaskModal] Usuário obtido:', currentUser);
-      console.log('[TaskModal] Criando comentário...');
 
       const comment = {
         id: Date.now().toString(),
@@ -601,13 +586,9 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         userName: currentUser.name,
         timestamp: new Date().toISOString(),
       };
-      
-      console.log('[TaskModal] Comentário criado:', comment);
-      console.log('[TaskModal] Adicionando comentário à tarefa:', task.id);
 
       // Adicionar comentário à tarefa usando TaskService
       await TaskService.addComment(task.id, comment);
-      console.log('[TaskModal] Comentário adicionado com sucesso');
       
       // Limpar campo de comentário
       setCommentText('');
@@ -841,11 +822,9 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                     placeholder="Comente algo..." 
                     value={commentText} 
                     onChangeText={(text) => { 
-                      console.log('[TaskModal] Texto do comentário alterado:', text); 
                       setCommentText(text); 
                     }} 
                     onSubmitEditing={() => { 
-                      console.log('[TaskModal] onSubmitEditing chamado'); 
                       handleAddComment(); 
                     }} 
                     editable={!isAddingComment} 
@@ -854,7 +833,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                   <TouchableOpacity 
                     style={[styles.commentSendButton, { padding: 6 }]} 
                     onPress={() => { 
-                      console.log('[TaskModal] Botão de enviar comentário pressionado'); 
                       handleAddComment(); 
                     }} 
                     disabled={isAddingComment} 

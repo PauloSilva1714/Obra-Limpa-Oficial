@@ -18,13 +18,10 @@ export default function SiteSelectionScreen() {
     const loadSites = async () => {
       try {
         setLoading(true);
-        console.log('Carregando canteiros...');
         const userSites = await SiteService.getUserSites();
-        console.log('Canteiros carregados:', userSites);
         setSites(userSites);
 
         const userData = await AuthService.getCurrentUser();
-        console.log('Dados do usuário carregados:', userData);
         setUser(userData);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -39,18 +36,12 @@ export default function SiteSelectionScreen() {
 
   const handleSiteSelection = async (site: SiteWithStats) => {
     try {
-      console.log('Selecionando canteiro:', site);
       await AuthService.setCurrentSite(site);
-      console.log('Canteiro selecionado com sucesso');
       
-      // Verificar se o canteiro foi salvo corretamente
       const currentSite = await AuthService.getCurrentSite();
-      console.log('Canteiro atual após seleção:', currentSite);
       
       if (currentSite) {
-        console.log('Tentando navegar para /(tabs)');
         router.replace('/(tabs)');
-        console.log('Navegação concluída');
       } else {
         throw new Error('Falha ao salvar canteiro');
       }
@@ -62,9 +53,7 @@ export default function SiteSelectionScreen() {
 
   const handleLogout = async () => {
     try {
-      console.log('Fazendo logout...');
       await AuthService.logout();
-      console.log('Logout concluído, redirecionando para login');
       router.replace('/(auth)/login');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);

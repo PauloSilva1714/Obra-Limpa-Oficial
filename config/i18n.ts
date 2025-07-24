@@ -348,7 +348,6 @@ export const loadSavedLanguage = async (): Promise<string> => {
     currentLocale = defaultLanguage;
     return defaultLanguage;
   } catch (error) {
-    console.log('Erro ao carregar idioma:', error);
     currentLocale = 'pt-BR';
     return 'pt-BR';
   }
@@ -360,7 +359,6 @@ export const setLanguage = async (language: string): Promise<void> => {
     await AsyncStorage.setItem('language', language);
     currentLocale = language;
   } catch (error) {
-    console.log('Erro ao salvar idioma:', error);
   }
 };
 
@@ -393,7 +391,6 @@ export const useTranslation = () => {
       currentLocale = language;
       setLocaleState(language);
     } catch (error) {
-      console.log('Erro ao salvar idioma:', error);
     }
   };
 

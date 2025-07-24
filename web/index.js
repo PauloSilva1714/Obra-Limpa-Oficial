@@ -8,13 +8,11 @@ function ensureRootElement() {
       let rootElement = document.getElementById('root');
       
       if (!rootElement) {
-        console.log('Elemento root não encontrado, criando...');
         rootElement = document.createElement('div');
         rootElement.id = 'root';
         document.body.appendChild(rootElement);
       }
       
-      console.log('Elemento root confirmado:', rootElement);
       resolve(rootElement);
     };
 
@@ -28,7 +26,6 @@ function ensureRootElement() {
 
 // Aguardar o elemento root estar disponível antes de registrar o componente
 ensureRootElement().then(() => {
-  console.log('Registrando componente raiz...');
   registerRootComponent(App);
 }).catch((error) => {
   console.error('Erro ao garantir elemento root:', error);

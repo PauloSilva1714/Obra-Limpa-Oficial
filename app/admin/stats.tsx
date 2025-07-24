@@ -145,18 +145,13 @@ export default function StatsScreen() {
 
   // Função para abrir modal de colaboradores
   const openWorkersModal = async () => {
-    console.log('[Stats] Abrindo modal de colaboradores...');
     setModalTitle('Colaboradores da Obra');
     const site = await AuthService.getCurrentSite();
-    console.log('[Stats] Site atual:', site);
     if (site) {
-      console.log('[Stats] Buscando workers para site:', site.id);
       const workers = await AuthService.getWorkersBySite(site.id);
-      console.log('[Stats] Workers recebidos:', workers);
       setModalUsers(workers);
       setModalVisible(true);
     } else {
-      console.log('[Stats] Nenhum site encontrado');
       setModalUsers([]);
       setModalVisible(true);
     }

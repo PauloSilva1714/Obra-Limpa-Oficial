@@ -66,10 +66,8 @@ export default function InviteWorkerScreen() {
       setEmail('');
       await loadInvites();
     } catch (error) {
-      console.log('[InviteWorker] Erro capturado:', error);
       if (error instanceof Error) {
         if (error.message && error.message.startsWith('DUPLICATE_WORKER:')) {
-          console.log('[InviteWorker] Colaborador duplicado detectado, mostrando alerta');
           Alert.alert('Colaborador Já Existe', 'Este usuário já tem acesso a esta obra.');
         } else {
           Alert.alert('Erro', error.message);

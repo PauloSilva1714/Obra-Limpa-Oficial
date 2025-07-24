@@ -59,7 +59,6 @@ function redirectAfterInvite() {
 
 export default function RegisterScreen() {
   const { role, inviteId } = useLocalSearchParams<{ role: 'admin' | 'worker', inviteId?: string }>();
-  console.log('[RegisterScreen] role:', role, 'inviteId:', inviteId);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -271,21 +270,15 @@ export default function RegisterScreen() {
       // Mostrar modal de sucesso
       setShowSuccessModal(true);
     } catch (error) {
-      console.log('[Register] Erro capturado:', error);
       if (error instanceof Error) {
-        console.log('[Register] Mensagem de erro:', error.message);
         if (error.message && error.message.startsWith('DUPLICATE_ADMIN:')) {
-          console.log('[Register] Admin duplicado detectado, mostrando modal');
           // Mostrar modal de admin duplicado
           setDuplicateAdminEmail(formData.email.trim());
           setShowDuplicateAdminModal(true);
-          console.log('[Register] Modal de admin duplicado ativado');
         } else if (error.message && error.message.startsWith('DUPLICATE_SITE:')) {
-          console.log('[Register] Obra duplicada detectada, mostrando modal');
           // Mostrar modal de obra duplicada
           setDuplicateAdminEmail(formData.siteName.trim());
           setShowDuplicateSiteModal(true);
-          console.log('[Register] Modal de obra duplicada ativado');
         } else if (error.message === 'Email já está em uso') {
           Alert.alert('Erro', 'Este e-mail já está cadastrado.');
         } else if (error.message === 'Convite necessário para cadastro de colaborador') {

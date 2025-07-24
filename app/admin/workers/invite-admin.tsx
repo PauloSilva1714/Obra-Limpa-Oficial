@@ -125,13 +125,10 @@ export default function InviteAdminScreen() {
       setIsValidEmail(false);
       await loadAdminInvites();
     } catch (error: any) {
-      console.log('[InviteAdmin] Erro capturado:', error);
       if (error.message && error.message.startsWith('DUPLICATE_ADMIN:')) {
-        console.log('[InviteAdmin] Admin duplicado detectado, mostrando modal');
         // Mostrar modal de admin duplicado
         setDuplicateAdminEmail(email.trim());
         setShowDuplicateAdminModal(true);
-        console.log('[InviteAdmin] Modal de admin duplicado ativado');
       } else {
         Alert.alert('Erro', error.message || 'Erro ao enviar convite');
       }

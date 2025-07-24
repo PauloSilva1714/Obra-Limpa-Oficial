@@ -55,7 +55,6 @@ if (Platform.OS === 'web') {
     
     // Log para debug
       if (url.toString().includes('firestore.googleapis.com')) {
-      console.log('🔍 Firebase request:', { url, options: newOptions });
     }
     
     return originalFetch(url, newOptions);
@@ -65,8 +64,8 @@ if (Platform.OS === 'web') {
   if (window.navigator && window.navigator.serviceWorker) {
     // Registrar service worker para melhorar cache
     window.navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      .then(() => console.log('Service Worker registrado'))
-      .catch(() => console.log('Service Worker não registrado (esperado)'));
+      .then(() => // console.log removed)
+      .catch(() => // console.log removed'));
   }
 }
 }

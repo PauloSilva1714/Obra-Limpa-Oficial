@@ -58,12 +58,10 @@ class AddressService {
   async testApiConnection(): Promise<any> {
     try {
       const testUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=test&key=${getApiKey()}`;
-      console.log('Teste da API:', testUrl);
       
       const response = await fetch(testUrl);
       const data = await response.json();
       
-      console.log('Resultado do teste:', data);
       return data;
     } catch (error) {
       console.error('Erro no teste da API:', error);
@@ -85,7 +83,6 @@ class AddressService {
     }
 
     try {
-      console.log('Iniciando busca de endereços para:', query);
       
       // Tentativa 1: Busca padrão
       let params: { input: string; language: string; components: string; types?: string } = {
@@ -95,9 +92,7 @@ class AddressService {
       };
 
       let url = getPlacesApiUrl('autocomplete', params);
-      console.log('Tentativa 1 - URL:', url);
       
-            console.log('Tentativa 1 - Usando proxy:', Platform.OS === 'web' && typeof window !== 'undefined' && (typeof __DEV__ !== 'undefined' && __DEV__));
       
       let response = await fetch(url, {
         method: 'GET',
@@ -106,15 +101,12 @@ class AddressService {
         },
       });
       
-      console.log('Tentativa 1 - Status da resposta:', response.status);
-      console.log('Tentativa 1 - Headers da resposta:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       let data = await response.json();
-      console.log('Tentativa 1 - Resposta:', data);
 
       if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
         return data.predictions.map((prediction: GooglePlaceResult, index: number) => ({
@@ -136,7 +128,6 @@ class AddressService {
       };
 
       url = getPlacesApiUrl('autocomplete', params);
-      console.log('Tentativa 2 - URL:', url);
       
       response = await fetch(url, {
         method: 'GET',
@@ -145,14 +136,12 @@ class AddressService {
         },
       });
       
-      console.log('Tentativa 2 - Status da resposta:', response.status);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       data = await response.json();
-      console.log('Tentativa 2 - Resposta:', data);
 
       if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
         return data.predictions.map((prediction: GooglePlaceResult, index: number) => ({
@@ -165,7 +154,6 @@ class AddressService {
         }));
       }
 
-      console.log('Todas as tentativas falharam. Status:', data.status, 'Erro:', data.error_message);
       return [];
     } catch (error) {
       console.error('Erro ao buscar endereços:', error);
@@ -282,7 +270,6 @@ class AddressService {
       typeof (globalThis as any).window !== 'undefined' &&
       (globalThis as any).window.location.hostname === 'localhost'
     ) {
-      console.log('Executando em localhost, usando o proxy para evitar CORS');
     }
 
     try {

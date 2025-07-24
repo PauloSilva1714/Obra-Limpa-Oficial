@@ -41,7 +41,6 @@ const PROXY_URL = 'https://us-central1-bralimpa2.cloudfunctions.net/googlePlaces
 export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>): string => {
   // Em ambiente web de desenvolvimento, usar o proxy
   if (typeof window !== 'undefined' && __DEV__) {
-    console.log('Usando proxy para a API do Google Places');
     const url = new URL(PROXY_URL);
     url.searchParams.append('endpoint', endpoint);
 
@@ -71,7 +70,6 @@ export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>
 export const getGeocodingApiUrl = (params: Record<string, string>): string => {
   // Em ambiente web de desenvolvimento, usar o proxy para geocoding também
   if (typeof window !== 'undefined' && __DEV__) {
-    console.log('Usando proxy para a API de Geocoding');
     const url = new URL(PROXY_URL);
     // O Geocoding não tem um 'endpoint' no mesmo sentido, então passamos um parâmetro que o proxy possa ignorar
     // ou podemos adaptar o proxy para lidar com isso. Para simplificar, vamos adaptar a URL base no proxy.

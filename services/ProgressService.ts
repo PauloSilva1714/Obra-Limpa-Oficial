@@ -34,19 +34,14 @@ export class ProgressService {
 
   async getProgressData(): Promise<ProgressData> {
     try {
-      console.log('[ProgressService] Iniciando busca de dados de progresso...');
       const currentSite = await AuthService.getCurrentSite();
       if (!currentSite) {
         throw new Error('Nenhuma obra selecionada');
       }
 
-      console.log('[ProgressService] Site atual:', currentSite.id);
-
       const tasksRef = collection(db, 'tasks');
       const q = query(tasksRef, where('siteId', '==', currentSite.id));
       const querySnapshot = await getDocs(q);
-
-      console.log('[ProgressService] Total de tarefas encontradas:', querySnapshot.size);
 
       const tasks = querySnapshot.docs.map(doc => {
         const taskData = doc.data() as {
@@ -57,13 +52,7 @@ export class ProgressService {
           updatedAt?: any;
           createdAt?: any;
         };
-        console.log('[ProgressService] Tarefa encontrada:', {
-          id: doc.id,
-          title: taskData.title,
-          status: taskData.status,
-          area: taskData.area,
-          siteId: taskData.siteId
-        });
+
         return {
           id: doc.id,
           ...taskData
@@ -84,14 +73,6 @@ export class ProgressService {
       const inProgressTasks = tasks.filter(task => task.status === 'in_progress').length;
       const pendingTasks = tasks.filter(task => task.status === 'pending').length;
       const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-      console.log('[ProgressService] Estatísticas calculadas:', {
-        totalTasks,
-        completedTasks,
-        inProgressTasks,
-        pendingTasks,
-        completionRate
-      });
 
       // Calcular progresso semanal
       const today = new Date();
@@ -130,8 +111,6 @@ export class ProgressService {
         return { day: dayName, completed };
       });
 
-      console.log('[ProgressService] Progresso semanal:', weeklyProgress);
-
       // Calcular progresso por área
       const areas = [...new Set(tasks.map(task => task.area || 'Sem área definida'))].filter(area => area);
       const areaProgress = areas.map(area => {
@@ -148,8 +127,6 @@ export class ProgressService {
         };
       });
 
-      console.log('[ProgressService] Progresso por área:', areaProgress);
-
       const result = {
         totalTasks,
         completedTasks,
@@ -160,7 +137,6 @@ export class ProgressService {
         areaProgress
       };
 
-      console.log('[ProgressService] Dados finais retornados:', result);
       return result;
     } catch (error) {
       console.error('[ProgressService] Erro ao carregar dados de progresso:', error);

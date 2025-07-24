@@ -27,7 +27,6 @@ if (typeof window !== 'undefined') {
     return originalAddEventListener.call(this, type, listener, options);
   };
   
-  console.log('[Obra Limpa] Event listeners configurados como passivos para melhor performance');
 }
 
 export {};

@@ -13,23 +13,17 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 async function updateUserFuncao(userId: string, newFuncao: string) {
-  console.log(`🔍 Atualizando função do usuário ${userId} para: "${newFuncao}"`);
   
   try {
     const userDoc = await db.collection('users').doc(userId).get();
     
     if (!userDoc.exists) {
-      console.log('❌ Usuário não encontrado');
       return false;
     }
 
     const userData = userDoc.data();
-    console.log(`📋 Usuário encontrado: ${userData?.name} (${userData?.email})`);
-    console.log(`📋 Função atual: "${userData?.funcao}"`);
-    console.log(`📋 Role: ${userData?.role}`);
 
     await userDoc.ref.update({ funcao: newFuncao });
-    console.log(`✅ Função atualizada com sucesso para: "${newFuncao}"`);
     
     return true;
   } catch (error) {
@@ -45,9 +39,7 @@ const newFuncao = 'Administrador';
 updateUserFuncao(userId, newFuncao)
   .then((success) => {
     if (success) {
-      console.log('\n🎉 Função atualizada com sucesso!');
     } else {
-      console.log('\n❌ Falha ao atualizar função');
     }
     process.exit(success ? 0 : 1);
   })

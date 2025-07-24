@@ -21,40 +21,28 @@ export default function Index() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        console.log('[Index] Iniciando verificação de autenticação...');
-        
         // Aguarda o Firebase restaurar a sessão
         const firebaseUser = await AuthService.waitForFirebaseAuth();
-        console.log('[Index] Firebase Auth restaurado:', firebaseUser ? 'Usuário encontrado' : 'Nenhum usuário');
 
         if (firebaseUser) {
           // Garante que o usuário está salvo no AsyncStorage
           let userData = await AuthService.getCurrentUser();
-          console.log('[Index] Usuário no AsyncStorage:', userData ? 'Encontrado' : 'Não encontrado');
           
           if (!userData) {
-            console.log('[Index] Buscando dados do usuário no Firestore...');
             // Busca do Firestore e salva no AsyncStorage
             userData = await AuthService.getUserById(firebaseUser.uid);
             if (userData) {
-              console.log('[Index] Salvando usuário no AsyncStorage...');
               await AuthService.saveUserToStorage(userData);
-              console.log('[Index] Usuário salvo no AsyncStorage com sucesso');
-            } else {
-              console.log('[Index] Erro: Não foi possível buscar dados do usuário no Firestore');
             }
           }
           
           if (userData) {
-            console.log('[Index] Redirecionando para (tabs)...');
             router.replace('/(tabs)');
           } else {
-            console.log('[Index] Erro: Dados do usuário não encontrados, redirecionando para login');
             await AuthService.clearAuthData();
             router.replace('/(auth)/login');
           }
         } else {
-          console.log('[Index] Nenhum usuário autenticado, redirecionando para login');
           await AuthService.clearAuthData();
           router.replace('/(auth)/login');
         }

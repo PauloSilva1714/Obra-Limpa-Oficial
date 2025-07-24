@@ -82,7 +82,6 @@ export default function AdminDirectChat({
           otherUserId,
           // Dentro do callback do subscribeToDirectMessages
           (newMessages) => {
-            console.log('Callback do Firestore chamado com', newMessages.length, 'mensagens');
             if (isMounted) {
               setPendingMessages((pending) => {
                 // Usar clientId para identificar mensagens confirmadas

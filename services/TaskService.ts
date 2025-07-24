@@ -69,13 +69,10 @@ export class TaskService {
 
   static async getTasks(): Promise<Task[]> {
     try {
-      console.log('[TaskService] Iniciando busca de tarefas...');
       const currentSite = await AuthService.getCurrentSite();
       if (!currentSite) {
         throw new Error('Nenhuma obra selecionada');
       }
-
-      console.log('[TaskService] Site atual para busca:', currentSite.id);
 
       const tasksQuery = query(
         collection(db, 'tasks'),
@@ -83,21 +80,11 @@ export class TaskService {
         orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(tasksQuery);
-      
-      console.log('[TaskService] Total de tarefas encontradas:', snapshot.size);
-      
+
       const tasks = snapshot.docs.map(
         (doc, index) => {
           const taskData = doc.data();
-          console.log(`[TaskService] Tarefa ${index + 1}:`, {
-            id: doc.id,
-            title: taskData.title,
-            siteId: taskData.siteId,
-            status: taskData.status,
-            createdAt: taskData.createdAt,
-            photos: taskData.photos?.length || 0,
-            photoUrls: taskData.photos || []
-          });
+
           return {
             id: doc.id,
             ...taskData,
@@ -105,7 +92,6 @@ export class TaskService {
         }
       );
       
-      console.log('[TaskService] Lista final de tarefas:', tasks.map(t => ({ id: t.id, title: t.title })));
       return tasks;
     } catch (error) {
       console.error('[TaskService] Erro ao obter tarefas:', error);
@@ -117,7 +103,6 @@ export class TaskService {
     task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<Task> {
     try {
-      console.log('[TaskService] Iniciando criação de nova tarefa:', task);
       
       const currentSite = await AuthService.getCurrentSite();
       if (!currentSite) {
@@ -128,8 +113,6 @@ export class TaskService {
       const currentUser = await AuthService.getCurrentUser();
       const createdByName = currentUser?.name || 'Usuário';
       const createdByPhotoURL = currentUser?.photoURL || null;
-
-      console.log('[TaskService] Site atual:', currentSite.id);
 
       const now = new Date().toISOString();
       const newTask: any = {
@@ -149,13 +132,10 @@ export class TaskService {
         delete newTask.completedAt;
       }
 
-      console.log('[TaskService] Dados da tarefa a serem salvos:', newTask);
       const docRef = await addDoc(collection(db, 'tasks'), newTask);
-      console.log('[TaskService] Tarefa criada com ID:', docRef.id);
 
       // Verificar se a tarefa foi realmente criada
       const createdTask = await TaskService.getTaskById(docRef.id);
-      console.log('[TaskService] Tarefa criada confirmada:', createdTask);
 
       return {
         id: docRef.id,
@@ -199,11 +179,8 @@ export class TaskService {
 
   static async deleteTask(taskId: string): Promise<void> {
     try {
-      console.log('TaskService: Iniciando exclusão da tarefa:', taskId);
       const taskRef = doc(db, 'tasks', taskId);
-      console.log('TaskService: Referência da tarefa criada');
       await deleteDoc(taskRef);
-      console.log('TaskService: Tarefa excluída com sucesso');
     } catch (error) {
       console.error('TaskService: Erro ao deletar tarefa:', error);
       throw error;
@@ -212,17 +189,13 @@ export class TaskService {
 
   // Função utilitária estática para validação de URL
   static validateMediaUrlStatic(url: string): boolean {
-    console.log('[TaskService] Validando URL:', url);
     if (!url) {
-      console.log('[TaskService] URL vazia, retornando false');
       return false;
     }
     try {
       new URL(url);
-      console.log('[TaskService] URL válida:', url);
       return true;
     } catch {
-      console.log('[TaskService] URL inválida:', url);
       return false;
     }
   }
@@ -451,33 +424,25 @@ export class TaskService {
 
   static async addComment(taskId: string, comment: Comment): Promise<void> {
     try {
-      console.log('[TaskService] Iniciando adição de comentário:', { taskId, comment });
       
       const taskRef = doc(db, 'tasks', taskId);
-      console.log('[TaskService] Referência da tarefa criada');
       
       const taskDoc = await getDoc(taskRef);
-      console.log('[TaskService] Documento da tarefa obtido, existe:', taskDoc.exists());
       
       if (!taskDoc.exists()) {
         throw new Error('Tarefa não encontrada');
       }
       
       const taskData = taskDoc.data();
-      console.log('[TaskService] Dados da tarefa obtidos:', taskData);
       
       const currentComments = taskData.comments || [];
-      console.log('[TaskService] Comentários atuais:', currentComments);
       
       const updatedComments = [...currentComments, comment];
-      console.log('[TaskService] Comentários atualizados:', updatedComments);
       
-      console.log('[TaskService] Atualizando documento no Firestore...');
       await updateDoc(taskRef, {
         comments: updatedComments,
         updatedAt: serverTimestamp(),
       });
-      console.log('[TaskService] Documento atualizado com sucesso');
     } catch (error) {
       console.error('[TaskService] Erro ao adicionar comentário:', error);
       throw error;

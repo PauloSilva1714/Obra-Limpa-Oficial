@@ -14,7 +14,6 @@ export class ErrorHandler {
     
     // Verificar se é um erro 400
     if (error.status === 400 || error.message?.includes('400')) {
-      console.log('[ErrorHandler] Erro 400 detectado, tentando resolver...');
       
       // Limpar cache do navegador
       this.clearBrowserCache();
@@ -54,7 +53,6 @@ export class ErrorHandler {
         // Limpar sessionStorage
         sessionStorage.clear();
         
-        console.log('[ErrorHandler] Cache do navegador limpo');
       }
     } catch (error) {
       console.error('[ErrorHandler] Erro ao limpar cache:', error);
@@ -65,7 +63,6 @@ export class ErrorHandler {
     try {
       // Recarregar a página para reconectar ao Firebase
       if (typeof window !== 'undefined') {
-        console.log('[ErrorHandler] Reconectando ao Firebase...');
         setTimeout(() => {
           window.location.reload();
         }, 2000);
@@ -108,7 +105,6 @@ export const setupGlobalErrorHandler = () => {
       ErrorHandler.handleNetworkError(event.reason);
     });
     
-    console.log('[GlobalErrorHandler] Handler global configurado');
   }
 };
 

@@ -54,7 +54,6 @@ export async function uploadImageAsync(
   userId: string
 ): Promise<string> {
   try {
-    console.log('[PhotoService] Iniciando upload de imagem:', { uriOrFile: typeof uriOrFile, userId });
     
     const storage = getStorage();
     let blob: Blob;
@@ -62,7 +61,6 @@ export async function uploadImageAsync(
 
     if (typeof uriOrFile === 'string') {
       // Mobile: uri
-      console.log('[PhotoService] Processando URI string:', uriOrFile);
       const response = await fetch(uriOrFile);
       if (!response.ok) {
         console.error('[PhotoService] Erro na resposta fetch:', response.status);
@@ -70,25 +68,17 @@ export async function uploadImageAsync(
       }
       blob = await response.blob();
       fileName = `tasks/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-      console.log('[PhotoService] Nome do arquivo gerado:', fileName);
     } else {
       // Web: File
-      console.log('[PhotoService] Processando arquivo File:', uriOrFile.name);
       blob = uriOrFile;
       fileName = `tasks/${userId}/${Date.now()}_${uriOrFile.name}`;
-      console.log('[PhotoService] Nome do arquivo gerado:', fileName);
     }
 
-    console.log('[PhotoService] Criando referência de storage...');
     const fileRef = ref(storage, fileName);
-    console.log('[PhotoService] Referência criada:', fileRef.fullPath);
     
-    console.log('[PhotoService] Fazendo upload...');
     await uploadBytes(fileRef, blob);
-    console.log('[PhotoService] Upload concluído, obtendo URL...');
     
     const downloadURL = await getDownloadURL(fileRef);
-    console.log('[PhotoService] URL de download obtida:', downloadURL);
     
     return downloadURL;
   } catch (error) {

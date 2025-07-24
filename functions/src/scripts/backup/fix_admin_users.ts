@@ -13,7 +13,6 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 async function fixAdminUsers() {
-  console.log('Iniciando correção de administradores sem campo sites...');
   const usersRef = db.collection('users');
   const snapshot = await usersRef.where('role', '==', 'admin').get();
 
@@ -34,7 +33,6 @@ async function fixAdminUsers() {
           if (invite && invite.siteId) {
             updates.sites = [invite.siteId];
             needsUpdate = true;
-            console.log(`Usuário ${user.email} (${userId}) - sites corrigido para [${invite.siteId}]`);
           }
         }
       }
@@ -44,14 +42,12 @@ async function fixAdminUsers() {
     if ((!user.siteId || typeof user.siteId !== 'string') && updates.sites && updates.sites.length > 0) {
       updates.siteId = updates.sites[0];
       needsUpdate = true;
-      console.log(`Usuário ${user.email} (${userId}) - siteId corrigido para ${updates.sites[0]}`);
     }
 
     // Se só siteId está faltando, mas sites já existe
     if ((!user.siteId || typeof user.siteId !== 'string') && user.sites && user.sites.length > 0) {
       updates.siteId = user.sites[0];
       needsUpdate = true;
-      console.log(`Usuário ${user.email} (${userId}) - siteId corrigido para ${user.sites[0]}`);
     }
 
     if (needsUpdate) {
@@ -59,12 +55,10 @@ async function fixAdminUsers() {
       count++;
     }
   }
-  console.log(`Correção concluída. ${count} usuários atualizados.`);
 }
 
 fixAdminUsers()
   .then(() => {
-    console.log('Script finalizado com sucesso.');
     process.exit(0);
   })
   .catch((err) => {

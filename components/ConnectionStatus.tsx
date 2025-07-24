@@ -24,12 +24,10 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   const { user } = useAuth();
 
   const forceConnectionCheck = async () => {
-    console.log('[ConnectionStatus] Forçando verificação de conexão...');
     try {
       setIsChecking(true);
       const isOnline = await checkFirebaseConnection();
       setIsConnected(isOnline);
-      console.log('[ConnectionStatus] Verificação forçada:', isOnline);
     } catch (error) {
       console.error('[ConnectionStatus] Erro na verificação forçada:', error);
       setIsConnected(false);
@@ -45,7 +43,6 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
         // Usar a função de verificação mais robusta do Firebase
         const isOnline = await checkFirebaseConnection();
         setIsConnected(isOnline);
-        console.log('[ConnectionStatus] Verificação de conexão:', isOnline);
       } catch (error) {
         console.error('[ConnectionStatus] Erro na verificação:', error);
         setIsConnected(false);
@@ -64,15 +61,6 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   }, []);
 
   // Debug: logar valores no console
-  console.log('[ConnectionStatus] user?.photoURL:', user?.photoURL);
-  console.log('[ConnectionStatus] user?.name:', user?.name);
-  console.log('[ConnectionStatus] user?.email:', user?.email);
-  console.log('[ConnectionStatus] user completo:', JSON.stringify(user, null, 2));
-  console.log('[ConnectionStatus] Firebase Auth currentUser photoURL:', auth.currentUser?.photoURL);
-  console.log('[ConnectionStatus] Firebase Auth currentUser completo:', JSON.stringify(auth.currentUser, null, 2));
-  console.log('[ConnectionStatus] Firebase Auth currentUser displayName:', auth.currentUser?.displayName);
-  console.log('[ConnectionStatus] Firebase Auth currentUser email:', auth.currentUser?.email);
-  console.log('[ConnectionStatus] isConnected:', isConnected);
 
   // Avatar padrão
   const defaultAvatar = require('@/assets/icon.png');

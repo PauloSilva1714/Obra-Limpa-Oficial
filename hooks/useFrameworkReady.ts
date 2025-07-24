@@ -68,7 +68,6 @@ export const useAdminRealTimeSync = (siteId: string) => {
 
     const setupRealTimeListeners = async () => {
       try {
-        console.log('🔄 Configurando listeners em tempo real para siteId:', siteId);
         setLoading(true);
         setError(null);
 
@@ -136,7 +135,6 @@ export const useAdminRealTimeSync = (siteId: string) => {
         });
         unsubscribeRefs.current.workers = workersUnsubscribe;
 
-        console.log('✅ Todos os listeners configurados com sucesso');
         setLoading(false);
 
       } catch (error) {
@@ -150,7 +148,6 @@ export const useAdminRealTimeSync = (siteId: string) => {
 
     // Cleanup function
     return () => {
-      console.log('🧹 Limpando listeners em tempo real');
       Object.values(unsubscribeRefs.current).forEach(unsubscribe => {
         if (unsubscribe) {
           try {

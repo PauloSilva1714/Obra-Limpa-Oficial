@@ -57,7 +57,6 @@ export class FirebaseErrorHandler {
   private static async handleNetworkError(operation: string): Promise<any> {
     if (this.retryCount < this.maxRetries) {
       this.retryCount++;
-      console.log(`Tentativa ${this.retryCount} de ${this.maxRetries} para ${operation}`);
 
       // Aguarda antes de tentar novamente
       await new Promise(resolve => setTimeout(resolve, this.retryDelay * this.retryCount));

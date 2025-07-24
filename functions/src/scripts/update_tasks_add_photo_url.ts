@@ -13,9 +13,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 async function updateTasksWithPhotoURL() {
-  console.log('🔍 Buscando todas as tarefas...');
   const tasksSnapshot = await db.collection('tasks').get();
-  console.log(`📊 Total de tarefas encontradas: ${tasksSnapshot.docs.length}`);
 
   let updatedCount = 0;
   let skippedCount = 0;
@@ -24,7 +22,6 @@ async function updateTasksWithPhotoURL() {
     const task = taskDoc.data();
     const createdByName = task.createdByName;
     if (!createdByName) {
-      console.log(`⏭️ Tarefa ${taskDoc.id} não possui createdByName, pulando.`);
       skippedCount++;
       continue;
     }
@@ -32,7 +29,6 @@ async function updateTasksWithPhotoURL() {
     // Buscar usuário pelo nome
     const usersSnapshot = await db.collection('users').where('name', '==', createdByName).get();
     if (usersSnapshot.empty) {
-      console.log(`❌ Usuário com nome '${createdByName}' não encontrado para tarefa ${taskDoc.id}`);
       skippedCount++;
       continue;
     }
@@ -41,19 +37,13 @@ async function updateTasksWithPhotoURL() {
 
     // Atualizar tarefa
     await taskDoc.ref.update({ createdByPhotoURL: photoURL });
-    console.log(`✅ Tarefa ${taskDoc.id} atualizada com foto de perfil de '${createdByName}'.`);
     updatedCount++;
   }
 
-  console.log('\n📈 Resumo da operação:');
-  console.log(`✅ Tarefas atualizadas: ${updatedCount}`);
-  console.log(`⏭️ Tarefas ignoradas: ${skippedCount}`);
-  console.log(`📊 Total processado: ${tasksSnapshot.docs.length}`);
 }
 
 updateTasksWithPhotoURL()
   .then(() => {
-    console.log('\n🎉 Operação concluída com sucesso!');
     process.exit(0);
   })
   .catch((err) => {

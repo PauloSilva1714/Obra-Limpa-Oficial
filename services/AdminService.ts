@@ -177,13 +177,6 @@ export class AdminService {
   ): Promise<AdminMessage[]> {
     const limitCount = options?.limitCount ?? 50;
     try {
-      console.log(
-        '🔍 AdminService.getMessages() - Iniciando com siteId:',
-        siteId,
-        'tipo:',
-        typeof siteId
-      );
-
       if (!siteId) {
         console.warn(
           '❌ AdminService.getMessages() - siteId é undefined, retornando array vazio'
@@ -192,12 +185,6 @@ export class AdminService {
       }
 
       const currentUser = await AuthService.getCurrentUser();
-      console.log(
-        '👤 AdminService.getMessages() - Usuário atual:',
-        currentUser?.id,
-        'role:',
-        currentUser?.role
-      );
 
       if (!currentUser || currentUser.role !== 'admin') {
         console.warn(
@@ -205,11 +192,6 @@ export class AdminService {
         );
         return [];
       }
-
-      console.log(
-        '🏗️ AdminService.getMessages() - Sites do usuário:',
-        currentUser.sites
-      );
 
       if (!currentUser.sites?.includes(siteId)) {
         console.warn(
@@ -219,11 +201,6 @@ export class AdminService {
         return [];
       }
 
-      console.log(
-        '✅ AdminService.getMessages() - Criando query com siteId:',
-        siteId
-      );
-
       const q = query(
         collection(db, 'adminMessages'),
         where('siteId', '==', siteId),
@@ -231,12 +208,7 @@ export class AdminService {
         limit(limitCount)
       );
 
-      console.log('📡 AdminService.getMessages() - Executando query...');
       const querySnapshot = await getDocs(q);
-      console.log(
-        '✅ AdminService.getMessages() - Query executada com sucesso, documentos encontrados:',
-        querySnapshot.docs.length
-      );
 
       const messages = querySnapshot.docs.map(
         (doc) =>
@@ -246,10 +218,6 @@ export class AdminService {
           } as AdminMessage)
       );
 
-      console.log(
-        '📨 AdminService.getMessages() - Mensagens processadas:',
-        messages.length
-      );
       return messages;
     } catch (error) {
       console.error(
@@ -308,17 +276,7 @@ export class AdminService {
     limitCount: number = 20
   ): Promise<AdminNotification[]> {
     try {
-      console.log(
-        '🔔 AdminService.getNotifications() - Iniciando busca de notificações'
-      );
-
       const currentUser = await AuthService.getCurrentUser();
-      console.log(
-        '👤 AdminService.getNotifications() - Usuário atual:',
-        currentUser?.id,
-        'role:',
-        currentUser?.role
-      );
 
       if (!currentUser) {
         console.warn(
@@ -327,11 +285,6 @@ export class AdminService {
         return [];
       }
 
-      console.log(
-        '✅ AdminService.getNotifications() - Criando query para recipientId:',
-        currentUser.id
-      );
-
       const q = query(
         collection(db, 'adminNotifications'),
         where('recipientId', '==', currentUser.id),
@@ -339,12 +292,7 @@ export class AdminService {
         limit(limitCount)
       );
 
-      console.log('📡 AdminService.getNotifications() - Executando query...');
       const querySnapshot = await getDocs(q);
-      console.log(
-        '✅ AdminService.getNotifications() - Query executada com sucesso, documentos encontrados:',
-        querySnapshot.docs.length
-      );
 
       const notifications = querySnapshot.docs.map(
         (doc) =>
@@ -354,10 +302,6 @@ export class AdminService {
           } as AdminNotification)
       );
 
-      console.log(
-        '🔔 AdminService.getNotifications() - Notificações processadas:',
-        notifications.length
-      );
       return notifications;
     } catch (error) {
       console.error(
@@ -526,10 +470,6 @@ export class AdminService {
     callback: (messages: AdminMessage[]) => void
   ) {
     try {
-      console.log(
-        '📡 AdminService.subscribeToMessages - Iniciando subscribe com siteId:',
-        siteId
-      );
 
       if (!siteId) {
         console.warn(
@@ -539,12 +479,6 @@ export class AdminService {
       }
 
       const currentUser = await AuthService.getCurrentUser();
-      console.log(
-        '👤 AdminService.subscribeToMessages - Usuário atual:',
-        currentUser?.id,
-        'role:',
-        currentUser?.role
-      );
 
       if (!currentUser || currentUser.role !== 'admin') {
         console.warn(
@@ -553,11 +487,6 @@ export class AdminService {
         return () => {};
       }
 
-      console.log(
-        '🏗️ AdminService.subscribeToMessages - Sites do usuário:',
-        currentUser.sites
-      );
-
       if (!currentUser.sites?.includes(siteId)) {
         console.warn(
           '❌ AdminService.subscribeToMessages - Usuário não tem acesso ao site:',
@@ -565,11 +494,6 @@ export class AdminService {
         );
         return () => {};
       }
-
-      console.log(
-        '✅ AdminService.subscribeToMessages - Criando listener para siteId:',
-        siteId
-      );
 
       const q = query(
         collection(db, 'adminMessages'),
@@ -588,15 +512,6 @@ export class AdminService {
               } as AdminMessage)
           );
 
-          console.log(
-            '📨 AdminService.subscribeToMessages - Mensagens atualizadas em tempo real:',
-            messages.length
-          );
-          console.log(
-            '📨 AdminService.subscribeToMessages - Última mensagem:',
-            messages[0]?.message?.substring(0, 50) + '...'
-          );
-
           callback(messages);
         },
         (error) => {
@@ -607,9 +522,6 @@ export class AdminService {
         }
       );
 
-      console.log(
-        '✅ AdminService.subscribeToMessages - Listener configurado com sucesso'
-      );
       return unsubscribe;
     } catch (error) {
       console.error(
@@ -771,14 +683,9 @@ export class AdminService {
     error?: string;
   }> {
     try {
-      console.log(
-        '🔍 AdminService.debugAdminCommunication - Iniciando debug com siteId:',
-        siteId
-      );
 
       // Verificar usuário atual
       const currentUser = await AuthService.getCurrentUser();
-      console.log('👤 Usuário atual:', currentUser);
 
       if (!currentUser) {
         return {
@@ -801,8 +708,6 @@ export class AdminService {
       }
 
       // Verificar se o usuário tem acesso ao site
-      console.log('🏗️ Sites do usuário:', currentUser.sites);
-      console.log('🎯 SiteId sendo verificado:', siteId);
 
       if (!currentUser.sites?.includes(siteId)) {
         return {
@@ -817,18 +722,13 @@ export class AdminService {
       }
 
       // Buscar outros administradores do site
-      console.log('👥 Buscando outros administradores do site...');
       const siteAdmins = await this.getOtherAdmins(siteId);
-      console.log('✅ Administradores encontrados:', siteAdmins.length);
 
       // Buscar mensagens do site
-      console.log('📨 Buscando mensagens do site...');
       const messages = await this.getMessages(siteId);
-      console.log('✅ Mensagens encontradas:', messages.length);
 
       // Verificar site atual
       const currentSite = await AuthService.getCurrentSite();
-      console.log('🏗️ Site atual selecionado:', currentSite);
 
       const result = {
         success: true,
@@ -863,7 +763,6 @@ export class AdminService {
           : null,
       };
 
-      console.log('✅ Debug concluído com sucesso:', result);
       return result;
     } catch (error) {
       console.error('❌ Erro no debug de comunicação:', error);
@@ -898,17 +797,11 @@ export class AdminService {
         new Map(workers.map((w) => [w.id, w])).values()
       );
       const activeWorkers = uniqueWorkers.filter((w) => w.status === 'active');
-      console.log(
-        '[AdminService] Colaboradores ativos encontrados:',
-        activeWorkers.length
-      );
 
       // Buscar tarefas do site atual
       const currentSite = await AuthService.getCurrentSite();
       if (!currentSite) {
-        console.log(
-          '[AdminService] Nenhum site selecionado, retornando estatísticas vazias'
-        );
+
         return {
           totalSites,
           totalWorkers: activeWorkers.length,
@@ -921,10 +814,6 @@ export class AdminService {
         where('siteId', '==', currentSite.id)
       );
       const tasksSnapshot = await getDocs(tasksQuery);
-      console.log(
-        '[AdminService] Total de tarefas encontradas para o site:',
-        tasksSnapshot.size
-      );
 
       const completedTasksQuery = query(
         collection(db, 'tasks'),
@@ -932,10 +821,6 @@ export class AdminService {
         where('status', '==', 'completed')
       );
       const completedTasksSnapshot = await getDocs(completedTasksQuery);
-      console.log(
-        '[AdminService] Tarefas concluídas do site:',
-        completedTasksSnapshot.size
-      );
 
       const stats = {
         totalSites,
@@ -944,7 +829,6 @@ export class AdminService {
         completedTasks: completedTasksSnapshot.size,
       };
 
-      console.log('[AdminService] Estatísticas finais:', stats);
       return stats;
     } catch (error) {
       console.error('Error fetching admin stats:', error);
@@ -986,7 +870,6 @@ export class AdminService {
           ...data,
         };
       });
-      console.log('📋 Tarefas atualizadas em tempo real:', tasks.length);
       callback(tasks);
     });
   }
@@ -1076,10 +959,7 @@ export class AdminService {
             ...doc.data(),
           } as AdminActivity)
       );
-      console.log(
-        '📝 Atividades administrativas atualizadas:',
-        activities.length
-      );
+
       callback(activities);
     });
   }
@@ -1110,7 +990,6 @@ export class AdminService {
         id: doc.id,
         ...doc.data(),
       }));
-      console.log('📨 Convites atualizados em tempo real:', invites.length);
       callback(invites);
     });
   }
@@ -1141,10 +1020,7 @@ export class AdminService {
         id: doc.id,
         ...doc.data(),
       }));
-      console.log(
-        '👷 Colaboradores atualizados em tempo real:',
-        workers.length
-      );
+
       callback(workers);
     });
   }
@@ -1159,10 +1035,8 @@ export class AdminService {
     clientId?: string
   ): Promise<AdminDirectMessage> {
     try {
-      console.log('🔍 Enviando mensagem:', { siteId, recipientId, message });
       
       const currentUser = await AuthService.getCurrentUser();
-      console.log('👤 Usuário atual:', currentUser);
       
       if (!currentUser || currentUser.role !== 'admin') {
         throw new Error('Apenas administradores podem enviar mensagens');
@@ -1174,7 +1048,6 @@ export class AdminService {
 
       // Verificar se o destinatário existe
       const recipient = await AuthService.getUserById(recipientId);
-      console.log('👥 Destinatário encontrado:', recipient);
       
       if (!recipient) {
         throw new Error('Destinatário não encontrado');
@@ -1202,8 +1075,6 @@ export class AdminService {
         ...(clientId ? { clientId } : {}),
       };
 
-      console.log('📝 Dados da mensagem:', messageData);
-
       const docRef = await addDoc(
         collection(db, 'adminDirectMessages'),
         messageData
@@ -1216,8 +1087,6 @@ export class AdminService {
         recipientId,
         message
       );
-
-      console.log('✅ Mensagem enviada com sucesso:', docRef.id);
 
       return {
         id: docRef.id,
@@ -1453,8 +1322,6 @@ export class AdminService {
         return () => {};
       }
 
-      console.log('📱 Inscrevendo para mensagens em tempo real:', { siteId, currentUserId: currentUser.id, otherUserId });
-
       // Usar uma consulta mais simples para evitar problemas com o Firestore
       const q = query(
         collection(db, 'adminDirectMessages'),
@@ -1463,7 +1330,6 @@ export class AdminService {
       );
 
       return onSnapshot(q, (snapshot) => {
-        console.log('📩 Snapshot recebido com', snapshot.docs.length, 'documentos');
         // Filtrar mensagens localmente para evitar consultas complexas
         const messages = snapshot.docs
           .map(doc => {
@@ -1478,8 +1344,6 @@ export class AdminService {
             (msg.senderId === currentUser.id && msg.recipientId === otherUserId) || 
             (msg.senderId === otherUserId && msg.recipientId === currentUser.id)
           );
-        console.log('📨 Mensagens filtradas:', messages.length);
-        console.log('Mensagens do Firestore:', messages.map(m => ({id: m.id, clientId: m.clientId, message: m.message})));
         callback(messages);
       });
     } catch (error) {
@@ -1529,8 +1393,6 @@ export class AdminService {
       if (!currentUser || currentUser.role !== 'admin') return;
       if (!currentUser.sites?.includes(siteId)) return;
 
-      console.log('📱 Inscrevendo para contagem de mensagens não lidas:', { siteId, currentUserId: currentUser.id });
-
       const q = query(
         collection(db, 'adminDirectMessages'),
         where('siteId', '==', siteId),
@@ -1538,14 +1400,12 @@ export class AdminService {
       );
 
       unsubscribe = onSnapshot(q, (snapshot) => {
-        console.log('📩 Snapshot de contagem recebido com', snapshot.docs.length, 'documentos');
         const unreadCount = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as AdminDirectMessage))
           .filter(msg => 
             msg.recipientId === currentUser.id && 
             (!msg.readBy || !msg.readBy.includes(currentUser.id))
           ).length;
-        console.log('📨 Contagem de mensagens não lidas:', unreadCount);
         callback(unreadCount);
       });
     });
@@ -1594,7 +1454,6 @@ export class AdminService {
     participants: string[]
   ): Promise<void> {
     try {
-      console.log('Deletando mensagens da sessão:', siteId, participants);
       const q = query(
         collection(db, 'adminDirectMessages'),
         where('siteId', '==', siteId),
@@ -1605,7 +1464,6 @@ export class AdminService {
       const batch = writeBatch(db);
       snapshot.forEach((docSnap) => batch.delete(docSnap.ref));
       await batch.commit();
-      console.log('Mensagens da sessão deletadas com sucesso!');
     } catch (error) {
       console.error('Erro ao deletar mensagens da sessão:', error);
       throw error;
@@ -1615,9 +1473,7 @@ export class AdminService {
   // Deleta a sessão de chat
   static async deleteChatSession(sessionId: string): Promise<void> {
     try {
-      console.log('Deletando sessão de chat:', sessionId);
       await deleteDoc(doc(db, 'adminChatSessions', sessionId));
-      console.log('Sessão de chat deletada com sucesso!');
     } catch (error) {
       console.error('Erro ao deletar sessão de chat:', error);
       throw error;
@@ -1720,7 +1576,6 @@ export class AdminService {
    * Integrado do Untitled-4.ts
    */
   static clearPendingMessages(): void {
-    console.log('Mensagens pendentes limpas');
   }
 
   /**
@@ -1728,7 +1583,6 @@ export class AdminService {
    * Integrado do Untitled-4.ts
    */
   static addPendingMessage(message: AdminDirectMessage): void {
-    console.log('Mensagem pendente adicionada:', message.id);
   }
 }
 

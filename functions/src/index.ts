@@ -18,9 +18,6 @@ let transporter: nodemailer.Transporter;
 
 // Usar apenas Gmail como serviço de email
 if (gmailConfig && gmailConfig.user && gmailConfig.pass) {
-  console.log('Configurando Gmail como serviço de email...');
-  console.log('Usuário Gmail:', gmailConfig.user);
-  console.log('Senha configurada:', gmailConfig.pass ? 'SIM' : 'NÃO');
   
   transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -38,7 +35,6 @@ if (gmailConfig && gmailConfig.user && gmailConfig.pass) {
     if (error) {
       console.error('Erro na verificação do transporter Gmail:', error);
     } else {
-      console.log('Transporter Gmail configurado com sucesso!');
     }
   });
 } else {
@@ -64,8 +60,6 @@ export const sendEmailV1 = functions.https.onRequest((req, res) => {
   // Ele gerenciará as requisições OPTIONS (preflight) automaticamente.
   corsHandler(req, res, async () => {
     // Adicionando logs para depuração
-    console.log("Headers da Requisição:", req.headers);
-    console.log("Corpo da Requisição (parseado):", req.body);
 
     if (req.method !== "POST") {
       // O corsHandler já lidou com o OPTIONS, então retornamos um erro para outros métodos.
@@ -111,9 +105,7 @@ export const sendEmailV1 = functions.https.onRequest((req, res) => {
     };
 
     try {
-      console.log("Enviando e-mail com as opções:", mailOptions);
       await transporter.sendMail(mailOptions);
-      console.log("E-mail enviado com sucesso para:", to);
       // Retorna uma resposta de sucesso clara
       res.status(200).json({ success: true, message: "E-mail enviado com sucesso!" });
     } catch (error) {
@@ -191,7 +183,6 @@ export const onUserCreate = functions.auth.user().onCreate(async (user: admin.au
       status: 'pending_invite',
       sites: [],
     });
-    console.log(`User document created for ${email} (UID: ${uid})`);
   } catch (error) {
     console.error('Error creating user document:', error);
   }
@@ -203,7 +194,6 @@ export const onUserDelete = functions.auth.user().onDelete(async (user) => {
   try {
     const { uid } = user;
     await admin.firestore().collection('users').doc(uid).delete();
-    console.log(`User document deleted for UID: ${uid}`);
   } catch (error) {
     console.error('Error deleting user document:', error);
   }
@@ -330,7 +320,6 @@ export const onInviteCreate = functions.firestore
         subject,
         html,
       });
-      console.log('Convite enviado para:', invite.email);
     } catch (error) {
       console.error('Erro ao enviar convite por e-mail:', error);
     }

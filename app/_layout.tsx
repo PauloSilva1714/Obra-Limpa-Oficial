@@ -41,7 +41,7 @@ export default function RootLayout() {
         // Carregar idioma salvo de forma segura
         await loadSavedLanguage();
       } catch (error) {
-        console.log('Erro ao inicializar app:', error);
+        console.error('Erro ao inicializar app:', error);
         // Continuar mesmo com erro
       }
     };

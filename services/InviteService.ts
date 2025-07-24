@@ -24,8 +24,6 @@ export const InviteService = {
         return [];
       }
 
-      console.log(`Buscando convites para o e-mail: ${currentUser.email}`);
-
       const invitesRef = collection(db, 'invites');
       const q = query(invitesRef, where('email', '==', currentUser.email));
       
@@ -35,7 +33,6 @@ export const InviteService = {
         ...doc.data(),
       }));
 
-      console.log(`Encontrados ${invites.length} convites.`);
       return invites;
     } catch (error) {
       console.error('Erro ao buscar convites para o usuário atual:', error);

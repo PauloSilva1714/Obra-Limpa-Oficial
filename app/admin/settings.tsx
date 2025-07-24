@@ -96,7 +96,6 @@ export default function SettingsScreen() {
         setCurrentLanguage(savedLanguage);
       }
     } catch (error) {
-      console.log('Erro ao carregar configurações:', error);
     }
   };
 
@@ -118,7 +117,6 @@ export default function SettingsScreen() {
       const { status: locationStatus } = await Location.getForegroundPermissionsAsync();
       setLocationPermission(locationStatus === 'granted');
     } catch (error) {
-      console.log('Erro ao verificar permissões:', error);
     }
   };
 
@@ -249,10 +247,8 @@ export default function SettingsScreen() {
   const confirmPasswordChange = async () => {
     try {
       setIsChangingPassword(true);
-      console.log('Iniciando alteração de senha...');
       
       const result = await AuthService.changePassword(currentPassword, newPassword);
-      console.log('Resultado da alteração de senha:', result);
       
       setIsChangingPassword(false);
       setShowPasswordConfirmModal(false);
@@ -284,7 +280,6 @@ export default function SettingsScreen() {
       Alert.alert(t('error'), errorMessage);
     }
   };
-
 
   const handleLogout = () => {
     setShowLogoutModal(true);

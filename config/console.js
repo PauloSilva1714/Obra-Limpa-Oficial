@@ -104,8 +104,6 @@ if (__DEV__) {
   };
 
   // Log de inicialização
-  console.log('🔧 Console configurado para desenvolvimento');
-  console.log('📱 Warnings de toque e Firebase suprimidos');
 }
 
 export default console;

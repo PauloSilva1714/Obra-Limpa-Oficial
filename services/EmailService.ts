@@ -3,8 +3,6 @@ import { getFunctions } from "firebase/functions";
 import { User } from './AuthService';
 import { functions } from '../config/firebase';
 
-console.log('Firebase connection is OK.');
-
 getFunctions(app, 'southamerica-east1');
 
 // URL da sua Cloud Function (v1) - a versão estável e correta
@@ -38,10 +36,7 @@ export const EmailService = {
         html: emailData.html || '', // Garante que html seja sempre uma string
       };
 
-      console.log('Enviando e-mail para:', finalPayload.to, 'com assunto:', finalPayload.subject);
       // Log do payload exato que será enviado
-      console.log('Payload FINAL a ser enviado:', JSON.stringify(finalPayload, null, 2));
-
 
       const response = await fetch(EMAIL_FUNCTION_URL, {
         method: 'POST',
@@ -65,7 +60,6 @@ export const EmailService = {
       }
 
       const responseData = await response.json();
-      console.log('E-mail enviado com sucesso!', responseData);
       return responseData;
     } catch (error) {
       console.error('Erro catastrófico na função sendEmail:', error);
@@ -195,9 +189,6 @@ export const EmailService = {
       deviceInfo?: string;
     }
   ): Promise<{ success: boolean; error?: string }> {
-    console.log('📧 EmailService.sendLoginConfirmation - Dados recebidos:');
-    console.log('User:', JSON.stringify(user, null, 2));
-    console.log('LoginData:', JSON.stringify(loginData, null, 2));
     
     if (user.notifications?.loginConfirmation === false) {
       return { success: true, error: 'User opted out of this notification.' };
@@ -207,10 +198,6 @@ export const EmailService = {
     const userName = user.name || 'Nome não fornecido';
     const userCompany = user.company || 'Não informada';
     
-    console.log('📧 Dados processados para o e-mail:');
-    console.log('- Nome:', userName);
-    console.log('- Empresa:', userCompany);
-    console.log('- Email:', user.email);
     
     return this.sendEmail({
       to: user.email,
@@ -342,8 +329,6 @@ export const EmailService = {
       inviteId: string;
     }
   ): Promise<{ success: boolean; error?: string }> {
-    console.log('--- EmailService.sendAdminInvite ---');
-    console.log('Dados recebidos:', JSON.stringify(inviteData, null, 2));
 
     // Determinar a URL base baseada no ambiente
     const baseUrl = typeof window !== 'undefined' 
@@ -459,8 +444,6 @@ export const EmailService = {
       `
     };
 
-    console.log('Payload a ser enviado para sendEmail:', JSON.stringify(emailPayload, null, 2));
-    
     return this.sendEmail(emailPayload);
   },
 

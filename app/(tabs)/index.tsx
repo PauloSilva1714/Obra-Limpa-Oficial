@@ -70,8 +70,6 @@ try {
 const suggestedEmojis: string[] = ['😀', '👍', '🙏', '👏', '🚀', '🔥'];
 
 export default function TasksScreen() {
-  console.log('[DEBUG] TasksScreen - Componente montado');
-  console.log('[DEBUG] params.filter:', useLocalSearchParams().filter);
   
   const { colors } = useTheme();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -122,42 +120,26 @@ export default function TasksScreen() {
     }
   }, [tasks]);
 
-  console.log('[DEBUG] TasksScreen - Estados iniciais:', { 
-    loading, 
-    refreshing, 
-    isInitialized, 
-    tasksLength: tasks.length,
-    filteredTasksLength: filteredTasks.length 
-  });
-
   useEffect(() => {
-    console.log('[DEBUG] useEffect de inicialização executado - isInitialized:', isInitialized);
     if (isInitialized) {
-      console.log('[DEBUG] Tela já inicializada, pulando...');
       return;
     }
 
     const initializeScreen = async () => {
       try {
-        console.log('[DEBUG] Iniciando inicialização da tela...');
-        console.log('[DEBUG] Estado atual - loading:', loading, 'refreshing:', refreshing);
         
         await loadTasks();
-        console.log('[DEBUG] Tarefas carregadas na inicialização');
         
         setIsInitialized(true);
-        console.log('[DEBUG] Tela inicializada com sucesso');
       } catch (error) {
         console.error('[DEBUG] Erro ao inicializar tela:', error);
         Alert.alert(t('error'), 'Erro ao inicializar tela de tarefas.');
       } finally {
         setLoading(false);
         setRefreshing(false);
-        console.log('[DEBUG] Estados de loading/resfreshing finalizados');
       }
     };
 
-    console.log('[DEBUG] Chamando initializeScreen...');
     initializeScreen();
   }, [isInitialized]);
 
@@ -178,9 +160,7 @@ export default function TasksScreen() {
   useEffect(() => {
     const loadCurrentUser = async () => {
       try {
-        console.log('[DEBUG] Carregando usuário atual...');
         const user = await AuthService.getCurrentUser();
-        console.log('[DEBUG] Usuário carregado:', user);
         setCurrentUser(user);
       } catch (error) {
         console.error('[DEBUG] Erro ao carregar usuário:', error);
@@ -224,9 +204,7 @@ export default function TasksScreen() {
 
   const loadTasks = async () => {
     try {
-      console.log('[DEBUG] Iniciando carregamento de tarefas...');
       const siteTasks = await taskService.getTasks();
-      console.log('[DEBUG] Tarefas carregadas:', siteTasks);
       setTasks(siteTasks);
       setFilteredTasks(siteTasks);
     } catch (error) {
@@ -262,13 +240,11 @@ export default function TasksScreen() {
   };
 
   const handleCreateTask = () => {
-    console.log('[DEBUG] handleCreateTask chamado');
     setSelectedTask(null);
     setModalVisible(true);
   };
 
   useEffect(() => {
-    console.log('[DEBUG] Estado modalVisible mudou:', modalVisible);
   }, [modalVisible]);
 
   const handleTaskSave = async (taskData: Partial<Task>) => {
@@ -472,7 +448,6 @@ export default function TasksScreen() {
   };
 
   const handleAddComment = async () => {
-    console.log('[DEBUG] handleAddComment chamado com:', { newComment, selectedTaskForComments, currentUser });
     
     if (!newComment.trim()) {
       console.error('[DEBUG] newComment vazio');
@@ -492,7 +467,6 @@ export default function TasksScreen() {
     }
 
     try {
-      console.log('[DEBUG] Criando comentário...');
       const comment: Comment = {
         id: Date.now().toString(),
         text: newComment.trim(),
@@ -500,16 +474,10 @@ export default function TasksScreen() {
         userName: currentUser.name,
         timestamp: new Date().toISOString(),
       };
-      
-      console.log('[DEBUG] Comentário criado:', comment);
-      console.log('[DEBUG] Adicionando comentário à tarefa:', selectedTaskForComments.id);
 
       await TaskService.addComment(selectedTaskForComments.id, comment);
-      console.log('[DEBUG] Comentário adicionado com sucesso');
       
-      console.log('[DEBUG] Recarregando tarefas...');
       await loadTasks();
-      console.log('[DEBUG] Tarefas recarregadas');
       
       setNewComment('');
       Alert.alert('Sucesso', 'Comentário adicionado!');
@@ -596,7 +564,6 @@ export default function TasksScreen() {
 
   // Função para adicionar comentário rápido
   const handleQuickAddComment = async (text: string) => {
-    console.log('[DEBUG] handleQuickAddComment chamado com:', { text, quickViewTask, currentUser });
     
     if (!quickViewTask) {
       console.error('[DEBUG] quickViewTask é null');
@@ -616,7 +583,6 @@ export default function TasksScreen() {
     }
     
     try {
-      console.log('[DEBUG] Criando comentário...');
       const comment: Comment = {
         id: Date.now().toString(),
         text,
@@ -624,16 +590,10 @@ export default function TasksScreen() {
         userName: currentUser.name,
         timestamp: new Date().toISOString(),
       };
-      
-      console.log('[DEBUG] Comentário criado:', comment);
-      console.log('[DEBUG] Adicionando comentário à tarefa:', quickViewTask.id);
-      
+
       await TaskService.addComment(quickViewTask.id, comment);
-      console.log('[DEBUG] Comentário adicionado com sucesso');
       
-      console.log('[DEBUG] Recarregando tarefas...');
       await loadTasks();
-      console.log('[DEBUG] Tarefas recarregadas');
       
       Alert.alert('Sucesso', 'Comentário adicionado!');
     } catch (error) {
@@ -663,7 +623,6 @@ export default function TasksScreen() {
     );
 
   if (loading) {
-    console.log('[DEBUG] Renderizando loading...');
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
@@ -673,7 +632,6 @@ export default function TasksScreen() {
     );
   }
 
-  console.log('[DEBUG] Renderizando tela principal - tasks:', tasks.length, 'filteredTasks:', filteredTasks.length);
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -795,10 +753,8 @@ export default function TasksScreen() {
           </View>
         }
         onLayout={() => {
-          console.log('[DEBUG] FlatList layout - filteredTasks:', filteredTasks.length, 'loading:', loading, 'isSearching:', isSearching);
         }}
         onEndReached={() => {
-          console.log('[DEBUG] FlatList end reached');
         }}
         onEndReachedThreshold={0.1}
       />

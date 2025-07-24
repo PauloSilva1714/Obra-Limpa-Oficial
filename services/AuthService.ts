@@ -132,7 +132,6 @@ export class AuthService {
     return new Promise((resolve) => {
       // Timeout de 10 segundos para evitar espera infinita
       const timeout = setTimeout(() => {
-        console.log('[AuthService] Timeout ao aguardar Firebase Auth, usando estado atual');
         resolve(auth.currentUser);
       }, 10000);
 
@@ -175,17 +174,13 @@ export class AuthService {
 
   static async getCurrentSite(): Promise<Site | null> {
     try {
-      console.log('[AuthService] Buscando obra atual...');
       const siteData = await AsyncStorage.getItem(AuthService.SITE_KEY);
-      console.log('[AuthService] Dados da obra do AsyncStorage:', siteData);
       
       if (!siteData) {
-        console.log('[AuthService] Nenhuma obra encontrada no AsyncStorage');
         return null;
       }
       
       const parsedSite = JSON.parse(siteData);
-      console.log('[AuthService] Obra parseada:', parsedSite);
       
       if (!parsedSite || typeof parsedSite !== 'object') {
         console.error('[AuthService] Dados da obra inválidos (não é objeto)');
@@ -197,7 +192,6 @@ export class AuthService {
         return null;
       }
       
-      console.log('[AuthService] Obra válida encontrada:', parsedSite);
       return parsedSite;
     } catch (error) {
       console.error('[AuthService] Erro ao buscar obra atual:', error);
@@ -273,18 +267,12 @@ export class AuthService {
 
         // SINCRONIZAR photoURL DO FIREBASE AUTH
         const firebasePhotoURL = userCredential.user.photoURL;
-        console.log('[AuthService] Firebase Auth photoURL durante login:', firebasePhotoURL);
-        console.log('[AuthService] Firestore photoURL:', userData.photoURL);
-        console.log('[AuthService] Firebase User completo:', JSON.stringify(userCredential.user, null, 2));
         
         if (firebasePhotoURL && firebasePhotoURL !== userData.photoURL) {
-          console.log('[AuthService] Sincronizando photoURL do Firebase Auth para Firestore...');
           await updateDoc(doc(db, 'users', userData.id), { photoURL: firebasePhotoURL });
           userData.photoURL = firebasePhotoURL;
         } else if (!firebasePhotoURL && userData.photoURL) {
-          console.log('[AuthService] Firebase Auth não tem photoURL, mantendo do Firestore');
         } else {
-          console.log('[AuthService] Nenhuma sincronização de photoURL necessária durante login');
         }
 
         // CORRIGIR NOME AUTOMATICAMENTE SE FOR 'Usuário'
@@ -408,11 +396,8 @@ export class AuthService {
 
       // Verificar se o usuário já existe como admin
       if (userData.role === 'admin') {
-        console.log('[AuthService] Verificando admin duplicado para:', userData.email);
         const existingUser = await AuthService.getUserByEmail(userData.email);
-        console.log('[AuthService] Usuário existente encontrado:', existingUser);
         if (existingUser && existingUser.role === 'admin') {
-          console.log('[AuthService] Admin duplicado detectado!');
           throw new Error('DUPLICATE_ADMIN: Este email já está cadastrado como administrador no sistema');
         }
       }
@@ -508,7 +493,6 @@ export class AuthService {
         !cleanUserData.inviteId &&
         !siteId
       ) {
-        console.log('🏗️ Verificando obra duplicada antes de criar...');
         
         // Verificar se já existe uma obra com nome exato
         const sitesQuery = query(
@@ -519,7 +503,6 @@ export class AuthService {
 
         if (!existingSites.empty) {
           const existingSite = existingSites.docs[0];
-          console.log('[AuthService] Obra existente encontrada:', existingSite.data().name);
           
           // Deletar o usuário criado
           await deleteDoc(doc(db, 'users', user.id));
@@ -528,7 +511,6 @@ export class AuthService {
         }
         
         // Verificar se já existe uma obra com nome similar
-        console.log('[AuthService] Verificando obra duplicada para:', cleanUserData.siteName);
         const similarSitesQuery = query(
           collection(db, 'sites'),
           where('name', '>=', cleanUserData.siteName),
@@ -536,22 +518,17 @@ export class AuthService {
         );
         const similarSites = await getDocs(similarSitesQuery);
         
-        console.log('[AuthService] Obras similares encontradas:', similarSites.size);
         similarSites.docs.forEach((doc, index) => {
           const site = doc.data();
-          console.log(`[AuthService] Obra ${index + 1}:`, site.name);
         });
         
         if (!similarSites.empty) {
-          console.log('[AuthService] Obra duplicada detectada!');
           // Deletar o usuário criado
           await deleteDoc(doc(db, 'users', user.id));
           await deleteUser(auth.currentUser!);
           throw new Error('DUPLICATE_SITE: Já existe uma obra com este nome no sistema');
         }
-        
-        console.log('[AuthService] Nenhuma obra duplicada encontrada, criando nova obra...');
-        
+
         // Criar nova obra
         const siteRef = doc(collection(db, 'sites'));
         siteId = siteRef.id;
@@ -720,14 +697,11 @@ export class AuthService {
 
       // Verificar se usuário já existe e tem acesso à obra
       const existingUser = await AuthService.getUserByEmail(email);
-      console.log('[AuthService] Verificando usuário existente para convite de colaborador:', existingUser);
       if (existingUser) {
         if (existingUser.sites?.includes(siteId)) {
-          console.log('[AuthService] Usuário já tem acesso à obra');
           throw new Error('DUPLICATE_WORKER: Este usuário já tem acesso a esta obra');
         }
         // Removido o bloqueio de usuário já cadastrado - agora pode ser convidado para nova obra
-        console.log('[AuthService] Usuário já cadastrado, mas pode ser convidado para nova obra');
       }
 
       const site = await AuthService.getSiteById(siteId);
@@ -755,7 +729,6 @@ export class AuthService {
           invitedBy: currentUser.name,
           inviteId: invite.id,
         });
-        console.log('Email de convite de colaborador enviado com sucesso');
       } catch (emailError) {
         console.warn('⚠️ Erro ao enviar e-mail, mas convite foi criado:', emailError);
         // Não falhar o processo, apenas avisar
@@ -1219,7 +1192,6 @@ export class AuthService {
       await updatePassword(currentUser, newPassword);
       
       // Registrar a alteração de senha no console para debug
-      console.log('[AuthService] Senha alterada com sucesso para o usuário:', currentUser.email);
       
       // Atualizar o perfil do usuário no Firebase Auth para garantir que a alteração seja persistida
       await updateProfile(currentUser, {
@@ -1289,14 +1261,11 @@ export class AuthService {
       }
 
       const existingUser = await AuthService.getUserByEmail(email);
-      console.log('[AuthService] Verificando usuário existente:', existingUser);
       if (existingUser) {
         if (existingUser.sites?.includes(siteId)) {
-          console.log('[AuthService] Usuário já tem acesso à obra');
           throw new Error('DUPLICATE_ADMIN: Este usuário já tem acesso a esta obra');
         }
         // Removido o bloqueio de admin já cadastrado - agora pode ser convidado para nova obra
-        console.log('[AuthService] Usuário já cadastrado, mas pode ser convidado para nova obra');
       }
 
       const site = await AuthService.getSiteById(siteId);
@@ -1316,7 +1285,6 @@ export class AuthService {
       };
 
       await setDoc(doc(db, 'invites', invite.id), invite);
-      console.log('Convite salvo no Firestore com ID:', invite.id);
 
       try {
         const emailResult = await EmailService.sendAdminInvite({
@@ -1330,7 +1298,6 @@ export class AuthService {
           console.warn('⚠️ E-mail não pôde ser enviado, mas convite foi criado:', emailResult.error);
           // Não falhar o processo, apenas avisar
         } else {
-          console.log('Email de convite de administrador enviado com sucesso');
         }
       } catch (emailError) {
         console.warn('⚠️ Erro ao enviar e-mail, mas convite foi criado:', emailError);
@@ -1969,13 +1936,7 @@ export class AuthService {
       
       if (userData) {
         const user = JSON.parse(userData);
-        console.log('Usuário parseado:', user);
-        console.log('Role:', user.role);
-        console.log('Tipo do role:', typeof user.role);
-        console.log('Email:', user.email);
-        console.log('Nome:', user.name);
       } else {
-        console.log('Nenhum dado encontrado no AsyncStorage');
       }
     } catch (error) {
     }
@@ -2007,7 +1968,6 @@ export class AuthService {
         photoURL: photoURL
       });
 
-      console.log('[AuthService] photoURL sincronizado para Firebase Auth:', photoURL);
     } catch (error) {
       console.error('[AuthService] Erro ao sincronizar photoURL para Firebase Auth:', error);
       throw error;
@@ -2034,7 +1994,6 @@ export class AuthService {
   // Novo método para buscar colaboradores de uma obra
   static async getWorkersBySite(siteId: string): Promise<User[]> {
     try {
-      console.log('[AuthService] Buscando colaboradores para siteId:', siteId);
       
       // Primeiro, vamos tentar buscar todos os usuários com role 'worker'
       const workersQuery = query(
@@ -2042,18 +2001,11 @@ export class AuthService {
         where('role', '==', 'worker')
       );
       const workersSnapshot = await getDocs(workersQuery);
-      console.log('[AuthService] Total de workers encontrados:', workersSnapshot.docs.length);
       
       // Log dos workers encontrados
       workersSnapshot.docs.forEach(doc => {
         const data = doc.data();
-        console.log('[AuthService] Worker encontrado:', {
-          id: doc.id,
-          name: data.name,
-          email: data.email,
-          sites: data.sites,
-          siteId: data.siteId
-        });
+
       });
       
       // Agora vamos filtrar por site
@@ -2063,10 +2015,8 @@ export class AuthService {
         where('sites', 'array-contains', siteId)
       );
       const snapshot = await getDocs(usersQuery);
-      console.log('[AuthService] Workers filtrados por site:', snapshot.docs.length);
       
       const workers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-      console.log('[AuthService] Workers retornados:', workers);
       
       return workers;
     } catch (error) {

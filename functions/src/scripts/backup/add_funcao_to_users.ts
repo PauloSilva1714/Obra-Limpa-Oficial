@@ -13,10 +13,8 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 async function addFuncaoToUsers() {
-  console.log('🔍 Iniciando verificação e atualização do campo funcao...');
   
   const usersSnapshot = await db.collection('users').get();
-  console.log(`📊 Total de usuários encontrados: ${usersSnapshot.docs.length}`);
 
   let updatedCount = 0;
   let skippedCount = 0;
@@ -26,7 +24,6 @@ async function addFuncaoToUsers() {
     
     // Verificar se o campo funcao já existe
     if (userData.funcao !== undefined) {
-      console.log(`⏭️ Usuário ${userData.name} (${doc.id}) já possui funcao: "${userData.funcao}"`);
       skippedCount++;
       continue;
     }
@@ -41,19 +38,13 @@ async function addFuncaoToUsers() {
     }
 
     await doc.ref.update({ funcao });
-    console.log(`✅ Usuário ${userData.name} (${doc.id}) atualizado com funcao: "${funcao}"`);
     updatedCount++;
   }
 
-  console.log('\n📈 Resumo da operação:');
-  console.log(`✅ Usuários atualizados: ${updatedCount}`);
-  console.log(`⏭️ Usuários ignorados (já possuem funcao): ${skippedCount}`);
-  console.log(`📊 Total processado: ${usersSnapshot.docs.length}`);
 }
 
 addFuncaoToUsers()
   .then(() => {
-    console.log('\n🎉 Operação concluída com sucesso!');
     process.exit(0);
   })
   .catch((err) => {

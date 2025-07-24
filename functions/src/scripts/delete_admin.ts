@@ -20,7 +20,6 @@ interface User {
 
 export async function deleteAdmin(adminUserId: string, deletedBy: string, reason?: string) {
   try {
-    console.log(`[DELETE_ADMIN] Iniciando exclusão do admin: ${adminUserId}`);
     
     // 1. Verificar se o usuário existe e é admin
     const userRef = db.collection('users').doc(adminUserId);
@@ -36,7 +35,6 @@ export async function deleteAdmin(adminUserId: string, deletedBy: string, reason
       throw new Error('Usuário não é administrador');
     }
     
-    console.log(`[DELETE_ADMIN] Admin encontrado: ${userData.name} (${userData.email})`);
     
     // 2. Verificar se quem está deletando é admin
     const deleterRef = db.collection('users').doc(deletedBy);
@@ -54,7 +52,6 @@ export async function deleteAdmin(adminUserId: string, deletedBy: string, reason
     
     // 3. Verificar se não está tentando deletar a si mesmo
     if (adminUserId === deletedBy) {
-      console.log(`[DELETE_ADMIN] Admin deletando a si mesmo: ${userData.name}`);
     }
     
     // 4. Verificar se existem outros admins ativos (apenas se não for auto-deleção)
@@ -67,7 +64,6 @@ export async function deleteAdmin(adminUserId: string, deletedBy: string, reason
       }
     }
     
-    console.log(`[DELETE_ADMIN] Verificações de segurança aprovadas`);
     
     // 5. Fechar sessões de chat do admin
     const chatSessionsRef = db.collection('adminChatSessions');
@@ -84,12 +80,10 @@ export async function deleteAdmin(adminUserId: string, deletedBy: string, reason
       });
     }
     
-    console.log(`[DELETE_ADMIN] ${chatSessions.docs.length} sessões de chat fechadas`);
     
     // 6. Deletar o admin
     await userRef.delete();
     
-    console.log(`[DELETE_ADMIN] Admin deletado com sucesso`);
     
     // 7. Log da ação
     await db.collection('adminActions').add({
@@ -104,7 +98,6 @@ export async function deleteAdmin(adminUserId: string, deletedBy: string, reason
       isSelfDeletion: adminUserId === deletedBy
     });
     
-    console.log(`[DELETE_ADMIN] Log de ação criado`);
     
     // 8. Contar admins restantes (se não for auto-deleção)
     let remainingAdmins = 0;
@@ -172,17 +165,11 @@ if (require.main === module) {
   const reason = process.argv[4];
   
   if (!adminUserId || !deletedBy) {
-    console.log('Uso: npm run delete-admin <admin-user-id> <deleted-by-user-id> [reason]');
-    console.log('');
-    console.log('Exemplos:');
-    console.log('  npm run delete-admin user123 user456 "Admin desligado da empresa"');
-    console.log('  npm run delete-admin user123 user123 "Auto-deleção"');
     process.exit(1);
   }
   
   deleteAdmin(adminUserId, deletedBy, reason)
     .then(result => {
-      console.log('✅ Sucesso:', result);
       process.exit(0);
     })
     .catch(error => {
