@@ -25,7 +25,6 @@ import { uploadImageAsync } from '../services/PhotoService';
 // import { Video, ResizeMode } from 'expo-video';
 // import { Audio } from 'expo-audio';
 // import type { Video as ExpoVideoType } from 'expo-video';
-import { PDFService } from '../services/PDFService';
 import { Picker } from '@react-native-picker/picker';
 import { CustomMultiSelect } from './CustomMultiSelect';
 import { shadows } from '../utils/shadowUtils';
@@ -69,7 +68,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const [carrosselVideoStatus, setCarrosselVideoStatus] = useState({});
   const [shouldPlayCarrosselVideo, setShouldPlayCarrosselVideo] = useState(false);
   const carrosselVideoRef = useRef<any | null>(null);
-  const [pdfLoading, setPdfLoading] = useState(false);
   const [workers, setWorkers] = useState<any[]>([]);
   const [company, setCompany] = useState('');
   const [customAssignee, setCustomAssignee] = useState('');
@@ -650,18 +648,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     }
   };
 
-  const handleSharePDF = async () => {
-    if (!task) return;
-    setPdfLoading(true);
-    try {
-      await PDFService.shareTaskPDF(task);
-    } catch (e) {
-      Alert.alert('Erro', 'Erro ao compartilhar PDF.');
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
   const statusMap: { [key: string]: string } = {
     pending: 'Pendente',
     in_progress: 'Em andamento',
@@ -672,34 +658,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     high: 'Alta',
     medium: 'Média',
     low: 'Baixa'
-  };
-
-  const handleShareWhatsApp = async () => {
-    if (!task) return;
-    const msg = `Tarefa: ${task.title}\nDescrição: ${task.description || '-'}\nStatus: ${statusMap[task.status] || task.status}\nPrioridade: ${priorityMap[task.priority] || task.priority}\nResponsáveis: ${selectedAssignees.map(a => workers.find(w => w.id === a)?.name || a).join(', ')}\nÁrea: ${task.area || '-'}\nData de Criação: ${task.createdAt}`;
-    if (Platform.OS === 'web') {
-      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-      Linking.openURL(url);
-    } else {
-      if (!task.photos || task.photos.length === 0) {
-        Alert.alert('Aviso', 'Esta tarefa não possui imagem para compartilhar.');
-        return;
-      }
-      try {
-        // Importação dinâmica para evitar erro no web
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const Share = require('react-native-share').default;
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const Social = require('react-native-share').Social;
-        await Share.shareSingle({
-          url: task.photos[0],
-          message: msg,
-          social: Social.Whatsapp,
-        });
-      } catch (error) {
-        // Usuário cancelou ou erro
-      }
-    }
   };
 
   // 1. Checagem de null para 'task' (exemplo no início do bloco de detalhes):
@@ -844,17 +802,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Risco</Text>
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{getPriorityText(task.priority)}</Text>
             </View>
-            {/* Botão Compartilhar PDF */}
-            {Platform.OS !== 'web' && (
-              <TouchableOpacity style={styles.pdfButton} onPress={handleSharePDF} disabled={pdfLoading}>
-                <Text style={styles.pdfButtonText}>{pdfLoading ? 'Gerando PDF...' : 'Compartilhar PDF da Tarefa'}</Text>
-              </TouchableOpacity>
-            )}
-            {task && task.photos && task.photos.length > 0 && (
-              <TouchableOpacity style={[styles.pdfButton, { backgroundColor: '#25D366', marginTop: 8 }]} onPress={handleShareWhatsApp}>
-                <Text style={[styles.pdfButtonText, { color: '#fff' }]}>Compartilhar no WhatsApp</Text>
-              </TouchableOpacity>
-            )}
+
             {/* Painel de comentários dentro do ScrollView */}
             {isEditing && (
               <View style={{
@@ -2170,19 +2118,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  pdfButton: {
-    backgroundColor: '#F97316',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  pdfButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
+
   // Estilos para seções com shadow
   sectionContainer: {
     backgroundColor: '#fff',

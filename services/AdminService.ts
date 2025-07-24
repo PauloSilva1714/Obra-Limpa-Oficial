@@ -21,7 +21,7 @@ import {
 } from 'firebase/firestore';
 import { AuthService, User, Site } from './AuthService';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/config/firebase';
+import { functions } from '../config/firebase';
 
 export interface AdminMessage {
   id: string;

@@ -42,19 +42,28 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import taskService, { Task, Comment, TaskService } from '@/services/TaskService';
-import { AuthService } from '@/services/AuthService';
-import { EmailService } from '@/services/EmailService';
-import { TaskModal } from '@/components/TaskModal';
-import { useTheme } from '@/contexts/ThemeContext';
-import { t } from '@/config/i18n';
-import { Video, ResizeMode } from 'expo-video';
-import { TaskQuickView } from '@/components/TaskQuickView';
-import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { TaskFeedCard } from '@/components/TaskFeedCard';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
-import { useSite } from '@/contexts/SiteContext';
+import taskService, { Task, Comment, TaskService } from '../../services/TaskService';
+import { AuthService } from '../../services/AuthService';
+import { EmailService } from '../../services/EmailService';
+import { TaskModal } from '../../components/TaskModal';
+import { useTheme } from '../../contexts/ThemeContext';
+import { t } from '../../config/i18n';
+import { TaskQuickView } from '../../components/TaskQuickView';
+import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { TaskFeedCard } from '../../components/TaskFeedCard';
+import { ConnectionStatus } from '../../components/ConnectionStatus';
+import { useSite } from '../../contexts/SiteContext';
 import { useLocalSearchParams } from 'expo-router';
+
+// Conditional import for Video and ResizeMode to avoid import errors
+let Video: any, ResizeMode: any;
+try {
+  ({ Video, ResizeMode } = require('expo-video'));
+} catch (error) {
+  // Fallback if expo-video is not available
+  Video = null;
+  ResizeMode = null;
+}
 
 // Declarar a lista de emojis sugeridos antes do componente principal
 const suggestedEmojis: string[] = ['😀', '👍', '🙏', '👏', '🚀', '🔥'];
@@ -283,21 +292,21 @@ export default function TasksScreen() {
           changes.push(`Designado de "${selectedTask.assignedTo}" para "${taskData.assignedTo}"`);
         }
         if (taskData.status && taskData.status !== selectedTask.status) {
-          const statusText = {
+          const statusText: Record<string, string> = {
             'pending': t('pending'),
             'in_progress': t('inProgress'),
             'completed': t('completed'),
             'delayed': t('delayed'),
-          }[taskData.status] || taskData.status;
-          changes.push(`Status alterado para "${statusText}"`);
+          };
+          changes.push(`Status alterado para "${statusText[taskData.status] || taskData.status}"`);
         }
         if (taskData.priority && taskData.priority !== selectedTask.priority) {
-          const priorityText = {
+          const priorityText: Record<string, string> = {
             'high': t('high'),
             'medium': t('medium'),
             'low': t('low')
-          }[taskData.priority] || taskData.priority;
-          changes.push(`Prioridade alterada para "${priorityText}"`);
+          };
+          changes.push(`Prioridade alterada para "${priorityText[taskData.priority] || taskData.priority}"`);
         }
 
         if (changes.length > 0) {
@@ -358,6 +367,12 @@ export default function TasksScreen() {
     } catch (error) {
       Alert.alert(t('error'), 'Erro ao excluir tarefa.');
     }
+  };
+
+  // Nova função para abrir o modal de confirmação
+  const openDeleteModal = (taskId: string) => {
+    setTaskToDelete(taskId);
+    setDeleteModalVisible(true);
   };
 
   const confirmDelete = async () => {
@@ -641,7 +656,7 @@ export default function TasksScreen() {
       onTaskPress={handleTaskPress}
       onTaskDetails={handleTaskDetails}
       onOpenComments={handleOpenComments}
-      onDeleteTask={handleDeleteTask}
+      onDeleteTask={openDeleteModal}
       onEditTask={handleEditTask}
     />
     );

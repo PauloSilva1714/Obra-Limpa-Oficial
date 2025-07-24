@@ -16,11 +16,10 @@ const FAQ = [
   { q: 'Como receber notificações de novas tarefas?', a: 'Certifique-se de que as notificações estão ativadas em Perfil > Privacidade > Notificações.' },
   { q: 'Como alterar meus dados cadastrais?', a: 'Vá em Perfil, clique no campo que deseja alterar (nome, foto, e-mail) e salve as alterações.' },
   { q: 'Como excluir minha conta?', a: 'Vá em Perfil > Privacidade > Excluir conta. Confirme a exclusão no modal de confirmação.' },
-  { q: 'Como relatar um problema ou sugerir uma melhoria?', a: 'Entre em contato pelo e-mail suporte@obralimpa.com ou pelo WhatsApp disponível na tela de suporte.' },
+  { q: 'Como relatar um problema ou sugerir uma melhoria?', a: 'Entre em contato pelo e-mail suporte@obralimpa.com.' },
   { q: 'Como visualizar o histórico de tarefas concluídas?', a: 'Acesse a aba Progresso e filtre por tarefas concluídas.' },
   { q: 'Como sair do aplicativo?', a: 'Vá em Perfil e clique em “Sair”.' },
   // Perguntas ocultas (só aparecem na busca):
-  { q: 'Como exportar relatórios em PDF?', a: 'Acesse Admin > Relatórios e clique em Exportar PDF.', hidden: true },
   { q: 'Como alterar permissões de um colaborador?', a: 'Acesse Admin > Gerenciar Colaboradores, selecione o colaborador e ajuste as permissões.', hidden: true },
   { q: 'Como restaurar uma tarefa excluída?', a: 'Entre em contato com o suporte para restaurar tarefas excluídas.', hidden: true },
 ];
