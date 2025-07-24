@@ -26,12 +26,18 @@ import {
   Loader,
   RefreshCw,
   MessageCircle,
+  X,
+  CheckCircle,
+  Clock,
+  Play,
+  AlertTriangle,
 } from 'lucide-react-native';
-import { AuthService, User, Site } from '@/services/AuthService';
-import { AdminService } from '@/services/AdminService';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useSite } from '@/contexts/SiteContext';
-import { t } from '@/config/i18n';
+import { AuthService, User, Site } from '../../services/AuthService';
+import { AdminService } from '../../services/AdminService';
+import { TaskService, Task } from '../../services/TaskService';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useSite } from '../../contexts/SiteContext';
+import { t } from '../../config/i18n';
 import logo from '../(auth)/obra-limpa-logo.png';
 
 interface AdminStats {
@@ -60,6 +66,12 @@ export default function AdminScreen() {
   const [sitesModalVisible, setSitesModalVisible] = useState(false);
   const [sites, setSites] = useState<Site[]>([]);
   const [loadingSites, setLoadingSites] = useState(false);
+  const [completedTasksModalVisible, setCompletedTasksModalVisible] = useState(false);
+  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [loadingCompletedTasks, setLoadingCompletedTasks] = useState(false);
+  const [allTasksModalVisible, setAllTasksModalVisible] = useState(false);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [loadingAllTasks, setLoadingAllTasks] = useState(false);
   const { currentSite, setCurrentSite } = useSite();
 
 
@@ -103,8 +115,8 @@ export default function AdminScreen() {
       const siteAdmins = await AuthService.getAdminsBySite(currentSite.id);
       let workers = siteWorkers.concat(siteAdmins);
       // Remover duplicados
-      const uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
-      const activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
+      const uniqueWorkers = Array.from(new Map(workers.map((w: User) => [w.id, w])).values());
+      const activeWorkers = uniqueWorkers.filter((w: User) => w.status === 'active');
       setTotalWorkers(activeWorkers.length);
     } catch {
       setTotalWorkers(0);
@@ -122,12 +134,12 @@ export default function AdminScreen() {
         const siteAdmins = await AuthService.getAdminsBySite(currentSite.id);
         let workers = siteWorkers.concat(siteAdmins);
         // Remover duplicados
-        let uniqueWorkers = Array.from(new Map(workers.map(w => [w.id, w])).values());
-        let activeWorkers = uniqueWorkers.filter(w => w.status === 'active');
+        let uniqueWorkers = Array.from(new Map(workers.map((w: User) => [w.id, w])).values());
+        let activeWorkers = uniqueWorkers.filter((w: User) => w.status === 'active');
         const currentUser = await AuthService.getCurrentUser();
         if (currentUser && currentUser.role === 'admin' && currentUser.status === 'active') {
           // Remove se já existe
-          activeWorkers = activeWorkers.filter(w => w.id !== currentUser.id);
+          activeWorkers = activeWorkers.filter((w: User) => w.id !== currentUser.id);
           // Adiciona no topo
           activeWorkers = [currentUser, ...activeWorkers];
         }
@@ -151,6 +163,75 @@ export default function AdminScreen() {
       Alert.alert('Erro', 'Não foi possível carregar as obras.');
     } finally {
       setLoadingSites(false);
+    }
+  };
+
+  const openCompletedTasksModal = async () => {
+    setLoadingCompletedTasks(true);
+    setCompletedTasksModalVisible(true);
+    try {
+      const allTasks = await TaskService.getTasks();
+      const completed = allTasks.filter((task: Task) => task.status === 'completed');
+      setCompletedTasks(completed);
+    } catch (e) {
+      setCompletedTasks([]);
+      Alert.alert('Erro', 'Não foi possível carregar as tarefas concluídas.');
+    } finally {
+      setLoadingCompletedTasks(false);
+    }
+  };
+
+  const openAllTasksModal = async () => {
+    setLoadingAllTasks(true);
+    setAllTasksModalVisible(true);
+    try {
+      const tasks = await TaskService.getTasks();
+      setAllTasks(tasks);
+    } catch (e) {
+      setAllTasks([]);
+      Alert.alert('Erro', 'Não foi possível carregar as tarefas.');
+    } finally {
+      setLoadingAllTasks(false);
+    }
+  };
+
+  const getTaskStatusInfo = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return {
+          icon: <Clock size={20} color={colors.warning} />,
+          color: colors.warning,
+          label: 'Pendente',
+          bgColor: colors.warning + '15'
+        };
+      case 'in_progress':
+        return {
+          icon: <Play size={20} color={colors.accent} />,
+          color: colors.accent,
+          label: 'Em andamento',
+          bgColor: colors.accent + '15'
+        };
+      case 'completed':
+        return {
+          icon: <CheckCircle size={20} color={colors.success} />,
+          color: colors.success,
+          label: 'Concluída',
+          bgColor: colors.success + '15'
+        };
+      case 'delayed':
+        return {
+          icon: <AlertTriangle size={20} color={colors.error} />,
+          color: colors.error,
+          label: 'Atrasada',
+          bgColor: colors.error + '15'
+        };
+      default:
+        return {
+          icon: <Clock size={20} color={colors.textMuted} />,
+          color: colors.textMuted,
+          label: 'Indefinido',
+          bgColor: colors.textMuted + '15'
+        };
     }
   };
 
@@ -293,14 +374,14 @@ export default function AdminScreen() {
               value={stats.totalTasks}
               icon={<FileText size={20} color={colors.accent} />}
               color={colors.accent}
-              onPress={() => Alert.alert('Tarefas', 'Você clicou no card de Tarefas!')}
+              onPress={openAllTasksModal}
             />
             <StatCard
               title="Concluídas"
               value={stats.completedTasks}
               icon={<BarChart3 size={20} color={colors.warning} />}
               color={colors.warning}
-              onPress={() => Alert.alert('Concluídas', 'Você clicou no card de Concluídas!')}
+              onPress={openCompletedTasksModal}
             />
           </View>
         </View>
@@ -440,6 +521,230 @@ export default function AdminScreen() {
             <TouchableOpacity onPress={() => setSitesModalVisible(false)} style={{ marginTop: 20, alignSelf: 'center' }}>
               <Text style={{ color: colors.primary, fontSize: 16 }}>Fechar</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de Tarefas Concluídas */}
+      <Modal
+        visible={completedTasksModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCompletedTasksModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: '90%', maxHeight: '80%', backgroundColor: colors.surface, borderRadius: 16, padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text }}>Tarefas Concluídas</Text>
+              <TouchableOpacity onPress={() => setCompletedTasksModalVisible(false)}>
+                <X size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            {loadingCompletedTasks ? (
+              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                <Loader size={32} color={colors.primary} />
+                <Text style={{ color: colors.text, marginTop: 10 }}>Carregando tarefas...</Text>
+              </View>
+            ) : completedTasks.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <CheckCircle size={48} color={colors.textMuted} />
+                <Text style={{ color: colors.textSecondary, fontSize: 16, marginTop: 10 }}>Nenhuma tarefa concluída encontrada.</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={completedTasks}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <View style={{ 
+                    backgroundColor: colors.background, 
+                    borderRadius: 12, 
+                    padding: 16, 
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: colors.success
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <CheckCircle size={20} color={colors.success} style={{ marginRight: 8 }} />
+                      <Text style={{ fontWeight: 'bold', fontSize: 16, color: colors.text, flex: 1 }}>
+                        {item.title}
+                      </Text>
+                    </View>
+                    {item.description && (
+                      <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 8 }}>
+                        {item.description}
+                      </Text>
+                    )}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {item.area && (
+                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                          Área: {item.area}
+                        </Text>
+                      )}
+                      {item.completedAt && (
+                        <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                          Concluída em: {new Date(item.completedAt).toLocaleDateString('pt-BR')}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                )}
+                style={{ maxHeight: 400 }}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para Todas as Tarefas */}
+      <Modal
+        visible={allTasksModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setAllTasksModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: colors.surface }}>
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            padding: 20, 
+            borderBottomWidth: 1, 
+            borderBottomColor: colors.border 
+          }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text }}>
+              Todas as Tarefas
+            </Text>
+            <TouchableOpacity onPress={() => setAllTasksModalVisible(false)}>
+              <X size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1, padding: 20 }}>
+            {loadingAllTasks ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Loader size={32} color={colors.primary} className="animate-spin" />
+                <Text style={{ marginTop: 16, color: colors.textSecondary }}>
+                  Carregando tarefas...
+                </Text>
+              </View>
+            ) : allTasks.length === 0 ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <FileText size={48} color={colors.textMuted} />
+                <Text style={{ 
+                  fontSize: 18, 
+                  fontWeight: 'bold', 
+                  color: colors.text, 
+                  marginTop: 16, 
+                  marginBottom: 8 
+                }}>
+                  Nenhuma tarefa encontrada
+                </Text>
+                <Text style={{ color: colors.textSecondary, textAlign: 'center' }}>
+                  Não há tarefas criadas ainda.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={allTasks}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => {
+                  const statusInfo = getTaskStatusInfo(item.status);
+                  return (
+                    <View style={{ 
+                      backgroundColor: colors.background, 
+                      borderRadius: 12, 
+                      padding: 16, 
+                      marginBottom: 12,
+                      borderLeftWidth: 4,
+                      borderLeftColor: statusInfo.color,
+                      ...(item.status === 'delayed' && {
+                        backgroundColor: colors.error + '10',
+                        borderColor: colors.error,
+                        borderWidth: 1
+                      })
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        {statusInfo.icon}
+                        <Text style={{ 
+                          fontWeight: 'bold', 
+                          fontSize: 16, 
+                          color: item.status === 'delayed' ? colors.error : colors.text, 
+                          flex: 1, 
+                          marginLeft: 8 
+                        }}>
+                          {item.title}
+                        </Text>
+                        <View style={{
+                          backgroundColor: statusInfo.bgColor,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: statusInfo.color + '30'
+                        }}>
+                          <Text style={{ 
+                            color: statusInfo.color, 
+                            fontSize: 12, 
+                            fontWeight: '600' 
+                          }}>
+                            {statusInfo.label}
+                          </Text>
+                        </View>
+                      </View>
+                      {item.description && (
+                        <Text style={{ 
+                          color: item.status === 'delayed' ? colors.error : colors.textSecondary, 
+                          fontSize: 14, 
+                          marginBottom: 8 
+                        }}>
+                          {item.description}
+                        </Text>
+                      )}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        {item.area && (
+                          <Text style={{ 
+                            color: item.status === 'delayed' ? colors.error : colors.textMuted, 
+                            fontSize: 12 
+                          }}>
+                            Área: {item.area}
+                          </Text>
+                        )}
+                        {item.dueDate && (
+                          <Text style={{ 
+                            color: item.status === 'delayed' ? colors.error : colors.textMuted, 
+                            fontSize: 12 
+                          }}>
+                            Prazo: {new Date(item.dueDate).toLocaleDateString('pt-BR')}
+                          </Text>
+                        )}
+                      </View>
+                      {item.status === 'delayed' && (
+                        <View style={{ 
+                          flexDirection: 'row', 
+                          alignItems: 'center', 
+                          marginTop: 8, 
+                          padding: 8, 
+                          backgroundColor: colors.error + '15', 
+                          borderRadius: 8 
+                        }}>
+                          <AlertTriangle size={16} color={colors.error} />
+                          <Text style={{ 
+                            color: colors.error, 
+                            fontSize: 12, 
+                            fontWeight: '600', 
+                            marginLeft: 4 
+                          }}>
+                            Esta tarefa está atrasada
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                }}
+                style={{ maxHeight: 400 }}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
           </View>
         </View>
       </Modal>
