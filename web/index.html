@@ -132,7 +132,208 @@
       .css-view-g5y9jx.r-touchAction-1otgn73.r-alignItems-1awozwy.r-flexDirection-18u37iz.r-justifyContent-1777fci.r-padding-1uu6nss {
         display: none !important;
       }
+      
+      /* ===== BLOQUEIO COMPLETO DO GOOGLE TRANSLATE ===== */
+      /* Remove a barra de tradução do Google que aparece automaticamente */
+      #google_translate_element,
+      .goog-te-banner-frame,
+      .goog-te-menu-frame,
+      .goog-te-ftab-frame,
+      .goog-te-balloon-frame,
+      .goog-te-combo,
+      .goog-te-gadget,
+      .goog-te-gadget-simple,
+      .goog-te-gadget-icon,
+      .goog-te-spinner-pos,
+      .goog-te-spinner,
+      .skiptranslate,
+      .VIpgJd-ZVi9od-ORHb-OEVmcd,
+      .VIpgJd-ZVi9od-xl07Ob-OEVmcd,
+      .VIpgJd-ZVi9od-ORHb,
+      .VIpgJd-ZVi9od-xl07Ob,
+      .VIpgJd-ZVi9od-aZ2wEe-OEVmcd,
+      .VIpgJd-ZVi9od-aZ2wEe,
+      .VIpgJd-ZVi9od-l4eHX-hSRGPd,
+      .VIpgJd-ZVi9od-l4eHX,
+      .VIpgJd-ZVi9od-ORHb-OEVmcd.skiptranslate,
+      .VIpgJd-ZVi9od-xl07Ob-OEVmcd.skiptranslate,
+      iframe[src*="translate.google"],
+      iframe[src*="translate.googleapis"],
+      div[id*="google_translate"],
+      div[class*="google-translate"],
+      div[class*="goog-te"],
+      span[class*="goog-te"],
+      select[class*="goog-te"],
+      .notranslate {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 0 !important;
+        max-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        z-index: -9999 !important;
+        pointer-events: none !important;
+        overflow: hidden !important;
+      }
+      
+      /* Remove qualquer iframe do Google Translate */
+      iframe[name*="goog"],
+      iframe[id*="goog"],
+      iframe[src*="translate"] {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      
+      /* Remove elementos que contenham texto relacionado ao Google Translate */
+      *[title*="Google Translate"],
+      *[alt*="Google Translate"],
+      *[aria-label*="Google Translate"],
+      *[data-translate*="google"] {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      
+      /* Força o body a não ter margin-top que pode ser adicionado pelo Google Translate */
+      body {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+      }
+      
+      /* Remove qualquer elemento fixo no topo da página */
+      body > div:first-child[style*="position: fixed"],
+      body > div:first-child[style*="position: absolute"][style*="top: 0"] {
+        display: none !important;
+      }
     </style>
+    <script>
+      // ===== BLOQUEIO JAVASCRIPT DO GOOGLE TRANSLATE =====
+      // Bloqueia completamente o Google Translate
+      (function() {
+        // Bloqueia a criação de elementos do Google Translate
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+          const element = originalCreateElement.call(this, tagName);
+          
+          // Bloqueia iframes do Google Translate
+          if (tagName.toLowerCase() === 'iframe') {
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+              if (name === 'src' && (value.includes('translate.google') || value.includes('translate.googleapis'))) {
+                return; // Não define o src
+              }
+              return originalSetAttribute.call(this, name, value);
+            };
+          }
+          
+          // Bloqueia divs do Google Translate
+          if (tagName.toLowerCase() === 'div') {
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+              if ((name === 'id' || name === 'class') && value.includes('google_translate')) {
+                return; // Não define o atributo
+              }
+              return originalSetAttribute.call(this, name, value);
+            };
+          }
+          
+          return element;
+        };
+        
+        // Bloqueia scripts do Google Translate
+        const originalAppendChild = Node.prototype.appendChild;
+        Node.prototype.appendChild = function(child) {
+          if (child.tagName === 'SCRIPT' && child.src && 
+              (child.src.includes('translate.google') || child.src.includes('translate.googleapis'))) {
+            return child; // Não adiciona o script
+          }
+          if (child.tagName === 'IFRAME' && child.src && 
+              (child.src.includes('translate.google') || child.src.includes('translate.googleapis'))) {
+            return child; // Não adiciona o iframe
+          }
+          return originalAppendChild.call(this, child);
+        };
+        
+        // Remove elementos do Google Translate que já existem
+        function removeGoogleTranslateElements() {
+          const selectors = [
+            '#google_translate_element',
+            '.goog-te-banner-frame',
+            '.goog-te-menu-frame',
+            '.goog-te-ftab-frame',
+            '.goog-te-balloon-frame',
+            '.goog-te-combo',
+            '.goog-te-gadget',
+            '.goog-te-gadget-simple',
+            '.goog-te-gadget-icon',
+            '.goog-te-spinner-pos',
+            '.goog-te-spinner',
+            '.skiptranslate',
+            'iframe[src*="translate.google"]',
+            'iframe[src*="translate.googleapis"]',
+            'div[id*="google_translate"]',
+            'div[class*="google-translate"]',
+            'div[class*="goog-te"]',
+            'span[class*="goog-te"]',
+            'select[class*="goog-te"]'
+          ];
+          
+          selectors.forEach(selector => {
+            try {
+              document.querySelectorAll(selector).forEach(el => {
+                if (el && el.parentNode) {
+                  el.parentNode.removeChild(el);
+                }
+              });
+            } catch (e) {
+              // Ignora erros
+            }
+          });
+          
+          // Remove margin-top do body que pode ser adicionado pelo Google Translate
+          if (document.body) {
+            document.body.style.marginTop = '0px';
+            document.body.style.paddingTop = '0px';
+          }
+        }
+        
+        // Executa a remoção periodicamente
+        setInterval(removeGoogleTranslateElements, 100);
+        
+        // Executa quando o DOM estiver pronto
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', removeGoogleTranslateElements);
+        } else {
+          removeGoogleTranslateElements();
+        }
+        
+        // Executa quando a página carregar
+        window.addEventListener('load', removeGoogleTranslateElements);
+        
+        // Bloqueia variáveis globais do Google Translate
+        Object.defineProperty(window, 'google', {
+          get: function() { return undefined; },
+          set: function() { return false; },
+          configurable: false
+        });
+        
+        Object.defineProperty(window, 'googleTranslateElementInit', {
+          get: function() { return undefined; },
+          set: function() { return false; },
+          configurable: false
+        });
+        
+        console.log('[Obra Limpa] Google Translate bloqueado completamente');
+      })();
+    </script>
     <script>
       // Configuração ultra-robusta para tornar event listeners passivos por padrão
       // Isso resolve o aviso: "Added non-passive event listener to a scroll-blocking 'wheel' event"

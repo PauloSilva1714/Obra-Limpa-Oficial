@@ -18,6 +18,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { loadSavedLanguage } from '@/config/i18n';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SiteProvider } from '@/contexts/SiteContext';
+import { TabBarProvider } from '@/contexts/TabBarContext';
 import { setupGlobalErrorHandler } from '@/config/error-handler';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 
@@ -75,34 +76,36 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <SiteProvider>
-          <Head>
-            <title>Obra Limpa</title>
-            <meta
-              name="description"
-              content="Sistema de gerenciamento de obras e tarefas"
-            />
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1, maximum-scale=1"
-            />
-            <meta name="theme-color" content="#ffffff" />
-            <link rel="icon" href="/favicon.ico" />
-            <link rel="apple-touch-icon" href="/icon.png" />
-            <meta name="apple-mobile-web-app-capable" content="yes" />
-            <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-          </Head>
-          
-          {/* Status de conexão - apenas em desenvolvimento */}
-          {/* Removido ConnectionStatus do topo global, agora aparece apenas na tela de tarefas */}
-          
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)/login" />
-            <Stack.Screen name="(auth)/site-selection" />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
+          <TabBarProvider>
+            <Head>
+              <title>Obra Limpa</title>
+              <meta
+                name="description"
+                content="Sistema de gerenciamento de obras e tarefas"
+              />
+              <meta
+                name="viewport"
+                content="width=device-width, initial-scale=1, maximum-scale=1"
+              />
+              <meta name="theme-color" content="#ffffff" />
+              <link rel="icon" href="/favicon.ico" />
+              <link rel="apple-touch-icon" href="/icon.png" />
+              <meta name="apple-mobile-web-app-capable" content="yes" />
+              <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+            </Head>
+            
+            {/* Status de conexão - apenas em desenvolvimento */}
+            {/* Removido ConnectionStatus do topo global, agora aparece apenas na tela de tarefas */}
+            
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)/login" />
+              <Stack.Screen name="(auth)/site-selection" />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </TabBarProvider>
         </SiteProvider>
       </AuthProvider>
     </ThemeProvider>
