@@ -363,9 +363,9 @@ export default function TasksScreen() {
     try {
       await taskService.deleteTask(taskId);
       await loadTasks();
-      Alert.alert(t('success'), 'Tarefa excluída com sucesso!');
+      Alert.alert('Sucesso', 'Tarefa excluída com sucesso!');
     } catch (error) {
-      Alert.alert(t('error'), 'Erro ao excluir tarefa.');
+      Alert.alert('Erro', 'Erro ao excluir tarefa.');
     }
   };
 
