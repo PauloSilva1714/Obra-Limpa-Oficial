@@ -134,6 +134,109 @@
       }
     </style>
     <script>
+      // Configuração ultra-robusta para tornar event listeners passivos por padrão
+      // Isso resolve o aviso: "Added non-passive event listener to a scroll-blocking 'wheel' event"
+      (function() {
+        if (typeof window !== 'undefined') {
+          // Lista de eventos que devem ser passivos por padrão
+          const passiveEvents = ['wheel', 'mousewheel', 'touchstart', 'touchmove', 'touchend', 'scroll'];
+          
+          // Função para forçar passive em options
+          function forcePassiveOptions(type, options) {
+            if (passiveEvents.includes(type)) {
+              if (typeof options === 'boolean') {
+                return { capture: options, passive: true };
+              } else if (typeof options === 'object' && options !== null) {
+                return { ...options, passive: true };
+              } else {
+                return { passive: true };
+              }
+            }
+            return options;
+          }
+          
+          // Intercepta addEventListener em EventTarget (mais agressivo)
+          if (window.EventTarget && EventTarget.prototype.addEventListener) {
+            const originalAddEventListener = EventTarget.prototype.addEventListener;
+            
+            EventTarget.prototype.addEventListener = function(type, listener, options) {
+              const newOptions = forcePassiveOptions(type, options);
+              
+              // Log para debug específico do VirtualizedList
+              if (type === 'wheel' && typeof listener === 'function') {
+                const stack = new Error().stack;
+                if (stack && stack.includes('VirtualizedList')) {
+                  console.log('[Obra Limpa] Interceptando wheel event do VirtualizedList - forçando passive: true');
+                }
+              }
+              
+              return originalAddEventListener.call(this, type, listener, newOptions);
+            };
+          }
+          
+          // Intercepta addEventListener em HTMLElement especificamente
+          if (window.HTMLElement && HTMLElement.prototype.addEventListener) {
+            const originalHTMLAddEventListener = HTMLElement.prototype.addEventListener;
+            
+            HTMLElement.prototype.addEventListener = function(type, listener, options) {
+              const newOptions = forcePassiveOptions(type, options);
+              return originalHTMLAddEventListener.call(this, type, listener, newOptions);
+            };
+          }
+          
+          // Intercepta addEventListener em Document
+          if (window.Document && Document.prototype.addEventListener) {
+            const originalDocAddEventListener = Document.prototype.addEventListener;
+            
+            Document.prototype.addEventListener = function(type, listener, options) {
+              const newOptions = forcePassiveOptions(type, options);
+              return originalDocAddEventListener.call(this, type, listener, newOptions);
+            };
+          }
+          
+          // Intercepta addEventListener em Window
+          if (window.addEventListener) {
+            const originalWinAddEventListener = window.addEventListener;
+            
+            window.addEventListener = function(type, listener, options) {
+              const newOptions = forcePassiveOptions(type, options);
+              return originalWinAddEventListener.call(this, type, listener, newOptions);
+            };
+          }
+          
+          // Intercepta addEventListener em Element
+          if (window.Element && Element.prototype.addEventListener) {
+            const originalElemAddEventListener = Element.prototype.addEventListener;
+            
+            Element.prototype.addEventListener = function(type, listener, options) {
+              const newOptions = forcePassiveOptions(type, options);
+              return originalElemAddEventListener.call(this, type, listener, newOptions);
+            };
+          }
+          
+          // Interceptação específica para Node (caso o VirtualizedList use)
+          if (window.Node && Node.prototype.addEventListener) {
+            const originalNodeAddEventListener = Node.prototype.addEventListener;
+            
+            Node.prototype.addEventListener = function(type, listener, options) {
+              const newOptions = forcePassiveOptions(type, options);
+              return originalNodeAddEventListener.call(this, type, listener, newOptions);
+            };
+          }
+          
+          // Patch adicional para capturar chamadas diretas de addEventListener
+          const originalAddEventListener = window.addEventListener;
+          if (originalAddEventListener) {
+            window.addEventListener = function(type, listener, options) {
+              const newOptions = forcePassiveOptions(type, options);
+              return originalAddEventListener.call(this, type, listener, newOptions);
+            };
+          }
+          
+          console.log('[Obra Limpa] Event listeners configurados como passivos (versão ultra-robusta)');
+        }
+      })();
+      
       // Script para remover o rodapé de navegação do Expo Router
       function removeAdminChatLink() {
         try {

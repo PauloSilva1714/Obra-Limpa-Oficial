@@ -13,7 +13,6 @@ export default function AdminLayout() {
         },
       }}
     >
-      <Stack.Screen name="index" />
       <Stack.Screen name="chat" />
       <Stack.Screen name="sites" />
       <Stack.Screen name="sites/create" />
@@ -29,4 +28,4 @@ export default function AdminLayout() {
       <Stack.Screen name="support" />
     </Stack>
   );
-} 
+}
