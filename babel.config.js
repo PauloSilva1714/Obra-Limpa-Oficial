@@ -28,9 +28,14 @@ module.exports = function (api) {
     env: {
       production: {
         plugins: [
-          'transform-remove-console'
+          [
+            'transform-remove-console',
+            {
+              exclude: ['error'] // Manter apenas console.error em produção
+            }
+          ]
         ]
       }
     }
   };
-}; 
+};
