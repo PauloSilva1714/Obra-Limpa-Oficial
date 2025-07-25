@@ -3,7 +3,7 @@ module.exports = {
   slug: 'obra-limpa',
   version: '1.0.0',
   orientation: 'portrait',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'light',
   scheme: 'com.obralimpa.app',
   icon: './assets/icon.png',
   splash: {
@@ -16,7 +16,8 @@ module.exports = {
   ],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.obralimpa.app'
+    bundleIdentifier: 'com.obralimpa.app',
+    googleServicesFile: './GoogleService-Info.plist'
   },
   android: {
     adaptiveIcon: {
@@ -24,19 +25,27 @@ module.exports = {
       backgroundColor: '#ffffff'
     },
     package: 'com.obralimpa.app',
-    versionCode: 1
+    versionCode: 1,
+    googleServicesFile: './google-services.json'
   },
   web: {
     bundler: 'metro',
-    favicon: './assets/favicon.png'
+    favicon: './assets/favicon.png',
+    output: 'static',
+    entryPoint: './web/index.html'
   },
   plugins: [
     'expo-router',
     'expo-font',
     'expo-web-browser',
     'expo-audio',
-    'expo-video'
+    'expo-video',
+    '@react-native-firebase/app'
   ],
+  experiments: {
+    typedRoutes: true,
+    tsconfigPaths: true
+  },
   extra: {
     firebase: {
       apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
