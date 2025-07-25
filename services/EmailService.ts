@@ -75,7 +75,7 @@ export const EmailService = {
     taskData: {
       title: string;
       description: string;
-      assignedTo: string;
+      assignedTo: string | string[];
       dueDate?: string;
       area: string;
       priority: string;
@@ -87,6 +87,10 @@ export const EmailService = {
     const dueDateText = taskData.dueDate 
       ? new Date(taskData.dueDate).toLocaleDateString('pt-BR')
       : 'Não definida';
+
+    const assignedToText = Array.isArray(taskData.assignedTo) 
+      ? taskData.assignedTo.join(', ') 
+      : taskData.assignedTo;
 
     return this.sendEmail({
       to: user.email,
@@ -101,7 +105,7 @@ export const EmailService = {
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Designado para:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${taskData.assignedTo}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${assignedToText}</td>
             </tr>
             <tr>
               <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>Data de vencimento:</strong></td>

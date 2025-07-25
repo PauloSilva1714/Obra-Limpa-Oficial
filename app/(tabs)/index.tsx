@@ -998,7 +998,11 @@ export default function TasksScreen() {
                 </View>
                 <View>
                   <Text style={styles.photoUserName}>
-                    {formatUserName(selectedTaskForPhoto?.assignedTo || '')}
+                    {formatUserName(
+                      Array.isArray(selectedTaskForPhoto?.assignedTo) 
+                        ? selectedTaskForPhoto.assignedTo.join(', ') 
+                        : (selectedTaskForPhoto?.assignedTo || '')
+                    )}
                   </Text>
                   <Text style={styles.photoTaskDate}>
                     {selectedTaskForPhoto?.createdAt ? formatCommentDateTime(selectedTaskForPhoto.createdAt) : ''}

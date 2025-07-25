@@ -226,22 +226,6 @@ export default function Index() {
         <Text style={styles.errorTitle}>Erro na inicialização</Text>
         <Text style={styles.errorText}>{error}</Text>
         <Text style={styles.errorSubtext}>O app será redirecionado automaticamente em 10 segundos</Text>
-        
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.debugButton} 
-            onPress={() => setShowDebug(true)}
-          >
-            <Text style={styles.debugButtonText}>Ver Debug Info</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.debugButton, styles.logsButton]} 
-            onPress={showSavedLogs}
-          >
-            <Text style={styles.debugButtonText}>Ver Logs Salvos</Text>
-          </TouchableOpacity>
-        </View>
       </View>
     );
   }
@@ -252,22 +236,6 @@ export default function Index() {
       <ActivityIndicator size="large" color="#0066cc" />
       <Text style={styles.loadingText}>Inicializando aplicativo...</Text>
       <Text style={styles.stepText}>{initStep}</Text>
-      
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.debugButton} 
-          onPress={() => setShowDebug(true)}
-        >
-          <Text style={styles.debugButtonText}>Debug Info</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.debugButton, styles.logsButton]} 
-          onPress={showSavedLogs}
-        >
-          <Text style={styles.debugButtonText}>Ver Logs</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -312,28 +280,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     fontStyle: 'italic',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  debugButton: {
-    backgroundColor: '#0066cc',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
-    minWidth: 120,
-  },
-  logsButton: {
-    backgroundColor: '#FF9500',
-  },
-  debugButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
   },
 });

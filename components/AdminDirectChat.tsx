@@ -264,8 +264,6 @@ export default function AdminDirectChat({
             </View>
           </View>
           <View style={styles.messageActions}>
-            {/* Confirmação visual de envio (removida, agora está ao lado do horário) */}
-            {/* Botão de exclusão */}
             {isOwnMessage && currentUser && (
               <TouchableOpacity
                 style={styles.deleteButton}

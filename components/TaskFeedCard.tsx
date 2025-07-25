@@ -115,36 +115,8 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
 
   // Função utilitária para exibir nomes dos responsáveis
   const getAssigneesNames = () => {
-    if (!task.assignedTo || (Array.isArray(task.assignedTo) && task.assignedTo.length === 0)) {
-      return 'Sem responsável';
-    }
-    
-    // Se for string única
-    if (typeof task.assignedTo === 'string') {
-      const found = workers.find(w => w.id === task.assignedTo);
-      if (found) {
-        const nomes = found.name.split(' ');
-        const nomeCurto = nomes.slice(0, 2).join(' ');
-        return `${nomeCurto}${found.company ? ` ("${found.company}")` : ''}`;
-      }
-      return task.assignedTo;
-    }
-    
-    // Se for array - verificar se é realmente um array antes de usar map
-    if (Array.isArray(task.assignedTo)) {
-      return task.assignedTo.map((assignee: string) => {
-        const found = workers.find(w => w.id === assignee);
-        if (found) {
-          const nomes = found.name.split(' ');
-          const nomeCurto = nomes.slice(0, 2).join(' ');
-          return `${nomeCurto}${found.company ? ` ("${found.company}")` : ''}`;
-        }
-        return assignee;
-      }).join(', ');
-    }
-    
-    // Fallback
-    return 'Sem responsável';
+    if (!task.assignedTo) return 'Não atribuído';
+    return task.assignedTo;
   };
 
   return (
@@ -530,4 +502,4 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     gap: 8,
   },
-}); 
+});

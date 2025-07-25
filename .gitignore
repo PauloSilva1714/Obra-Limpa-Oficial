@@ -14,3 +14,6 @@ config/google-places.ts
 
 expo-env.d.ts
 # @end expo-cli
+
+# Java crash logs
+hs_err_pid*.log

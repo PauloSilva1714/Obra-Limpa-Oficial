@@ -229,7 +229,6 @@ export default function AdminChatSessions({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }, style]}>
-      {/* Header Indicator */}
       <View style={[styles.headerIndicator, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
         <MessageCircle size={16} color={colors.primary} />
         <Text style={[styles.headerIndicatorText, { color: colors.primary }]}>
@@ -258,8 +257,6 @@ export default function AdminChatSessions({
           </View>
         }
       />
-
-      {/* Modal de confirmação de exclusão da sessão */}
       <Modal
         visible={deleteModalVisible}
         transparent
@@ -454,4 +451,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-}); 
+});

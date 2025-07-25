@@ -20,10 +20,14 @@
       "react",
       "react-native"
     ],
-    "customConditions": ["react-native"],
+    "customConditions": [
+      "react-native"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "exclude": [
@@ -34,7 +38,9 @@
   ],
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ],
   "extends": "expo/tsconfig.base"
 }

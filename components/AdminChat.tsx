@@ -502,7 +502,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
               },
             ]}
           >
-            {/* Botão para mostrar/ocultar toda a área de digitação */}
             {!showOptions && (
               <TouchableOpacity
                 onPress={() => setShowOptions(true)}
@@ -514,7 +513,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
             )}
             {showOptions && (
               <View style={{ flex: 1 }}>
-                {/* Botão para esconder */}
                 <TouchableOpacity
                   onPress={() => setShowOptions(false)}
                   style={{ alignSelf: 'flex-end', marginBottom: 4 }}
@@ -522,7 +520,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                 >
                   <Text style={{ fontSize: 22 }}>❌</Text>
                 </TouchableOpacity>
-                {/* Emojis sugeridos */}
                 <View
                   style={{
                     flexDirection: 'row',
@@ -541,7 +538,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                     </TouchableOpacity>
                   ))}
                 </View>
-                {/* Chat Type Indicator */}
                 <View
                   style={[
                     styles.chatTypeIndicator,
@@ -555,7 +551,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                     Chat em Grupo - Enviando para todos os administradores
                   </Text>
                 </View>
-                {/* Campo de mensagem e botão de enviar */}
                 <View style={styles.inputRow}>
                   <TextInput
                     style={[

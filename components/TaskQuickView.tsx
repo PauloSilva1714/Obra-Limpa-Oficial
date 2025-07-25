@@ -70,7 +70,6 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modalBox}>
-          {/* Mídia em destaque */}
           <View style={styles.mediaContainer}>
             {hasMedia ? (
               <>

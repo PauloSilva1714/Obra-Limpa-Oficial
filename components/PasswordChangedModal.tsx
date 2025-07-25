@@ -169,10 +169,7 @@ export const PasswordChangedModal: React.FC<PasswordChangedModalProps> = ({
             },
           ]}
         >
-          {/* Gradiente sutil no topo */}
           <View style={[styles.gradient, { backgroundColor: '#10B981' }]} />
-          
-          {/* Ícone de sucesso */}
           <Animated.View
             style={[
               styles.iconContainer,
@@ -183,16 +180,10 @@ export const PasswordChangedModal: React.FC<PasswordChangedModalProps> = ({
           >
             <CheckCircle size={40} color="#FFFFFF" strokeWidth={2.5} />
           </Animated.View>
-
-          {/* Título */}
           <Text style={styles.title}>Senha Alterada!</Text>
-
-          {/* Mensagem */}
           <Text style={styles.message}>
             Sua senha foi alterada com sucesso. Agora você pode fazer login com sua nova senha.
           </Text>
-
-          {/* Botão de ação */}
           <TouchableOpacity
             style={styles.button}
             onPress={handleClose}
