@@ -17,3 +17,30 @@ expo-env.d.ts
 
 # Java crash logs
 hs_err_pid*.log
+
+# Build folders
+android/build/
+android/app/build/
+android/.gradle/
+ios/build/
+
+# Gradle builds inside node_modules
+node_modules/**/.gradle/
+node_modules/**/build/
+node_modules/**/*.lock
+
+# Cache folders
+.expo/
+node_modules/.cache/
+.metro-cache/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
