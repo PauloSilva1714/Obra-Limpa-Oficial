@@ -1,0 +1,30 @@
+{
+  "expo-audio": {
+    "version": "0.4.8",
+    "platforms": ["ios", "android", "web"]
+  },
+  "expo-video": {
+    "version": "2.2.2", 
+    "platforms": ["ios", "android", "web"]
+  },
+  "react-native-google-places-autocomplete": {
+    "version": "2.5.7",
+    "platforms": ["ios", "android"]
+  },
+  "react-native-webview": {
+    "version": "13.13.5",
+    "platforms": ["ios", "android"]
+  },
+  "@react-native-firebase/app": {
+    "version": "22.2.1",
+    "platforms": ["ios", "android"]
+  },
+  "@react-native-firebase/auth": {
+    "version": "22.2.1", 
+    "platforms": ["ios", "android"]
+  },
+  "@react-native-firebase/firestore": {
+    "version": "22.2.1",
+    "platforms": ["ios", "android"]
+  }
+}

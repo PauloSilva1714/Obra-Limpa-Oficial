@@ -20,4 +20,4 @@ config.resolver.alias = {
 // Configuração para resolver problemas de compatibilidade
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
-module.exports = config; 
+module.exports = config;
