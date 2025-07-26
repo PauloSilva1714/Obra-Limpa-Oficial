@@ -158,7 +158,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
       // Verificar se é um ID de worker (formato de ID do Firestore)
       const worker = workers.find(w => w.id === assignee);
       if (worker) {
-        return worker.name;
+        return worker.company ? `${worker.name} (${worker.company})` : worker.name;
       }
       // Se não encontrou o worker, retornar o nome como está (pode ser um nome manual)
       return assignee;
@@ -184,9 +184,6 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         <View style={styles.fbHeaderInfo}>
           <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>
           <Text style={styles.fbDate}>{new Date(task.createdAt).toLocaleDateString('pt-BR')}</Text>
-          <Text style={[styles.fbAssignees, { color: colors.textMuted }]}>
-            {getAssigneesNames()}
-          </Text>
           </View>
         <View style={styles.statusRiskBadges}>
           <View style={[styles.statusBadge, getStatusBadgeStyle(task.status)]}>
@@ -224,15 +221,10 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         </Text>
         
         <View style={styles.taskDetails}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task.status) }]}>
-            <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
-          </View>
-          <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}>
-            <Text style={styles.priorityText}>{getPriorityText(task.priority)}</Text>
-          </View>
           <View style={styles.detailItem}>
-            <MapPin size={12} color={colors.textMuted} />
-            <Text style={[styles.detailText, { color: colors.textMuted }]}>{task.area}</Text>
+            <Text style={[styles.fbAssignees, { color: colors.textMuted }]}>
+              {getAssigneesNames()}
+            </Text>
           </View>
         </View>
       </View>

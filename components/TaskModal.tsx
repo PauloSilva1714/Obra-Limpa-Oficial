@@ -487,6 +487,10 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         return 'Concluída';
       case 'in_progress':
         return 'Em Andamento';
+      case 'delayed':
+        return 'Atrasada';
+      case 'pending':
+        return 'Pendente';
       default:
         return 'Pendente';
     }
@@ -636,7 +640,10 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
     const names = assignedIds.map(id => {
       const worker = workers.find(w => w.id === id);
-      return worker ? worker.name : id; // Retorna o nome se encontrado, senão retorna o ID
+      if (worker) {
+        return worker.company ? `${worker.name} (${worker.company})` : worker.name;
+      }
+      return id; // Retorna o ID se não encontrou o worker
     });
     
     return names.join(', ');

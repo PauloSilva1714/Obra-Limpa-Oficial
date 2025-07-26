@@ -461,7 +461,10 @@ export default function TasksScreen() {
     
     const assignedNames = assignedIds.map(id => {
       const worker = workers.find(w => w.id === id);
-      return worker ? worker.name : id;
+      if (worker) {
+        return worker.company ? `${worker.name} (${worker.company})` : worker.name;
+      }
+      return id;
     });
     
     return assignedNames.join(', ');

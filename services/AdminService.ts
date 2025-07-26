@@ -800,8 +800,10 @@ export class AdminService {
 
       // Buscar tarefas do site atual
       const currentSite = await AuthService.getCurrentSite();
+      console.log('[AdminService] Obra atual para estatísticas:', currentSite?.name || 'Nenhuma');
+      
       if (!currentSite) {
-
+        console.log('[AdminService] Nenhuma obra selecionada, retornando estatísticas básicas');
         return {
           totalSites,
           totalWorkers: activeWorkers.length,
@@ -809,6 +811,8 @@ export class AdminService {
           completedTasks: 0,
         };
       }
+      
+      console.log('[AdminService] Buscando tarefas para obra:', currentSite.id);
       const tasksQuery = query(
         collection(db, 'tasks'),
         where('siteId', '==', currentSite.id)
@@ -829,6 +833,7 @@ export class AdminService {
         completedTasks: completedTasksSnapshot.size,
       };
 
+      console.log('[AdminService] Estatísticas calculadas:', stats);
       return stats;
     } catch (error) {
       console.error('Error fetching admin stats:', error);

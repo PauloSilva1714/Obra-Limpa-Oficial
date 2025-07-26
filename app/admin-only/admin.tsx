@@ -86,8 +86,12 @@ export default function AdminScreen() {
         setLoading(false);
         return;
       }
-      loadAdminStats();
-      updateTotalWorkers();
+      
+      // Aguardar um pouco para garantir que o contexto foi inicializado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      await loadAdminStats();
+      await updateTotalWorkers();
     };
 
     checkUserAndLoadData();
@@ -97,6 +101,8 @@ export default function AdminScreen() {
     try {
       setLoading(true);
       setError(null);
+      // Aguardar um pequeno delay para garantir que o contexto foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 100));
       const adminStats = await AdminService.getAdminStats();
       setStats(adminStats);
     } catch (err) {
@@ -505,20 +511,53 @@ export default function AdminScreen() {
               <FlatList
                 data={sites}
                 keyExtractor={item => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 }}
-                    onPress={async () => {
-                      await AuthService.setCurrentSite(item);
-                      setCurrentSite({ ...item, company: '' });
-                      setSitesModalVisible(false);
-                      loadAdminStats();
-                    }}
-                  >
-                    <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>{item.name}</Text>
-                    <Text style={{ color: '#374151', fontSize: 14 }}>{item.address}</Text>
-                  </TouchableOpacity>
-                )}
+                renderItem={({ item }) => {
+                  const isSelected = currentSite?.id === item.id;
+                  return (
+                    <TouchableOpacity
+                      style={{ 
+                        backgroundColor: isSelected ? colors.primary + '20' : '#fff', 
+                        borderRadius: 12, 
+                        padding: 16, 
+                        marginBottom: 12,
+                        borderWidth: isSelected ? 2 : 0,
+                        borderColor: isSelected ? colors.primary : 'transparent'
+                      }}
+                      onPress={async () => {
+                        try {
+                          // Primeiro, definir a obra atual no AuthService
+                          await AuthService.setCurrentSite(item);
+                          // Depois, atualizar o contexto
+                          setCurrentSite({ ...item, company: '' });
+                          // Fechar o modal
+                          setSitesModalVisible(false);
+                          // Aguardar um pouco para garantir que o contexto foi atualizado
+                          await new Promise(resolve => setTimeout(resolve, 200));
+                          // Recarregar as estatísticas
+                          await loadAdminStats();
+                          // Atualizar o total de trabalhadores
+                          await updateTotalWorkers();
+                        } catch (error) {
+                          Alert.alert('Erro', 'Não foi possível selecionar a obra.');
+                        }
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4, color: isSelected ? colors.primary : '#000' }}>
+                            {item.name}
+                          </Text>
+                          <Text style={{ color: isSelected ? colors.primary : '#374151', fontSize: 14 }}>
+                            {item.address}
+                          </Text>
+                        </View>
+                        {isSelected && (
+                          <CheckCircle size={20} color={colors.primary} />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
                 style={{ maxHeight: 350 }}
               />
             )}

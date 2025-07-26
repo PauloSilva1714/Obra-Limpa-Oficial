@@ -113,18 +113,21 @@ export default function ProgressScreen() {
   const getAssigneesNames = (assignedTo: string | string[] | undefined): string => {
     if (!assignedTo) return 'Não atribuído';
     
-    if (typeof assignedTo === 'string') {
-      return assignedTo;
-    }
+    const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
     
-    if (Array.isArray(assignedTo)) {
-      if (assignedTo.length === 0) return 'Não atribuído';
-      if (assignedTo.length === 1) return assignedTo[0];
-      if (assignedTo.length === 2) return `${assignedTo[0]} e ${assignedTo[1]}`;
-      return `${assignedTo[0]} e mais ${assignedTo.length - 1}`;
-    }
+    const assignedNames = assignedIds.map(id => {
+      const worker = workers.find(w => w.id === id);
+      if (worker) {
+        return worker.company ? `${worker.name} (${worker.company})` : worker.name;
+      }
+      // Se não encontrou o worker, pode ser um nome manual
+      return id;
+    });
     
-    return 'Não atribuído';
+    if (assignedNames.length === 0) return 'Não atribuído';
+    if (assignedNames.length === 1) return assignedNames[0];
+    if (assignedNames.length === 2) return `${assignedNames[0]} e ${assignedNames[1]}`;
+    return `${assignedNames[0]} e mais ${assignedNames.length - 1}`;
   };
 
   // Cálculo dos status diretamente das tarefas carregadas
