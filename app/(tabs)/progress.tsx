@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChartBar as BarChart3, TrendingUp, Clock, CircleCheck as CheckCircle, RefreshCw, Eye, Calendar, User, MapPin } from 'lucide-react-native';
 import { ProgressService, ProgressData } from '@/services/ProgressService';
 import taskService, { Task } from '@/services/TaskService';
+import { AuthService } from '@/services/AuthService';
 import { router } from 'expo-router';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import { TaskModal } from '@/components/TaskModal';
@@ -32,6 +33,7 @@ export default function ProgressScreen() {
     areaProgress: [],
   });
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [workers, setWorkers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   // Adicionar estados para modal de detalhes
@@ -46,13 +48,18 @@ export default function ProgressScreen() {
     try {
       setLoading(true);
       setRefreshing(true);
-      const [progress, tasksData] = await Promise.all([
+      const currentSite = await AuthService.getCurrentSite();
+      const siteId = currentSite?.id;
+      
+      const [progress, tasksData, workersData] = await Promise.all([
         ProgressService.getInstance().getProgressData(),
-        taskService.getTasks()
+        taskService.getTasks(),
+        siteId ? AuthService.getWorkersBySite(siteId) : Promise.resolve([])
       ]);
       
       setProgressData(progress);
       setTasks(tasksData);
+      setWorkers(workersData);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,6 +108,23 @@ export default function ProgressScreen() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
+  };
+
+  const getAssigneesNames = (assignedTo: string | string[] | undefined): string => {
+    if (!assignedTo) return 'Não atribuído';
+    
+    if (typeof assignedTo === 'string') {
+      return assignedTo;
+    }
+    
+    if (Array.isArray(assignedTo)) {
+      if (assignedTo.length === 0) return 'Não atribuído';
+      if (assignedTo.length === 1) return assignedTo[0];
+      if (assignedTo.length === 2) return `${assignedTo[0]} e ${assignedTo[1]}`;
+      return `${assignedTo[0]} e mais ${assignedTo.length - 1}`;
+    }
+    
+    return 'Não atribuído';
   };
 
   // Cálculo dos status diretamente das tarefas carregadas
@@ -250,9 +274,7 @@ export default function ProgressScreen() {
               <View style={styles.taskInfoItem}>
                 <User size={16} color="#6B7280" />
                 <Text style={styles.taskInfoText}>
-                  {Array.isArray(task.assignedTo) 
-                    ? task.assignedTo.join(', ') 
-                    : task.assignedTo}
+                  {getAssigneesNames(task.assignedTo)}
                 </Text>
               </View>
             )}

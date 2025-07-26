@@ -14,6 +14,19 @@ interface Site {
   status: 'active' | 'inactive';
 }
 
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'delayed';
+  priority: 'low' | 'medium' | 'high';
+  assignedTo?: string | string[];
+  area: string;
+  dueDate?: string;
+  createdAt: string;
+  photos?: string[];
+}
+
 export default function EditSiteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [site, setSite] = useState<Site | null>(null);
@@ -21,7 +34,7 @@ export default function EditSiteScreen() {
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -35,7 +48,11 @@ export default function EditSiteScreen() {
     const unsubscribe = TaskService.subscribeToTasksBySite(site.id, (tasks) => {
       setTasks(tasks);
     });
-    return () => unsubscribe && unsubscribe();
+    return () => {
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, [site]);
 
   const loadSite = async () => {
@@ -297,4 +314,4 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
-}); 
+});

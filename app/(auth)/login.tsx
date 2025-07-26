@@ -98,7 +98,7 @@ export default function LoginScreen() {
           if (!currentSite || !currentSite.id) {
             router.replace('/(auth)/site-selection');
           } else {
-            router.replace('/tasks');
+            router.replace('/tasks' as any);
           }
         } else {
           await AuthService.setCurrentSite(null);

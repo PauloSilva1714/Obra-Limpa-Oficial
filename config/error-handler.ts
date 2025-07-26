@@ -1,5 +1,139 @@
-// Configuração global de tratamento de erros
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+
+interface ErrorLog {
+  id: string;
+  timestamp: string;
+  message: string;
+  stack?: string;
+  userAgent?: string;
+  url?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+  type: 'javascript' | 'promise' | 'chunk' | 'network' | 'timeout';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  context?: any;
+}
+
+const ERROR_STORAGE_KEY = 'app_error_logs';
+const MAX_STORED_ERRORS = 20;
+
+// Função para determinar a severidade do erro
+const getErrorSeverity = (error: any): 'low' | 'medium' | 'high' | 'critical' => {
+  const message = error?.message || error?.reason?.message || '';
+  const stack = error?.stack || error?.reason?.stack || '';
+  
+  // Timeouts são considerados médios (não críticos)
+  if (message.includes('timeout') || message.includes('Timeout')) {
+    return 'medium';
+  }
+  
+  // Erros de rede são médios
+  if (message.includes('network') || message.includes('fetch')) {
+    return 'medium';
+  }
+  
+  // Erros de chunk loading são baixos (comuns em desenvolvimento)
+  if (message.includes('Loading chunk') || message.includes('ChunkLoadError')) {
+    return 'low';
+  }
+  
+  // Erros de Firebase são médios
+  if (message.includes('firebase') || message.includes('firestore')) {
+    return 'medium';
+  }
+  
+  // Erros de autenticação são altos
+  if (message.includes('auth') || message.includes('permission')) {
+    return 'high';
+  }
+  
+  // Outros erros são médios por padrão
+  return 'medium';
+};
+
+// Função para determinar o tipo do erro
+const getErrorType = (error: any): ErrorLog['type'] => {
+  const message = error?.message || error?.reason?.message || '';
+  
+  if (message.includes('timeout') || message.includes('Timeout')) {
+    return 'timeout';
+  }
+  
+  if (message.includes('Loading chunk') || message.includes('ChunkLoadError')) {
+    return 'chunk';
+  }
+  
+  if (message.includes('network') || message.includes('fetch')) {
+    return 'network';
+  }
+  
+  if (error?.promise) {
+    return 'promise';
+  }
+  
+  return 'javascript';
+};
+
+// Função para verificar se o erro deve ser ignorado
+const shouldIgnoreError = (error: any): boolean => {
+  const message = error?.message || error?.reason?.message || '';
+  
+  // Ignorar timeouts de desenvolvimento (muito comuns)
+  if (process.env.NODE_ENV === 'development' && message.includes('timeout')) {
+    return true;
+  }
+  
+  // Ignorar erros de chunk loading em desenvolvimento
+  if (process.env.NODE_ENV === 'development' && message.includes('Loading chunk')) {
+    return true;
+  }
+  
+  // Ignorar erros de extensões do navegador
+  if (message.includes('extension') || message.includes('chrome-extension')) {
+    return true;
+  }
+  
+  return false;
+};
+
+async function saveErrorLog(errorLog: ErrorLog): Promise<void> {
+  try {
+    const existingLogs = await AsyncStorage.getItem(ERROR_STORAGE_KEY);
+    const logs: ErrorLog[] = existingLogs ? JSON.parse(existingLogs) : [];
+    
+    // Adicionar novo log no início
+    logs.unshift(errorLog);
+    
+    // Manter apenas os últimos MAX_STORED_ERRORS logs
+    const trimmedLogs = logs.slice(0, MAX_STORED_ERRORS);
+    
+    await AsyncStorage.setItem(ERROR_STORAGE_KEY, JSON.stringify(trimmedLogs));
+  } catch (storageError) {
+    console.warn('Erro ao salvar log de erro:', storageError);
+  }
+}
+
+function createErrorLog(
+  message: string,
+  stack?: string,
+  type: ErrorLog['type'] = 'javascript',
+  context?: any
+): ErrorLog {
+  const severity = getErrorSeverity({ message, stack });
+  
+  return {
+    id: Date.now().toString(),
+    timestamp: new Date().toISOString(),
+    message,
+    stack,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+    url: typeof window !== 'undefined' ? window.location.href : undefined,
+    type,
+    severity,
+    context
+  };
+}
 
 export const setupGlobalErrorHandler = () => {
   
@@ -8,41 +142,79 @@ export const setupGlobalErrorHandler = () => {
     // Para web
     if (typeof window !== 'undefined') {
       window.addEventListener('error', (event) => {
-        console.error('[ErrorHandler] Erro global capturado (web):', {
+        const error = {
           message: event.message,
+          stack: event.error?.stack,
           filename: event.filename,
           lineno: event.lineno,
-          colno: event.colno,
-          error: event.error,
-          stack: event.error?.stack
-        });
+          colno: event.colno
+        };
         
-        // Log adicional para erros críticos
-        if (event.error?.name === 'ChunkLoadError' || 
-            event.message?.includes('Loading chunk') ||
-            event.message?.includes('Loading CSS chunk')) {
-          console.error('[ErrorHandler] Erro de carregamento de chunk detectado');
+        if (shouldIgnoreError(error)) {
+          return;
         }
         
-        // Não recarregar a página automaticamente
+        const errorLog = createErrorLog(
+          event.message,
+          event.error?.stack,
+          'javascript',
+          {
+            filename: event.filename,
+            lineNumber: event.lineno,
+            columnNumber: event.colno
+          }
+        );
+        
+        saveErrorLog(errorLog);
+        
+        // Apenas mostrar alertas para erros críticos
+        if (errorLog.severity === 'critical') {
+          console.error('[ErrorHandler] Erro JavaScript crítico:', event.message);
+        } else {
+          console.warn('[ErrorHandler] Erro JavaScript:', event.message);
+        }
       });
 
       window.addEventListener('unhandledrejection', (event) => {
-        console.error('[ErrorHandler] Promise rejeitada não tratada (web):', {
-          reason: event.reason,
-          promise: event.promise,
-          stack: event.reason?.stack
-        });
+        const error = {
+          message: event.reason?.message || String(event.reason),
+          stack: event.reason?.stack,
+          promise: event.promise
+        };
         
-        // Log adicional para erros de rede
-        if (event.reason?.code === 'NETWORK_ERROR' || 
-            event.reason?.message?.includes('fetch') ||
-            event.reason?.message?.includes('network')) {
-          console.error('[ErrorHandler] Erro de rede detectado');
+        if (shouldIgnoreError(error)) {
+          event.preventDefault(); // Previne o log padrão do navegador
+          return;
         }
         
-        // Prevenir que o erro apareça no console do navegador
-        event.preventDefault();
+        const type = getErrorType(error);
+        const errorLog = createErrorLog(
+          error.message,
+          error.stack,
+          type,
+          { reason: event.reason }
+        );
+        
+        saveErrorLog(errorLog);
+        
+        // Para timeouts, apenas logar sem alertas
+        if (type === 'timeout') {
+          console.warn('[ErrorHandler] Timeout detectado:', error.message);
+          event.preventDefault(); // Previne o log padrão do navegador
+          return;
+        }
+        
+        // Para outros erros, usar severidade para decidir o log
+        if (errorLog.severity === 'critical' || errorLog.severity === 'high') {
+          console.error('[ErrorHandler] Promise rejeitada:', error.message);
+        } else {
+          console.warn('[ErrorHandler] Promise rejeitada:', error.message);
+        }
+        
+        // Prevenir o log padrão do navegador para erros de baixa severidade
+        if (errorLog.severity === 'low') {
+          event.preventDefault();
+        }
       });
       
     }

@@ -280,13 +280,13 @@ export default function InviteAdminScreen() {
   const handleGoBack = () => {
     try {
       // Navegar diretamente para a tela de workers
-      router.push('/(tabs)/admin/workers');
+      router.push('/(tabs)/admin/workers' as any);
     } catch (error) {
       // Fallback: tentar voltar
       try {
         router.back();
       } catch (backError) {
-        router.push('/(tabs)/admin');
+        router.push('/(tabs)/admin' as any);
       }
     }
   };
@@ -781,4 +781,4 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
   },
-}); 
+});

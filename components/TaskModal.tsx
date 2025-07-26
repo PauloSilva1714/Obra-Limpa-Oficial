@@ -629,6 +629,19 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     }
   };
 
+  // Função para converter IDs de responsáveis em nomes reais
+  const getAssigneesNames = (assignedTo: string | string[] | undefined): string => {
+    if (!assignedTo) return 'Não atribuído';
+    
+    const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+    const names = assignedIds.map(id => {
+      const worker = workers.find(w => w.id === id);
+      return worker ? worker.name : id; // Retorna o nome se encontrado, senão retorna o ID
+    });
+    
+    return names.join(', ');
+  };
+
   const statusMap: { [key: string]: string } = {
     pending: 'Pendente',
     in_progress: 'Em andamento',
@@ -772,6 +785,8 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.title}</Text>
               <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Descrição Detalhada</Text>
               <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{task.description}</Text>
+              <Text style={{ fontSize: 16, color: '#374151', marginBottom: 4 }}>Responsáveis</Text>
+              <Text style={{ fontSize: 16, color: '#111827', marginBottom: 12 }}>{getAssigneesNames(task.assignedTo)}</Text>
             </View>
             {/* Seção: Status e Prioridade */}
             <View style={styles.sectionContainer}>

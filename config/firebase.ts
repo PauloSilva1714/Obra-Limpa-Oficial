@@ -56,15 +56,15 @@ try {
   
   // Configurações adicionais para melhorar a conectividade
   if (typeof window !== 'undefined') {
-    // Configurar timeout mais longo para operações do Firestore
+    // Configurar timeout mais curto para operações do Firestore para evitar timeouts
     const originalFetch = window.fetch;
     window.fetch = function(url: RequestInfo | URL, options: RequestInit = {}): Promise<Response> {
       const urlString = url.toString();
       if (urlString.includes('firestore.googleapis.com')) {
         const newOptions: RequestInit = {
           ...options,
-          signal: options.signal || AbortSignal.timeout(120000), // 120 segundos de timeout
-          credentials: 'same-origin' as RequestCredentials, // Especificar tipo correto
+          signal: options.signal || AbortSignal.timeout(30000), // 30 segundos de timeout
+          credentials: 'same-origin' as RequestCredentials,
         };
         return originalFetch(url, newOptions);
       }

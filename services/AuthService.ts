@@ -130,10 +130,10 @@ export class AuthService {
 
   static async waitForFirebaseAuth(): Promise<FirebaseUser | null> {
     return new Promise((resolve) => {
-      // Timeout de 10 segundos para evitar espera infinita
+      // Timeout de 5 segundos para evitar espera infinita
       const timeout = setTimeout(() => {
         resolve(auth.currentUser);
-      }, 10000);
+      }, 5000);
 
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         clearTimeout(timeout);

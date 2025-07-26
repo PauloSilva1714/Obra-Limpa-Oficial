@@ -24,7 +24,7 @@ export default function ColaboradorScreen() {
           <Text style={styles.listItem}>• Acompanhar o andamento do projeto</Text>
         </View>
       </View>
-      <TouchableOpacity style={styles.button} onPress={() => router.replace('/(tabs)/index')}>
+      <TouchableOpacity style={styles.button} onPress={() => router.replace('/(tabs)/index' as any)}>
         <Text style={styles.buttonText}>Ir para o Dashboard</Text>
       </TouchableOpacity>
     </SafeAreaView>

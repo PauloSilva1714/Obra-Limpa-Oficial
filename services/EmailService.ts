@@ -2,6 +2,7 @@ import { app } from '../config/firebase';
 import { getFunctions } from "firebase/functions";
 import { User } from './AuthService';
 import { functions } from '../config/firebase';
+import { AuthService } from './AuthService';
 
 getFunctions(app, 'southamerica-east1');
 

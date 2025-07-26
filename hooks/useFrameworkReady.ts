@@ -93,46 +93,85 @@ export const useAdminRealTimeSync = (siteId: string) => {
           workers: null
         };
 
-        // Configurar listener para tarefas
-        const tasksUnsubscribe = await AdminService.subscribeToTasks(siteId, (tasks) => {
-          setData(prev => ({ ...prev, tasks, lastUpdate: new Date().toISOString() }));
-        });
+        // Configurar listeners com timeout e retry
+        const setupListenerWithTimeout = async (
+          setupFunction: () => Promise<() => void>,
+          name: string,
+          timeout: number = 10000
+        ) => {
+          try {
+            const timeoutPromise = new Promise<() => void>((_, reject) => {
+              setTimeout(() => reject(new Error(`Timeout ao configurar ${name}`)), timeout);
+            });
+            
+            return await Promise.race([setupFunction(), timeoutPromise]);
+          } catch (error) {
+            console.warn(`⚠️ Falha ao configurar listener ${name}:`, error);
+            return () => {}; // Retorna função vazia em caso de erro
+          }
+        };
+
+        // Configurar listener para tarefas com timeout
+        const tasksUnsubscribe = await setupListenerWithTimeout(
+          () => AdminService.subscribeToTasks(siteId, (tasks) => {
+            setData(prev => ({ ...prev, tasks, lastUpdate: new Date().toISOString() }));
+          }),
+          'tarefas'
+        );
         unsubscribeRefs.current.tasks = tasksUnsubscribe;
 
-        // Configurar listener para progresso
-        const progressUnsubscribe = await AdminService.subscribeToProgress(siteId, (progress) => {
-          setData(prev => ({ ...prev, progress, lastUpdate: new Date().toISOString() }));
-        });
+        // Configurar listener para progresso com timeout
+        const progressUnsubscribe = await setupListenerWithTimeout(
+          () => AdminService.subscribeToProgress(siteId, (progress) => {
+            setData(prev => ({ ...prev, progress, lastUpdate: new Date().toISOString() }));
+          }),
+          'progresso'
+        );
         unsubscribeRefs.current.progress = progressUnsubscribe;
 
-        // Configurar listener para mensagens
-        const messagesUnsubscribe = await AdminService.subscribeToMessages(siteId, (messages) => {
-          setData(prev => ({ ...prev, messages, lastUpdate: new Date().toISOString() }));
-        });
+        // Configurar listener para mensagens com timeout
+        const messagesUnsubscribe = await setupListenerWithTimeout(
+          () => AdminService.subscribeToMessages(siteId, (messages) => {
+            setData(prev => ({ ...prev, messages, lastUpdate: new Date().toISOString() }));
+          }),
+          'mensagens'
+        );
         unsubscribeRefs.current.messages = messagesUnsubscribe;
 
-        // Configurar listener para notificações
-        const notificationsUnsubscribe = await AdminService.subscribeToNotifications((notifications) => {
-          setData(prev => ({ ...prev, notifications, lastUpdate: new Date().toISOString() }));
-        });
+        // Configurar listener para notificações com timeout
+        const notificationsUnsubscribe = await setupListenerWithTimeout(
+          () => AdminService.subscribeToNotifications((notifications) => {
+            setData(prev => ({ ...prev, notifications, lastUpdate: new Date().toISOString() }));
+          }),
+          'notificações'
+        );
         unsubscribeRefs.current.notifications = notificationsUnsubscribe;
 
-        // Configurar listener para atividades
-        const activitiesUnsubscribe = await AdminService.subscribeToAdminActivities(siteId, (activities) => {
-          setData(prev => ({ ...prev, activities, lastUpdate: new Date().toISOString() }));
-        });
+        // Configurar listener para atividades com timeout
+        const activitiesUnsubscribe = await setupListenerWithTimeout(
+          () => AdminService.subscribeToAdminActivities(siteId, (activities) => {
+            setData(prev => ({ ...prev, activities, lastUpdate: new Date().toISOString() }));
+          }),
+          'atividades'
+        );
         unsubscribeRefs.current.activities = activitiesUnsubscribe;
 
-        // Configurar listener para convites
-        const invitesUnsubscribe = await AdminService.subscribeToInvites(siteId, (invites) => {
-          setData(prev => ({ ...prev, invites, lastUpdate: new Date().toISOString() }));
-        });
+        // Configurar listener para convites com timeout
+        const invitesUnsubscribe = await setupListenerWithTimeout(
+          () => AdminService.subscribeToInvites(siteId, (invites) => {
+            setData(prev => ({ ...prev, invites, lastUpdate: new Date().toISOString() }));
+          }),
+          'convites'
+        );
         unsubscribeRefs.current.invites = invitesUnsubscribe;
 
-        // Configurar listener para colaboradores
-        const workersUnsubscribe = await AdminService.subscribeToWorkers(siteId, (workers) => {
-          setData(prev => ({ ...prev, workers, lastUpdate: new Date().toISOString() }));
-        });
+        // Configurar listener para colaboradores com timeout
+        const workersUnsubscribe = await setupListenerWithTimeout(
+          () => AdminService.subscribeToWorkers(siteId, (workers) => {
+            setData(prev => ({ ...prev, workers, lastUpdate: new Date().toISOString() }));
+          }),
+          'colaboradores'
+        );
         unsubscribeRefs.current.workers = workersUnsubscribe;
 
         setLoading(false);
@@ -144,10 +183,14 @@ export const useAdminRealTimeSync = (siteId: string) => {
       }
     };
 
-    setupRealTimeListeners();
+    // Aguardar um pouco antes de configurar os listeners para evitar sobrecarga na inicialização
+    const timer = setTimeout(() => {
+      setupRealTimeListeners();
+    }, 1000);
 
     // Cleanup function
     return () => {
+      clearTimeout(timer);
       Object.values(unsubscribeRefs.current).forEach(unsubscribe => {
         if (unsubscribe) {
           try {

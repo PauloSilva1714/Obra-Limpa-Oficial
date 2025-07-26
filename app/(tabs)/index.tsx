@@ -82,6 +82,7 @@ export default function TasksScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [detailsMode, setDetailsMode] = useState(false);
+  const [workers, setWorkers] = useState<any[]>([]);
   
   // Estados para comentários
   const [commentModalVisible, setCommentModalVisible] = useState(false);
@@ -204,9 +205,19 @@ export default function TasksScreen() {
 
   const loadTasks = async () => {
     try {
-      const siteTasks = await taskService.getTasks();
+      const currentSite = await AuthService.getCurrentSite();
+      if (!currentSite) {
+        Alert.alert(t('error'), 'Nenhum canteiro selecionado.');
+        return;
+      }
+
+      const [siteTasks, siteWorkers] = await Promise.all([
+        taskService.getTasks(),
+        AuthService.getWorkersBySite(currentSite.id)
+      ]);
       setTasks(siteTasks);
       setFilteredTasks(siteTasks);
+      setWorkers(siteWorkers);
     } catch (error) {
       console.error('[DEBUG] Erro ao carregar tarefas:', error);
       Alert.alert(t('error'), 'Erro ao carregar tarefas.');
@@ -442,6 +453,20 @@ export default function TasksScreen() {
     return parts[0] + ' ' + parts[1];
   }
 
+  // Função para buscar nomes dos responsáveis
+  const getAssigneesNames = (assignedTo: string | string[] | undefined): string => {
+    if (!assignedTo) return '';
+    
+    const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+    
+    const assignedNames = assignedIds.map(id => {
+      const worker = workers.find(w => w.id === id);
+      return worker ? worker.name : id;
+    });
+    
+    return assignedNames.join(', ');
+  };
+
   const handleOpenComments = (task: Task) => {
     setSelectedTaskForComments(task);
     setCommentModalVisible(true);
@@ -501,9 +526,7 @@ export default function TasksScreen() {
     const filtered = tasks.filter(task => {
       const title = task.title?.toLowerCase() || '';
       const description = task.description?.toLowerCase() || '';
-      const assignedToText = Array.isArray(task.assignedTo)
-        ? task.assignedTo.join(', ').toLowerCase()
-        : (task.assignedTo?.toLowerCase() || '');
+      const assignedToText = getAssigneesNames(task.assignedTo).toLowerCase();
       const area = task.area?.toLowerCase() || '';
       
       return title.includes(lowerQuery) ||
@@ -993,11 +1016,7 @@ export default function TasksScreen() {
                 </View>
                 <View>
                   <Text style={styles.photoUserName}>
-                    {formatUserName(
-                      Array.isArray(selectedTaskForPhoto?.assignedTo) 
-                        ? selectedTaskForPhoto.assignedTo.join(', ') 
-                        : (selectedTaskForPhoto?.assignedTo || '')
-                    )}
+                    {formatUserName(getAssigneesNames(selectedTaskForPhoto?.assignedTo || ''))}
                   </Text>
                   <Text style={styles.photoTaskDate}>
                     {selectedTaskForPhoto?.createdAt ? formatCommentDateTime(selectedTaskForPhoto.createdAt) : ''}

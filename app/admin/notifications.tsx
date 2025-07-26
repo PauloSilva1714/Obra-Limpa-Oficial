@@ -49,8 +49,8 @@ export default function AdminNotificationsScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadNotifications();
-    setRefreshing(false);
+    // A atualização será feita automaticamente pelo subscription
+    setTimeout(() => setRefreshing(false), 1000);
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
@@ -412,4 +412,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 40,
   },
-}); 
+});

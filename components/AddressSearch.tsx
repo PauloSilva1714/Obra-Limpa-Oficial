@@ -47,7 +47,7 @@ export default function AddressSearch({
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   // Debounce para busca
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Carregar dados salvos ao abrir o modal
   useEffect(() => {
@@ -565,4 +565,4 @@ const styles = StyleSheet.create({
   searchLoading: {
     marginLeft: 12,
   },
-}); 
+});

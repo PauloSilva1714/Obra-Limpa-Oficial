@@ -93,7 +93,7 @@ export default function CustomTabBar({ userRole, isVisible = true }: CustomTabBa
               { paddingVertical: isSmallScreen ? 6 : 12 }
             ]}
             activeOpacity={0.7}
-            onPress={() => router.push(tab.route)}
+            onPress={() => router.push(tab.route as any)}
           >
             <View style={styles.iconContainer}>
               {tab.icon}

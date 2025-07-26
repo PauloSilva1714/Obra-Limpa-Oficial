@@ -145,11 +145,26 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
   const getAssigneesNames = () => {
     if (!task.assignedTo) return 'Não atribuído';
     
+    let assignees: string[] = [];
+    
     if (Array.isArray(task.assignedTo)) {
-      return task.assignedTo.join(', ');
+      assignees = task.assignedTo;
+    } else if (typeof task.assignedTo === 'string') {
+      assignees = task.assignedTo.split(', ').map(a => a.trim());
     }
     
-    return task.assignedTo;
+    // Converter IDs para nomes reais
+    const realNames = assignees.map(assignee => {
+      // Verificar se é um ID de worker (formato de ID do Firestore)
+      const worker = workers.find(w => w.id === assignee);
+      if (worker) {
+        return worker.name;
+      }
+      // Se não encontrou o worker, retornar o nome como está (pode ser um nome manual)
+      return assignee;
+    });
+    
+    return realNames.length > 0 ? realNames.join(', ') : 'Não atribuído';
   };
 
   return (
