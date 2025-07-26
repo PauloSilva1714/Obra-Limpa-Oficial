@@ -16,7 +16,7 @@ import {
   MessageCircle,
   MapPin,
   Eye,
-  Pencil, // Adiciona o ícone de lápis
+  Pencil as Edit, // Adiciona o ícone de lápis
 } from 'lucide-react-native';
 import { Task, Comment } from '@/services/TaskService';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -98,6 +98,34 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return '#F97316';
+      case 'in_progress':
+        return '#F59E0B';
+      case 'completed':
+        return '#10B981';
+      case 'delayed':
+        return '#EF4444';
+      default:
+        return '#6B7280';
+    }
+  };
+
+  const getPriorityText = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'Alta';
+      case 'medium':
+        return 'Média';
+      case 'low':
+        return 'Baixa';
+      default:
+        return priority;
+    }
+  };
+
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
       case 'pending':
@@ -116,12 +144,16 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
   // Função utilitária para exibir nomes dos responsáveis
   const getAssigneesNames = () => {
     if (!task.assignedTo) return 'Não atribuído';
+    
+    if (Array.isArray(task.assignedTo)) {
+      return task.assignedTo.join(', ');
+    }
+    
     return task.assignedTo;
   };
 
   return (
     <View style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Substituir o header do card para exibir o nome de quem criou a tarefa no topo, estilo Facebook */}
       <View style={styles.fbHeader}>
         <View style={styles.fbAvatar}>
           {task.createdByPhotoURL ? (
@@ -137,10 +169,8 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         <View style={styles.fbHeaderInfo}>
           <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>
           <Text style={styles.fbDate}>{new Date(task.createdAt).toLocaleDateString('pt-BR')}</Text>
-          {/* Nomes dos responsáveis */}
-          <Text style={styles.fbAssigneesLine}>
-            <Text style={styles.fbAssigneesLabel}>Responsável(is) pela tarefa: </Text>
-            <Text style={styles.fbAssignees}>{getAssigneesNames()}</Text>
+          <Text style={[styles.fbAssignees, { color: colors.textMuted }]}>
+            {getAssigneesNames()}
           </Text>
           </View>
         <View style={styles.statusRiskBadges}>
@@ -160,103 +190,85 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         </View>
       </View>
 
-      {/* Foto Principal */}
       {task.photos && task.photos.length > 0 && (
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: task.photos[0] }}
-            style={styles.mainImage}
-            resizeMode="cover"
-          />
-        </View>
+        <TouchableOpacity onPress={() => onTaskPress(task)}>
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: task.photos[0] }}
+              style={styles.mainImage}
+              resizeMode="cover"
+            />
+          </View>
+        </TouchableOpacity>
       )}
 
-      {/* Informações da Tarefa */}
       <View style={styles.taskInfo}>
-        <Text style={[styles.taskTitle, { color: colors.text }]} numberOfLines={2}>
-          {task.title}
+        <Text style={[styles.taskTitle, { color: colors.text }]}>{task.title}</Text>
+        <Text style={[styles.taskDescription, { color: colors.textMuted }]}>
+          {task.description}
         </Text>
         
-        {task.description && (
-          <Text style={[styles.taskDescription, { color: colors.textSecondary }]} numberOfLines={3}>
-            {task.description}
-          </Text>
-        )}
-
         <View style={styles.taskDetails}>
-          {task.area && (
-            <View style={styles.detailItem}>
-              <MapPin size={14} color={colors.textMuted} />
-              <Text style={[styles.detailText, { color: colors.textMuted }]} numberOfLines={1}>
-                {task.area}
-              </Text>
-            </View>
-          )}
-          
-          {task.dueDate && (
-            <View style={styles.detailItem}>
-              <Calendar size={14} color={colors.textMuted} />
-              <Text style={[styles.detailText, { color: colors.textMuted }]}>
-                {new Date(task.dueDate).toLocaleDateString('pt-BR')}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* Seção de Comentários */}
-      <View style={styles.commentsSection}>
-        <View style={styles.commentsHeader}>
-          <Text style={[styles.commentsTitle, { color: colors.text }]}>
-            Comentários ({task.comments?.length || 0})
-          </Text>
-          {/* Ícone de comentário removido daqui para evitar duplicidade */}
-        </View>
-        
-        {task.comments && task.comments.length > 0 && (
-          <View style={styles.commentsPreview}>
-            {task.comments.slice(0, 2).map((comment, index) => (
-              <View key={comment.id} style={styles.commentItem}>
-                <Text style={[styles.commentUserName, { color: colors.text }]}>
-                  {comment.userName}
-                </Text>
-                <Text style={[styles.commentText, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {comment.text}
-                </Text>
-              </View>
-            ))}
-            {task.comments.length > 2 && (
-              <TouchableOpacity onPress={() => onOpenComments(task)}>
-                <Text style={[styles.viewMoreComments, { color: colors.primary }]}>
-                  Ver mais {task.comments.length - 2} comentários
-                </Text>
-              </TouchableOpacity>
-            )}
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task.status) }]}>
+            <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
           </View>
+          <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}>
+            <Text style={styles.priorityText}>{getPriorityText(task.priority)}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <MapPin size={12} color={colors.textMuted} />
+            <Text style={[styles.detailText, { color: colors.textMuted }]}>{task.area}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.commentsSection}>
+        {task.comments && task.comments.length > 0 && (
+          <TouchableOpacity onPress={() => onOpenComments(task)}>
+            <Text style={[styles.viewMoreComments, { color: colors.primary }]}>
+              Ver {task.comments.length} comentário{task.comments.length !== 1 ? 's' : ''}
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
 
-      {/* Barra de ações estilo Facebook na parte inferior */}
-      <View style={styles.fbActionsBar}>
-        <TouchableOpacity onPress={() => onOpenComments(task)} style={styles.fbActionButton}>
-          <MessageCircle size={20} color={colors.primary} />
-          <Text style={styles.fbActionText}>Comentar</Text>
+      <View style={[styles.fbActionsBar, { borderTopColor: colors.border }]}>
+        <TouchableOpacity
+          style={styles.fbActionButton}
+          onPress={() => onTaskDetails(task)}
+        >
+          <Eye size={18} color={colors.primary} />
+          <Text style={[styles.fbActionText, { color: colors.primary }]}>Ver</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onTaskDetails(task)} style={styles.fbActionButton}>
-          <Eye size={20} color={colors.primary} />
-          <Text style={styles.fbActionText}>Ver Detalhes</Text>
+
+        <TouchableOpacity
+          style={styles.fbActionButton}
+          onPress={() => onOpenComments(task)}
+        >
+          <MessageCircle size={18} color={colors.textMuted} />
+          <Text style={[styles.fbActionText, { color: colors.textMuted }]}>
+            Comentar
+          </Text>
         </TouchableOpacity>
-        {userRole === 'admin' && onEditTask && (
-          <TouchableOpacity onPress={() => onEditTask(task)} style={styles.fbActionButton}>
-            <Pencil size={20} color={colors.primary} />
-            <Text style={styles.fbActionText}>Editar</Text>
-          </TouchableOpacity>
-        )}
+
         {userRole === 'admin' && (
-          <TouchableOpacity onPress={() => onDeleteTask(task.id)} style={styles.fbActionButton}>
-            <Trash2 size={20} color={colors.error} />
-            <Text style={[styles.fbActionText, { color: colors.error }]}>Excluir</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.fbActionButton}
+              onPress={() => onEditTask && onEditTask(task)}
+            >
+              <Edit size={18} color={colors.textMuted} />
+              <Text style={[styles.fbActionText, { color: colors.textMuted }]}>Editar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.fbActionButton}
+              onPress={() => onDeleteTask(task.id)}
+            >
+              <Trash2 size={18} color="#ef4444" />
+              <Text style={[styles.fbActionText, { color: "#ef4444" }]}>Excluir</Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
     </View>

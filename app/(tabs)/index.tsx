@@ -634,19 +634,17 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
       <View style={{
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 8,
         paddingVertical: 6,
-        backgroundColor: colors.background, // fundo igual ao da tela
+        backgroundColor: colors.background,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
         zIndex: 10,
       }}>
-        {/* Avatar com status antes do botão + */}
         <View style={{ marginRight: 12 }}>
           <ConnectionStatus />
         </View>
@@ -684,7 +682,6 @@ export default function TasksScreen() {
             )}
           </View>
         </View>
-        {/* Nome da obra atual */}
         {currentSite?.name && (
           <View style={{
             flexDirection: 'row',
@@ -706,11 +703,9 @@ export default function TasksScreen() {
           </View>
         )}
         
-        {/* Botão Hamburger para esconder/mostrar tab bar */}
         <TabBarToggleButton size={20} style={{ marginLeft: 8 }} />
       </View>
 
-      {/* Feed de Tarefas */}
       <FlatList
         ListHeaderComponent={<Text style={[styles.headerTitle, { color: colors.text, marginTop: 16, marginBottom: 8 }]}>Tarefas</Text>}
         data={filteredTasks}

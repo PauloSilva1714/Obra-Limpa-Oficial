@@ -249,7 +249,11 @@ export default function ProgressScreen() {
             {task.assignedTo && (
               <View style={styles.taskInfoItem}>
                 <User size={16} color="#6B7280" />
-                <Text style={styles.taskInfoText}>{task.assignedTo}</Text>
+                <Text style={styles.taskInfoText}>
+                  {Array.isArray(task.assignedTo) 
+                    ? task.assignedTo.join(', ') 
+                    : task.assignedTo}
+                </Text>
               </View>
             )}
             
