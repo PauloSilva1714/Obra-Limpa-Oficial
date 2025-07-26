@@ -1,12 +1,36 @@
 {
+  "java.enabled": false,
   "java.compile.nullAnalysis.mode": "disabled",
   "java.errors.incompleteClasspath.severity": "ignore",
   "java.import.gradle.enabled": false,
   "java.configuration.checkProjectSettingsExclusions": false,
+  "java.project.sourcePaths": [],
+  "java.project.referencedLibraries": [],
+  "java.autobuild.enabled": false,
+  "java.configuration.updateBuildConfiguration": "disabled",
+  "java.import.gradle.offline.enabled": false,
+  "java.import.gradle.wrapper.enabled": false,
+  "java.import.gradle.java.home": null,
+  "java.server.launchMode": "Standard",
+  "java.jdt.ls.java.home": null,
+  "java.import.exclusions": [
+    "**/android/**",
+    "**/node_modules/**",
+    "**/build/**",
+    "**/.gradle/**"
+  ],
+  "redhat.telemetry.enabled": false,
+  "java.configuration.maven.userSettings": null,
+  "java.eclipse.downloadSources": false,
+  "java.maven.downloadSources": false,
+  "java.gradle.buildServer.enabled": "off",
   "files.exclude": {
     "**/android/build": true,
     "**/android/.gradle": true,
     "**/android/app/build": true,
+    "**/android/.settings": true,
+    "**/android/.project": true,
+    "**/android/.classpath": true,
     "**/node_modules/**/.gradle": true,
     "**/node_modules/**/build": true
   },
@@ -14,7 +38,18 @@
     "**/android/build": true,
     "**/android/.gradle": true,
     "**/android/app/build": true,
+    "**/android/.settings": true,
+    "**/android/.project": true,
+    "**/android/.classpath": true,
     "**/node_modules/**/.gradle": true,
     "**/node_modules/**/build": true
+  },
+  "files.watcherExclude": {
+    "**/android/build/**": true,
+    "**/android/.gradle/**": true,
+    "**/android/app/build/**": true,
+    "**/android/.settings/**": true,
+    "**/android/.project/**": true,
+    "**/android/.classpath/**": true
   }
 }

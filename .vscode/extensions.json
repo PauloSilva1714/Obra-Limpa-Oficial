@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-json"
+  ],
+  "unwantedRecommendations": [
+    "redhat.java",
+    "vscjava.vscode-java-pack",
+    "vscjava.vscode-gradle",
+    "vscjava.vscode-java-dependency"
+  ]
+}

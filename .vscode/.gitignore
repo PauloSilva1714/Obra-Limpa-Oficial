@@ -1,0 +1,13 @@
+# VS Code workspace cache and temporary files
+*.log
+.factorypath
+launch.json.bak
+settings.json.bak
+
+# Java language server cache
+jdt_ws/
+.metadata/
+
+# Temporary configuration files
+*.tmp
+*.temp

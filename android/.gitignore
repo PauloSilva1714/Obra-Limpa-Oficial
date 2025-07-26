@@ -12,5 +12,15 @@ local.properties
 *.hprof
 .cxx/
 
+# Eclipse/Java IDE
+.project
+.classpath
+.settings/
+bin/
+
+# VS Code Java
+.vscode/
+.factorypath
+
 # Bundle artifacts
 *.jsbundle
