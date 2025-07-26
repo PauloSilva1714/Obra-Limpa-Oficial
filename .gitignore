@@ -44,3 +44,6 @@ Thumbs.db
 # IDE files
 .vscode/settings.json
 .idea/
+
+# Exceto configurações específicas do projeto
+!.vscode/settings.json
