@@ -133,7 +133,7 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && isAdmin();
     }
 
-    // Regras para notificações administrativas corrigidas
+    // Regras para notificações administrativas
     match /adminNotifications/{notificationId} {
       allow read, list: if isAuthenticated() && (
         isAdmin() && request.auth.uid == resource.data.recipientId
