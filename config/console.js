@@ -1,24 +1,32 @@
 // Configuração do console para suprimir avisos específicos
+// IMPORTANTE: Esta configuração deve ser carregada ANTES de qualquer outro código
+
+// Salvar referências originais IMEDIATAMENTE
 const originalWarn = console.warn;
 const originalError = console.error;
 
 // Lista de avisos para suprimir
 const suppressedWarnings = [
   'props.pointerEvents is deprecated',
+  'pointerEvents is deprecated',
   'Unexpected text node',
   'Layout children must be of type Screen',
   'expo-notifications] Listening to push token changes is not yet fully supported on web',
-  '"shadow*" style props are deprecated. Use "boxShadow"'
+  '"shadow*" style props are deprecated. Use "boxShadow"',
+  'shadow* style props are deprecated'
 ];
 
 // Função para verificar se o aviso deve ser suprimido
 function shouldSuppressWarning(message) {
+  if (typeof message !== 'string') {
+    message = String(message);
+  }
   return suppressedWarnings.some(suppressed => 
-    message.includes(suppressed)
+    message.toLowerCase().includes(suppressed.toLowerCase())
   );
 }
 
-// Sobrescrever console.warn
+// Sobrescrever console.warn IMEDIATAMENTE
 console.warn = function(...args) {
   const message = args.join(' ');
   if (!shouldSuppressWarning(message)) {
