@@ -17,7 +17,11 @@ import {
   MapPin,
   Eye,
   Pencil as Edit, // Adiciona o ícone de lápis
+  AlertTriangle,
+  Pause,
+  Play,
 } from 'lucide-react-native';
+import { safeTouchProps, createDebouncedPress } from '../utils/touchUtils';
 import { Task, Comment } from '@/services/TaskService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
@@ -203,7 +207,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
       </View>
 
       {task.photos && task.photos.length > 0 && (
-        <TouchableOpacity onPress={() => onTaskPress(task)}>
+        <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(() => onTaskPress(task))}>
           <View style={styles.imageContainer}>
             <Image
               source={{ uri: task.photos[0] }}
@@ -231,7 +235,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
 
       <View style={styles.commentsSection}>
         {task.comments && task.comments.length > 0 && (
-          <TouchableOpacity onPress={() => onOpenComments(task)}>
+          <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(() => onOpenComments(task))}>
             <Text style={[styles.viewMoreComments, { color: colors.primary }]}>
               Ver {task.comments.length} comentário{task.comments.length !== 1 ? 's' : ''}
             </Text>
@@ -241,16 +245,18 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
 
       <View style={[styles.fbActionsBar, { borderTopColor: colors.border }]}>
         <TouchableOpacity
+          {...safeTouchProps}
           style={styles.fbActionButton}
-          onPress={() => onTaskDetails(task)}
+          onPress={createDebouncedPress(() => onTaskDetails(task))}
         >
           <Eye size={18} color={colors.primary} />
           <Text style={[styles.fbActionText, { color: colors.primary }]}>Ver</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
+          {...safeTouchProps}
           style={styles.fbActionButton}
-          onPress={() => onOpenComments(task)}
+          onPress={createDebouncedPress(() => onOpenComments(task))}
         >
           <MessageCircle size={18} color={colors.textMuted} />
           <Text style={[styles.fbActionText, { color: colors.textMuted }]}>
@@ -261,16 +267,18 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         {userRole === 'admin' && (
           <>
             <TouchableOpacity
+              {...safeTouchProps}
               style={styles.fbActionButton}
-              onPress={() => onEditTask && onEditTask(task)}
+              onPress={createDebouncedPress(() => onEditTask && onEditTask(task))}
             >
               <Edit size={18} color={colors.textMuted} />
               <Text style={[styles.fbActionText, { color: colors.textMuted }]}>Editar</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
+              {...safeTouchProps}
               style={styles.fbActionButton}
-              onPress={() => onDeleteTask(task.id)}
+              onPress={createDebouncedPress(() => onDeleteTask(task.id))}
             >
               <Trash2 size={18} color="#ef4444" />
               <Text style={[styles.fbActionText, { color: "#ef4444" }]}>Excluir</Text>

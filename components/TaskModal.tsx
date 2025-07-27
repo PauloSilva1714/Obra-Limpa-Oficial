@@ -28,6 +28,7 @@ import { uploadImageAsync } from '../services/PhotoService';
 import { Picker } from '@react-native-picker/picker';
 import { CustomMultiSelect } from './CustomMultiSelect';
 import { shadows } from '../utils/shadowUtils';
+import { safeTouchProps, safeModalProps, createDebouncedPress } from '../utils/touchUtils';
 // Remover: import Share, { Social } from 'react-native-share';
 
 interface TaskModalProps {
@@ -270,13 +271,14 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   const StatusButton = ({ status, label }: { status: Task['status']; label: string }) => (
     <TouchableOpacity
+      {...safeTouchProps}
       style={[
         styles.modernStatusButton,
         formData.status === status && styles.modernStatusButtonActive,
         formData.status === status && getStatusButtonStyle(status),
         !canEdit && styles.buttonDisabled,
       ]}
-      onPress={() => {
+      onPress={createDebouncedPress(() => {
         if (canEdit) {
           const newFormData = { ...formData, status };
           // Se o status for "completed", preencher automaticamente a data de finalização no formato DD/MM/AAAA
@@ -291,7 +293,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
           }
           setFormData(newFormData);
         }
-      }}
+      })}
       disabled={!canEdit}
     >
       <Text
@@ -308,12 +310,13 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   const PriorityButton = ({ priority, label, color }: { priority: Task['priority']; label: string; color: string }) => (
     <TouchableOpacity
+      {...safeTouchProps}
       style={[
         styles.modernPriorityButton,
         formData.priority === priority && { backgroundColor: color + '15', borderColor: color },
         !canEdit && styles.buttonDisabled,
       ]}
-      onPress={() => canEdit && setFormData({ ...formData, priority })}
+      onPress={createDebouncedPress(() => canEdit && setFormData({ ...formData, priority }))}
       disabled={!canEdit}
     >
       <Flag size={16} color={formData.priority === priority ? color : '#6B7280'} />
@@ -681,7 +684,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   }
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" {...safeModalProps}>
       <View style={[styles.container, { flex: 1, flexDirection: 'column', paddingBottom: 16 }]}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -694,7 +697,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               </View>
             )}
           </View>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity {...safeTouchProps} style={styles.closeButton} onPress={createDebouncedPress(onClose)}>
             <X size={24} color="#6B7280" />
           </TouchableOpacity>
         </View>
@@ -710,12 +713,12 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 <View style={{ alignItems: 'center', marginBottom: 24 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                     {medias.length > 1 && (
-                      <TouchableOpacity onPress={handlePrev} style={{ padding: 8 }}>
+                      <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(handlePrev)} style={{ padding: 8 }}>
                         <ChevronLeft size={32} color="#111827" />
                       </TouchableOpacity>
                     )}
                     {currentMedia && (
-                      <TouchableOpacity onPress={() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); }}>
+                      <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); })}>
                         {renderMedia(
                           currentMedia,
                           { width: 320, height: 220, borderRadius: 20, backgroundColor: currentMedia.type === 'video' ? '#222' : '#F3F4F6' },
@@ -742,7 +745,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                       </TouchableOpacity>
                     )}
                     {medias.length > 1 && (
-                      <TouchableOpacity onPress={handleNext} style={{ padding: 8 }}>
+                      <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(handleNext)} style={{ padding: 8 }}>
                         <ChevronRight size={32} color="#111827" />
                       </TouchableOpacity>
                     )}
@@ -751,7 +754,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                   {medias.length > 1 && (
                     <View style={{ flexDirection: 'row', marginTop: 12 }}>
                       {medias.map((m, idx) => (
-                        <TouchableOpacity key={idx} onPress={() => setMediaIndex(idx)}>
+                        <TouchableOpacity {...safeTouchProps} key={idx} onPress={createDebouncedPress(() => setMediaIndex(idx))}>
                           {renderMedia(
                             m,
                             m.type === 'photo'
@@ -767,9 +770,9 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
               )}
               {/* Modal de mídia em tela cheia */}
               {fullscreenVisible && fullscreenMedia && (
-                <Modal visible={fullscreenVisible} transparent animationType="fade" onRequestClose={() => setFullscreenVisible(false)}>
+                <Modal visible={fullscreenVisible} transparent animationType="fade" onRequestClose={() => setFullscreenVisible(false)} {...safeModalProps}>
                   <View style={styles.fullscreenOverlay}>
-                    <TouchableOpacity style={{ position: 'absolute', top: 32, right: 32, zIndex: 10 }} onPress={() => setFullscreenVisible(false)}>
+                    <TouchableOpacity {...safeTouchProps} style={{ position: 'absolute', top: 32, right: 32, zIndex: 10 }} onPress={createDebouncedPress(() => setFullscreenVisible(false))}>
                       <X size={36} color="#fff" />
                     </TouchableOpacity>
                     <View style={[styles.fullscreenContainer, { width: '100%', height: '100%' }]}> 
@@ -934,7 +937,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                   {selectedAssignees.map((assignee, idx) => (
                     <View key={assignee + idx} style={{ backgroundColor: '#e0e7ef', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginRight: 6, marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}>
                       <Text>{workers.find(w => w.id === assignee)?.name || assignee}</Text>
-                      <TouchableOpacity onPress={() => setSelectedAssignees(selectedAssignees.filter(a => a !== assignee))}>
+                      <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(() => setSelectedAssignees(selectedAssignees.filter(a => a !== assignee)))}>
                         <Text style={{ marginLeft: 4, color: '#EF4444', fontWeight: 'bold' }}>×</Text>
                       </TouchableOpacity>
                     </View>
@@ -1030,10 +1033,10 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
             </View>
             {/* Botões */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 24 }}>
-              <TouchableOpacity style={[styles.cancelButton, { flex: 1, marginRight: 8 }]} onPress={onClose}>
+              <TouchableOpacity {...safeTouchProps} style={[styles.cancelButton, { flex: 1, marginRight: 8 }]} onPress={createDebouncedPress(onClose)}>
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.saveButton, { flex: 2 }]} onPress={handleSave}>
+              <TouchableOpacity {...safeTouchProps} style={[styles.saveButton, { flex: 2 }]} onPress={createDebouncedPress(handleSave)}>
                 <Text style={styles.saveButtonText}>{isEditing ? 'Salvar' : 'Criar Tarefa'}</Text>
               </TouchableOpacity>
             </View>

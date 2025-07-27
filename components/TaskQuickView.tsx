@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { X, MessageCircle, ChevronLeft, ChevronRight, Video as VideoIcon } from 'lucide-react-native';
+import { safeTouchProps, safeModalProps, createDebouncedPress } from '../utils/touchUtils';
 import type { Task } from '../services/TaskService';
 import { shadows } from '../utils/shadowUtils';
 
@@ -83,7 +84,7 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" {...safeModalProps}>
       <View style={styles.overlay}>
         <View style={styles.modalBox}>
           <View style={styles.mediaContainer}>
@@ -92,10 +93,10 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
                 {renderMedia(currentMedia, styles)}
                 {medias.length > 1 && (
                   <View style={styles.mediaNav}>
-                    <TouchableOpacity onPress={handlePrev} style={styles.mediaNavButton}>
+                    <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(handlePrev)} style={styles.mediaNavButton}>
                       <ChevronLeft size={22} color="#fff" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleNext} style={styles.mediaNavButton}>
+                    <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(handleNext)} style={styles.mediaNavButton}>
                       <ChevronRight size={22} color="#fff" />
                     </TouchableOpacity>
                   </View>
@@ -108,7 +109,7 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
 
           <View style={styles.header}>
             <Text style={styles.title}>{task.title}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(onClose)} style={styles.closeButton}>
               <X size={22} color="#666" />
             </TouchableOpacity>
           </View>

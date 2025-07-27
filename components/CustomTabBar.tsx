@@ -1,6 +1,7 @@
 import { View, TouchableOpacity, Text, StyleSheet, Platform, useWindowDimensions, Animated } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Home, User, BarChart3, MessageCircle, Building2 } from 'lucide-react-native';
+import { safeTouchProps, createDebouncedPress } from '../utils/touchUtils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
 import { AdminService } from '@/services/AdminService';
@@ -86,6 +87,7 @@ export default function CustomTabBar({ userRole, isVisible = true }: CustomTabBa
         const isActive = pathname === tab.route;
         return (
           <TouchableOpacity
+            {...safeTouchProps}
             key={tab.route}
             style={[
               styles.tab,
@@ -93,7 +95,7 @@ export default function CustomTabBar({ userRole, isVisible = true }: CustomTabBa
               { paddingVertical: isSmallScreen ? 6 : 12 }
             ]}
             activeOpacity={0.7}
-            onPress={() => router.push(tab.route as any)}
+            onPress={createDebouncedPress(() => router.push(tab.route as any))}
           >
             <View style={styles.iconContainer}>
               {tab.icon}
