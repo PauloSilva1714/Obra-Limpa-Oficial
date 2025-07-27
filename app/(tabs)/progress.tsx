@@ -76,7 +76,8 @@ export default function ProgressScreen() {
       case 'completed': return '#10B981';
       case 'in_progress': return '#F59E0B';
       case 'delayed': return '#EF4444';
-      default: return '#6B7280';
+      case 'pending': return '#F97316';
+      default: return '#F97316';
     }
   };
 
@@ -147,7 +148,7 @@ export default function ProgressScreen() {
       { value: completedTasks, color: '#10B981', label: 'Concluídas' },
       { value: inProgressTasks, color: '#F59E0B', label: 'Em Andamento' },
       { value: delayedTasks, color: '#EF4444', label: 'Atrasadas' },
-      { value: pendingTasks, color: '#6B7280', label: 'Pendentes' },
+      { value: pendingTasks, color: '#F97316', label: 'Pendentes' },
     ].filter(item => item.value > 0);
 
     if (totalTasks === 0) {

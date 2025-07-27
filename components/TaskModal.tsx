@@ -472,12 +472,16 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   const getStatusColor = (status: Task['status']) => {
     switch (status) {
-      case 'completed':
-        return '#10B981';
+      case 'pending':
+        return '#F97316';
       case 'in_progress':
         return '#F59E0B';
-      default:
+      case 'completed':
+        return '#10B981';
+      case 'delayed':
         return '#EF4444';
+      default:
+        return '#6B7280';
     }
   };
 

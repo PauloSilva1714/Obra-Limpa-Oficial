@@ -34,6 +34,22 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
 
   if (!task) return null;
 
+  // Função para obter a cor do status
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return '#F97316';
+      case 'in_progress':
+        return '#F59E0B';
+      case 'completed':
+        return '#10B981';
+      case 'delayed':
+        return '#EF4444';
+      default:
+        return '#6B7280';
+    }
+  };
+
   // Juntar fotos e vídeos em uma lista única para o carrossel
   const medias = [
     ...(task.photos || []).map(url => ({ type: 'photo', url })),
@@ -103,7 +119,7 @@ export function TaskQuickView({ visible, task, onClose, onOpenTheater, onAddComm
             <Text style={styles.infoLabel}>Descrição Detalhada</Text>
             <Text style={styles.infoValue}>{task.description}</Text>
           </View>
-          <Text style={styles.status}>{task.status === 'completed' ? 'Concluída' : task.status === 'in_progress' ? 'Em andamento' : 'Pendente'}</Text>
+          <Text style={[styles.status, { color: getStatusColor(task.status) }]}>{task.status === 'completed' ? 'Concluída' : task.status === 'in_progress' ? 'Em andamento' : 'Pendente'}</Text>
           <Text style={styles.description} numberOfLines={3}>{task.description}</Text>
 
           <View style={styles.commentsSection}>
@@ -224,7 +240,7 @@ const styles = StyleSheet.create({
   },
   status: {
     fontSize: 15,
-    color: '#666',
+    fontWeight: 'bold',
     marginBottom: 6,
     paddingHorizontal: 28,
   },

@@ -25,6 +25,17 @@ export default function CreateSiteScreen() {
   const [duplicateModalVisible, setDuplicateModalVisible] = useState(false);
   const [duplicateSiteName, setDuplicateSiteName] = useState('');
 
+  // Função para capitalizar a primeira letra de cada palavra
+  const capitalizeWords = (text: string) => {
+    return text.replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  // Função para lidar com a mudança do nome da obra
+  const handleNameChange = (text: string) => {
+    const capitalizedText = capitalizeWords(text);
+    setName(capitalizedText);
+  };
+
   function handleBack() {
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
@@ -82,7 +93,7 @@ export default function CreateSiteScreen() {
           <TextInput
             style={styles.input}
             value={name}
-            onChangeText={setName}
+            onChangeText={handleNameChange}
             placeholder="Digite o nome da obra"
             placeholderTextColor="#999"
           />
@@ -203,4 +214,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-}); 
+});
