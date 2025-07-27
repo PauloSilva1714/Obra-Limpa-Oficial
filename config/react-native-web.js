@@ -15,7 +15,6 @@ if (Platform.OS === 'web') {
       'props.pointerEvents is deprecated',
       'Unexpected text node',
       'Layout children must be of type Screen',
-      'expo-notifications] Listening to push token changes is not yet fully supported on web',
       '"shadow*" style props are deprecated. Use "boxShadow"',
       'shadow*" style props are deprecated',
       'shadowColor',

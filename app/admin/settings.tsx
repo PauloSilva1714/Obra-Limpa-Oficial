@@ -101,9 +101,16 @@ export default function SettingsScreen() {
 
   const checkPermissions = async () => {
     try {
-      // Verificar permissão de notificações
-      const { status: notificationStatus } = await Notifications.getPermissionsAsync();
-      setNotificationsEnabled(notificationStatus === 'granted');
+      // Verificar permissão de notificações apenas em plataformas móveis
+      if (Platform.OS !== 'web') {
+        const { status: notificationStatus } = await Notifications.getPermissionsAsync();
+        setNotificationsEnabled(notificationStatus === 'granted');
+      } else {
+        // Para web, verificar se o navegador suporta notificações
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          setNotificationsEnabled(Notification.permission === 'granted');
+        }
+      }
 
       // Verificar permissão de câmera
       const { status: cameraStatus } = await ImagePicker.getCameraPermissionsAsync();
@@ -117,21 +124,47 @@ export default function SettingsScreen() {
       const { status: locationStatus } = await Location.getForegroundPermissionsAsync();
       setLocationPermission(locationStatus === 'granted');
     } catch (error) {
+      console.log('Erro ao verificar permissões:', error);
     }
   };
 
   const handleNotificationToggle = async (value: boolean) => {
-    if (value) {
-      const { status } = await Notifications.requestPermissionsAsync();
-      setNotificationsEnabled(status === 'granted');
-      if (status === 'granted') {
-        Alert.alert(t('success'), 'Notificações ativadas!');
+    if (Platform.OS === 'web') {
+      // Para web, usar a API nativa do navegador
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (value) {
+          try {
+            const permission = await Notification.requestPermission();
+            setNotificationsEnabled(permission === 'granted');
+            if (permission === 'granted') {
+              Alert.alert(t('success'), 'Notificações ativadas!');
+            } else {
+              Alert.alert('Permissão negada', 'Você pode ativar as notificações nas configurações do navegador.');
+            }
+          } catch (error) {
+            Alert.alert('Erro', 'Não foi possível solicitar permissão para notificações.');
+          }
+        } else {
+          setNotificationsEnabled(false);
+          Alert.alert('Notificações desativadas', 'Você não receberá mais notificações do app.');
+        }
       } else {
-        Alert.alert('Permissão negada', 'Você pode ativar as notificações nas configurações do dispositivo.');
+        Alert.alert('Não suportado', 'Notificações não são suportadas neste navegador.');
       }
     } else {
-      setNotificationsEnabled(false);
-      Alert.alert('Notificações desativadas', 'Você não receberá mais notificações do app.');
+      // Para plataformas móveis, usar expo-notifications
+      if (value) {
+        const { status } = await Notifications.requestPermissionsAsync();
+        setNotificationsEnabled(status === 'granted');
+        if (status === 'granted') {
+          Alert.alert(t('success'), 'Notificações ativadas!');
+        } else {
+          Alert.alert('Permissão negada', 'Você pode ativar as notificações nas configurações do dispositivo.');
+        }
+      } else {
+        setNotificationsEnabled(false);
+        Alert.alert('Notificações desativadas', 'Você não receberá mais notificações do app.');
+      }
     }
   };
 
