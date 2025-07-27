@@ -1,4 +1,5 @@
 import '@/config/pointer-events-fix';
+import '@/config/passive-events';
 import '@/config/console';
 import '@/config/react-native-web';
 import '@/config/expo-router';
