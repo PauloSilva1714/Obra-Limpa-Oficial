@@ -10,6 +10,7 @@ import {
   Platform,
   Animated,
   Dimensions,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,8 +23,12 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
+import logo from './obra-limpa-logo.png';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+// Detecta se está rodando no web
+const isWeb = typeof document !== 'undefined';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -63,7 +68,7 @@ export default function ForgotPasswordScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
           <View style={styles.logoContainer}>
-            <Building2 size={64} color="#FFFFFF" strokeWidth={3} />
+            <Image source={logo} resizeMode="contain" style={{ width: 90, height: 90 }} />
           </View>
           <Text style={styles.titleFallback}>Obra Limpa</Text>
           <Text style={styles.subtitleFallback}>Recuperar Senha</Text>
@@ -132,7 +137,7 @@ export default function ForgotPasswordScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
           <View style={styles.logoContainer}>
-            <Building2 size={64} color="#FFFFFF" strokeWidth={3} />
+            <Image source={logo} resizeMode="contain" style={{ width: 90, height: 90 }} />
           </View>
           <Text style={styles.title}>Obra Limpa</Text>
           <Text style={styles.subtitle}>Recuperar Senha</Text>
@@ -192,7 +197,7 @@ export default function ForgotPasswordScreen() {
         {/* Header fixo no topo */}
         <View style={styles.headerContainer}>
           <View style={styles.logoContainer}>
-            <Building2 size={64} color="#FFFFFF" strokeWidth={3} />
+            <Image source={logo} resizeMode="contain" style={{ width: 90, height: 90 }} />
           </View>
           <Text style={styles.title}>Obra Limpa</Text>
           <Text style={styles.subtitle}>Recuperar Senha</Text>
@@ -261,13 +266,13 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#18344A',
   },
   keyboardView: {
     flex: 1,
   },
   headerContainer: {
-    height: 300,
+    height: Math.min(300, height * 0.35),
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
@@ -275,18 +280,30 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    width: Math.min(120, width * 0.25),
+    height: Math.min(120, width * 0.25),
+    borderRadius: Math.min(60, width * 0.125),
+    backgroundColor: '#E6F4FA',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: '#38A3C0',
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 8px 25px rgba(56, 163, 192, 0.3)',
+      },
+      default: {
+        elevation: 8,
+        shadowColor: '#38A3C0',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+    }),
   },
   title: {
-    fontSize: 48,
+    fontSize: Math.min(48, width * 0.1),
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
     textAlign: 'center',
@@ -295,7 +312,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   subtitle: {
-    fontSize: 20,
+    fontSize: Math.min(20, width * 0.045),
     fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
@@ -317,23 +334,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px -8px 25px rgba(0,0,0,0.1)',
+      },
+      default: {
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+    }),
     zIndex: 2,
   },
   form: {
     flex: 1,
-    paddingHorizontal: 32,
+    paddingHorizontal: Math.max(32, width * 0.08),
     paddingTop: 40,
     paddingBottom: 40,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: Math.min(24, width * 0.06),
     fontFamily: 'Inter-Bold',
     color: '#1F2937',
     textAlign: 'center',
     marginBottom: 8,
   },
   loginText: {
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',

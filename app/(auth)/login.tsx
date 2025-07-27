@@ -11,10 +11,12 @@ import {
   Animated,
   Dimensions,
   Image,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Building2, User, Lock, Eye, EyeOff, Mail, ArrowRight } from 'lucide-react-native';
+import { Building2, User, Lock, Eye, EyeOff, Mail, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import {
   useFonts,
@@ -26,7 +28,7 @@ import {
 import logo from './obra-limpa-logo.png';
 import { shadows } from '../../utils/shadowUtils';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // Detecta se está rodando no web
 const isWeb = typeof document !== 'undefined';
@@ -38,8 +40,13 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
+  const [emailFocusAnim] = useState(new Animated.Value(0));
+  const [passwordFocusAnim] = useState(new Animated.Value(0));
+  const [buttonScaleAnim] = useState(new Animated.Value(1));
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' });
 
   const passwordInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -81,9 +88,47 @@ export default function LoginScreen() {
     );
   }
 
+  const handleInputFocus = (inputType: 'email' | 'password') => {
+    const anim = inputType === 'email' ? emailFocusAnim : passwordFocusAnim;
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handleInputBlur = (inputType: 'email' | 'password') => {
+    const anim = inputType === 'email' ? emailFocusAnim : passwordFocusAnim;
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handleButtonPress = () => {
+    Animated.sequence([
+      Animated.timing(buttonScaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const showMessage = (type: 'success' | 'error', text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: null, text: '' }), 4000);
+  };
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+      showMessage('error', 'Por favor, preencha todos os campos.');
       return;
     }
 
@@ -92,6 +137,7 @@ export default function LoginScreen() {
       const success = await AuthService.login(email.trim(), password);
 
       if (success) {
+        showMessage('success', 'Login realizado com sucesso!');
         const user = await AuthService.getCurrentUser();
         if (user && user.role === 'worker') {
           const currentSite = await AuthService.getCurrentSite();
@@ -105,10 +151,10 @@ export default function LoginScreen() {
           router.replace('/(auth)/site-selection');
         }
       } else {
-        Alert.alert('Erro', 'Credenciais inválidas. Tente novamente.');
+        showMessage('error', 'Credenciais inválidas. Tente novamente.');
       }
     } catch (error) {
-      Alert.alert('Erro', 'Erro ao fazer login. Tente novamente.');
+      showMessage('error', 'Erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -139,10 +185,50 @@ export default function LoginScreen() {
       <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
       <Text style={styles.loginText}>Faça login para continuar</Text>
 
+      {/* Mensagem de feedback */}
+      {message.type && (
+        <Animated.View 
+          style={[
+            styles.messageContainer,
+            message.type === 'success' ? styles.successMessage : styles.errorMessage
+          ]}
+        >
+          {message.type === 'success' ? (
+            <CheckCircle size={20} color="#10B981" />
+          ) : (
+            <AlertCircle size={20} color="#EF4444" />
+          )}
+          <Text style={[
+            styles.messageText,
+            message.type === 'success' ? styles.successText : styles.errorText
+          ]}>
+            {message.text}
+          </Text>
+        </Animated.View>
+      )}
+
       {/* Campo de Email */}
-      <View style={styles.inputContainer}>
-        <Mail size={20} color="#6B7280" style={styles.inputIcon} />
+      <Animated.View 
+        style={[
+          styles.inputContainer,
+          {
+            borderColor: emailFocusAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['#E5E7EB', '#3B82F6']
+            }),
+            borderWidth: emailFocusAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 2]
+            })
+          }
+        ]}
+      >
+        <Mail size={20} color={emailFocusAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: ['#6B7280', '#3B82F6']
+        })} style={styles.inputIcon} />
         <TextInput
+          ref={emailInputRef}
           style={styles.input}
           placeholder="Digite seu e-mail"
           value={email}
@@ -152,12 +238,31 @@ export default function LoginScreen() {
           placeholderTextColor="#9CA3AF"
           returnKeyType="next"
           onSubmitEditing={() => passwordInputRef.current?.focus()}
+          onFocus={() => handleInputFocus('email')}
+          onBlur={() => handleInputBlur('email')}
         />
-      </View>
+      </Animated.View>
 
       {/* Campo de Senha */}
-      <View style={styles.inputContainer}>
-        <Lock size={20} color="#6B7280" style={styles.inputIcon} />
+      <Animated.View 
+        style={[
+          styles.inputContainer,
+          {
+            borderColor: passwordFocusAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['#E5E7EB', '#3B82F6']
+            }),
+            borderWidth: passwordFocusAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 2]
+            })
+          }
+        ]}
+      >
+        <Lock size={20} color={passwordFocusAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: ['#6B7280', '#3B82F6']
+        })} style={styles.inputIcon} />
         <TextInput
           ref={passwordInputRef}
           style={styles.input}
@@ -168,6 +273,8 @@ export default function LoginScreen() {
           placeholderTextColor="#9CA3AF"
           onSubmitEditing={handleLogin}
           textContentType={isWeb ? undefined : 'password'}
+          onFocus={() => handleInputFocus('password')}
+          onBlur={() => handleInputBlur('password')}
         />
         <TouchableOpacity
           onPress={() => setShowPassword(!showPassword)}
@@ -179,7 +286,7 @@ export default function LoginScreen() {
             <Eye size={20} color="#6B7280" />
           )}
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Esqueceu a senha */}
       <TouchableOpacity
@@ -190,17 +297,26 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       {/* Botão de Login */}
-      <TouchableOpacity
-        style={[styles.loginButton, loading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={loading}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.loginButtonText}>
-          {loading ? 'Entrando...' : 'Entrar'}
-        </Text>
-        <ArrowRight size={20} color="#FFFFFF" />
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>
+        <TouchableOpacity
+          style={[styles.loginButton, loading && styles.buttonDisabled]}
+          onPress={() => {
+            handleButtonPress();
+            handleLogin();
+          }}
+          disabled={loading}
+          activeOpacity={0.8}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.loginButtonText}>Entrar</Text>
+              <ArrowRight size={20} color="#FFFFFF" />
+            </>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
 
       {/* Divisor */}
       <View style={styles.divider}>
@@ -251,9 +367,9 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
         </View>
 
-        {/* Formulário com ou sem <form> */}
-        <View style={styles.formContainer}>
-          {isWeb ? (
+        {/* Formulário com rolagem */}
+        {isWeb ? (
+          <div style={{ width: '100%', height: '100%', overflowY: 'auto', flex: 1 }}>
             <form
               onSubmit={e => {
                 e.preventDefault();
@@ -264,10 +380,14 @@ export default function LoginScreen() {
             >
               {LoginForm}
             </form>
-          ) : (
-            LoginForm
-          )}
-        </View>
+          </div>
+        ) : (
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+            <View style={styles.formContainer}>
+              {LoginForm}
+            </View>
+          </ScrollView>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -276,13 +396,13 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#18344A', // azul escuro que combina com o logo
+    backgroundColor: '#18344A',
   },
   keyboardView: {
     flex: 1,
   },
   headerContainer: {
-    height: 300,
+    height: Math.min(300, height * 0.35),
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
@@ -290,26 +410,30 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#E6F4FA', // tom claro azul que combina com o logo
+    width: Math.min(120, width * 0.25),
+    height: Math.min(120, width * 0.25),
+    borderRadius: Math.min(60, width * 0.125),
+    backgroundColor: '#E6F4FA',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
     borderWidth: 3,
-    borderColor: '#38A3C0', // azul do logo
+    borderColor: '#38A3C0',
     ...Platform.select({
       web: {
-        boxShadow: '0px -4px 6px rgba(0,0,0,0.1)',
+        boxShadow: '0px 8px 25px rgba(56, 163, 192, 0.3)',
       },
       default: {
-        elevation: 5,
+        elevation: 8,
+        shadowColor: '#38A3C0',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
       },
     }),
   },
   title: {
-    fontSize: 48,
+    fontSize: Math.min(48, width * 0.1),
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
     textAlign: 'center',
@@ -320,7 +444,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   subtitle: {
-    fontSize: 20,
+    fontSize: Math.min(20, width * 0.045),
     fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
@@ -333,29 +457,62 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     ...Platform.select({
       web: {
-        boxShadow: '0px -4px 6px rgba(0,0,0,0.1)',
+        boxShadow: '0px -8px 25px rgba(0,0,0,0.1)',
       },
       default: {
-        elevation: 5,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
       },
     }),
     zIndex: 2,
   },
   form: {
     flex: 1,
-    paddingHorizontal: 32,
+    paddingHorizontal: Math.max(32, width * 0.08),
     paddingTop: 40,
     paddingBottom: 40,
   },
+  messageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  successMessage: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  errorMessage: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  messageText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+  },
+  successText: {
+    color: '#065F46',
+  },
+  errorText: {
+    color: '#991B1B',
+  },
   welcomeText: {
-    fontSize: 24,
+    fontSize: Math.min(24, width * 0.06),
     fontFamily: 'Inter-Bold',
     color: '#1F2937',
     textAlign: 'center',
     marginBottom: 8,
   },
   loginText: {
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
@@ -371,6 +528,11 @@ const styles = StyleSheet.create({
     height: 60,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+      },
+    }),
   },
   inputIcon: {
     marginRight: 16,
@@ -403,12 +565,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
+    minHeight: 56,
     ...Platform.select({
       web: {
-        boxShadow: '0px -4px 6px rgba(0,0,0,0.1)',
+        background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+        boxShadow: '0px 8px 25px rgba(59, 130, 246, 0.4)',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0px 12px 30px rgba(59, 130, 246, 0.5)',
+        },
       },
       default: {
-        elevation: 6,
+        elevation: 8,
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
       },
     }),
   },
@@ -456,6 +629,14 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          backgroundColor: '#E5E7EB',
+        },
+      },
+    }),
   },
   registerButtonText: {
     fontSize: 14,
