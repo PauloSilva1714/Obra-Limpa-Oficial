@@ -11,6 +11,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -124,7 +125,9 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleBackToLogin = () => {
-    router.back();
+    console.log('Navegando para login...');
+    // Navegar para a tela de login
+    router.push('/(auth)/login');
   };
 
   const handleResendEmail = () => {
@@ -144,45 +147,53 @@ export default function ForgotPasswordScreen() {
         </View>
 
         <View style={styles.formContainer}>
-          <Animated.View 
-            style={[
-              styles.form,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
+          <ScrollView 
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
           >
-            <View style={styles.successContainer}>
-              <CheckCircle size={80} color="#10B981" style={styles.successIcon} />
-              <Text style={styles.successTitle}>Email Enviado!</Text>
-              <Text style={styles.successMessage}>
-                Enviamos um link de recuperação para:
-              </Text>
-              <Text style={styles.emailText}>{email}</Text>
-              <Text style={styles.instructions}>
-                Verifique sua caixa de entrada e clique no link para redefinir sua senha.
-                O link expira em 1 hora.
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.backToLoginButton}
-              onPress={handleBackToLogin}
-              activeOpacity={0.8}
+            <Animated.View 
+              style={[
+                styles.form,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
             >
-              <ArrowLeft size={20} color="#FFFFFF" />
-              <Text style={styles.backToLoginText}>Voltar ao Login</Text>
-            </TouchableOpacity>
+              <View style={styles.successContainer}>
+                <CheckCircle size={80} color="#10B981" style={styles.successIcon} />
+                <Text style={styles.successTitle}>Email Enviado!</Text>
+                <Text style={styles.successMessage}>
+                  Enviamos um link de recuperação para:
+                </Text>
+                <Text style={styles.emailText}>{email}</Text>
+                <Text style={styles.instructions}>
+                  Verifique sua caixa de entrada e clique no link para redefinir sua senha.
+                  O link expira em 1 hora.
+                </Text>
+              </View>
 
-            <TouchableOpacity
-              style={styles.resendButton}
-              onPress={handleResendEmail}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.resendText}>Reenviar Email</Text>
-            </TouchableOpacity>
-          </Animated.View>
+              {/* Botão principal para voltar ao login */}
+              <TouchableOpacity
+                style={styles.backToLoginButton}
+                onPress={handleBackToLogin}
+                activeOpacity={0.8}
+              >
+                <ArrowLeft size={20} color="#FFFFFF" />
+                <Text style={styles.backToLoginText}>Voltar ao Login</Text>
+              </TouchableOpacity>
+
+              {/* Botão secundário para reenviar */}
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={handleResendEmail}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.resendText}>Reenviar Email</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </ScrollView>
         </View>
       </SafeAreaView>
     );

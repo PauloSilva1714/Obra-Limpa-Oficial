@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     ...Platform.select({
       web: {
-        background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+        backgroundColor: '#3B82F6',
         boxShadow: '0px 8px 25px rgba(59, 130, 246, 0.4)',
         transition: 'all 0.2s ease',
         '&:hover': {

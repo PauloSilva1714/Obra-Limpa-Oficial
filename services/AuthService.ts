@@ -1207,17 +1207,9 @@ export class AuthService {
 
   static async sendPasswordResetEmail(email: string): Promise<void> {
     try {
-      // Configurações para usar o fluxo padrão do Firebase
-      const actionCodeSettings = {
-        // URL para onde o usuário será redirecionado após redefinir a senha
-        // Usando o esquema correto do app para deep linking
-        url: 'com.obralimpa.app://',
-        // Indica que o link deve ser aberto no app
-        handleCodeInApp: true,
-      };
-
-      // Enviar email com configurações padrão do Firebase
-      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      // Usar o método padrão do Firebase sem configurações adicionais
+      // Isso evita o erro de URL inválida
+      await sendPasswordResetEmail(auth, email);
       
     } catch (error: any) {
       // Tratar erros específicos do Firebase Auth
