@@ -30,7 +30,7 @@ export default function CustomTabBar({ userRole, isVisible = true }: CustomTabBa
     Animated.timing(slideAnim, {
       toValue: isVisible ? 0 : 80, // 80 é a altura da tab bar + margem
       duration: 300,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   }, [isVisible]);
 

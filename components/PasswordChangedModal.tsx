@@ -34,13 +34,13 @@ export const PasswordChangedModal: React.FC<PasswordChangedModalProps> = ({
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           tension: 100,
           friction: 8,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
 
@@ -50,7 +50,7 @@ export const PasswordChangedModal: React.FC<PasswordChangedModalProps> = ({
           toValue: 1,
           tension: 100,
           friction: 6,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }).start();
       }, 200);
     } else {
@@ -66,12 +66,12 @@ export const PasswordChangedModal: React.FC<PasswordChangedModalProps> = ({
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(scaleAnim, {
         toValue: 0.8,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       onClose();
