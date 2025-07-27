@@ -46,6 +46,27 @@ export const safeModalProps = {
 };
 
 /**
+ * Props para FlatList que previnem conflitos de touch e melhoram performance
+ */
+export const safeFlatListProps = {
+  // Melhora performance de renderização
+  removeClippedSubviews: Platform.OS !== 'web',
+  maxToRenderPerBatch: 10,
+  updateCellsBatchingPeriod: 50,
+  initialNumToRender: 10,
+  windowSize: 10,
+  // Previne conflitos de touch
+  scrollEventThrottle: 16,
+  // Configurações específicas para web
+  ...(Platform.OS === 'web' && {
+    showsVerticalScrollIndicator: false,
+    showsHorizontalScrollIndicator: false,
+    onTouchStart: undefined,
+    onTouchEnd: undefined,
+  }),
+};
+
+/**
  * Debounce para prevenir múltiplos toques rápidos
  */
 export const createDebouncedPress = (callback: () => void, delay: number = 300) => {
