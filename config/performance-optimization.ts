@@ -105,7 +105,7 @@ if (typeof window !== 'undefined') {
 export const performanceConfig = {
   // Configurações de rede otimizadas
   network: {
-    timeout: 3000, // Timeout reduzido para 3s
+    timeout: 10000, // Timeout aumentado para 10s para evitar erros 400
     retryAttempts: 2,
     retryDelay: 1000
   },
@@ -125,8 +125,8 @@ export const performanceConfig = {
   
   // Configurações de Firebase
   firebase: {
-    connectionTimeout: 3000,
-    reconnectDelay: 1500,
+    connectionTimeout: 10000, // Timeout aumentado para 10s
+    reconnectDelay: 2000, // Delay aumentado para 2s
     maxRetries: 3
   }
 };

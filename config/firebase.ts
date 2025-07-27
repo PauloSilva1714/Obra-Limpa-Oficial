@@ -116,7 +116,7 @@ export const isFirestoreOnline = async (): Promise<boolean> => {
     try {
       const testDocRef = doc(db, 'system', 'online-test');
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 3000); // 3 segundos
+        setTimeout(() => reject(new Error('Timeout')), 10000); // Aumentado para 10 segundos
     });
     
     const getDocPromise = getDoc(testDocRef);
@@ -198,7 +198,7 @@ export const checkFirebaseConnection = async () => {
       
       // Tentar ler o documento com timeout otimizado
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 3000); // Reduzido de 5s para 3s
+        setTimeout(() => reject(new Error('Timeout')), 10000); // Aumentado para 10s
       });
       
       const getDocPromise = getDoc(testDocRef);
