@@ -8,7 +8,7 @@
   console.warn = function(...args) {
     const message = args.join(' ');
     
-    // Suprimir especificamente avisos de pointerEvents, shadow props e violations
+    // Suprimir especificamente avisos de pointerEvents, shadow props, violations e touch events
     if (message.includes('pointerEvents is deprecated') || 
         message.includes('props.pointerEvents is deprecated') ||
         message.includes('shadow*') ||
@@ -23,7 +23,10 @@
         message.includes('reflow while executing') ||
         message.includes('Missing or insufficient permissions') ||
         message.includes('FirebaseError') ||
-        message.includes('permission-denied')) {
+        message.includes('permission-denied') ||
+        message.includes('Cannot record touch end without a touch start') ||
+        message.includes('Touch End:') ||
+        message.includes('Touch Bank:')) {
       return; // Não exibir estes avisos
     }
     
@@ -39,7 +42,7 @@ if (typeof window !== 'undefined') {
   window.console.warn = function(...args) {
     const message = args.join(' ');
     
-    // Suprimir especificamente avisos de pointerEvents, shadow props e violations
+    // Suprimir especificamente avisos de pointerEvents, shadow props, violations e touch events
     if (message.includes('pointerEvents is deprecated') || 
         message.includes('props.pointerEvents is deprecated') ||
         message.includes('shadow*') ||
@@ -54,7 +57,10 @@ if (typeof window !== 'undefined') {
         message.includes('reflow while executing') ||
         message.includes('Missing or insufficient permissions') ||
         message.includes('FirebaseError') ||
-        message.includes('permission-denied')) {
+        message.includes('permission-denied') ||
+        message.includes('Cannot record touch end without a touch start') ||
+        message.includes('Touch End:') ||
+        message.includes('Touch Bank:')) {
       return; // Não exibir estes avisos
     }
     

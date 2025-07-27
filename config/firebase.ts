@@ -196,9 +196,9 @@ export const checkFirebaseConnection = async () => {
       
       const testDocRef = doc(db, 'system', 'connection-test');
       
-      // Tentar ler o documento com timeout
+      // Tentar ler o documento com timeout otimizado
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 5000); // 5 segundos
+        setTimeout(() => reject(new Error('Timeout')), 3000); // Reduzido de 5s para 3s
       });
       
       const getDocPromise = getDoc(testDocRef);
@@ -278,14 +278,14 @@ export const forceReconnectAndCheck = async (): Promise<boolean> => {
       console.warn('⚠️ Falha na reconexão via enableNetwork:', error);
     }
     
-    // Estratégia 2: Aguardar um pouco para a reconexão se estabelecer
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Estratégia 2: Aguardar um pouco para a reconexão se estabelecer (otimizado)
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Reduzido de 3s para 1.5s
     
     // Estratégia 3: Tentar uma operação simples para verificar se a conexão foi restaurada
     try {
       const testDocRef = doc(db, 'system', 'reconnection-test');
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout na verificação de reconexão')), 5000);
+        setTimeout(() => reject(new Error('Timeout na verificação de reconexão')), 3000); // Reduzido de 5s para 3s
       });
       
       const getDocPromise = getDoc(testDocRef);
@@ -303,13 +303,13 @@ export const forceReconnectAndCheck = async (): Promise<boolean> => {
       // Se for erro de timeout, tentar uma última vez
       if (errorMessage.includes('Timeout')) {
         
-        // Aguardar mais um pouco e tentar novamente
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Aguardar mais um pouco e tentar novamente (otimizado)
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Reduzido de 2s para 1s
         
         try {
           const testDocRef2 = doc(db, 'system', 'final-test');
           const timeoutPromise2 = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Timeout final')), 3000);
+            setTimeout(() => reject(new Error('Timeout final')), 2000); // Reduzido de 3s para 2s
           });
           
           const getDocPromise2 = getDoc(testDocRef2);
@@ -346,13 +346,13 @@ export const reinitializeFirestore = async (): Promise<boolean> => {
         db = getFirestore(app);
       }
       
-      // Aguardar um pouco para a inicialização se estabelecer
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Aguardar um pouco para a inicialização se estabelecer (otimizado)
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Reduzido de 2s para 1s
       
       // Testar se a reinicialização funcionou
       const testDocRef = doc(db, 'system', 'reinit-test');
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout na verificação de reinicialização')), 5000);
+        setTimeout(() => reject(new Error('Timeout na verificação de reinicialização')), 3000); // Reduzido de 5s para 3s
       });
       
       const getDocPromise = getDoc(testDocRef);

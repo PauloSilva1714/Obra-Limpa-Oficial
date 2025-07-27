@@ -37,27 +37,75 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   };
 
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let isComponentMounted = true;
+
     async function checkFirestoreConnection() {
+      if (!isComponentMounted) return;
+      
       try {
         setIsChecking(true);
-        // Usar a função de verificação mais robusta do Firebase
-        const isOnline = await checkFirebaseConnection();
-        setIsConnected(isOnline);
+        
+        // Usar requestIdleCallback para otimizar performance
+        const checkConnection = () => {
+          return new Promise<boolean>((resolve) => {
+            if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+              window.requestIdleCallback(async () => {
+                try {
+                  const isOnline = await checkFirebaseConnection();
+                  resolve(isOnline);
+                } catch (error) {
+                  console.error('[ConnectionStatus] Erro na verificação:', error);
+                  resolve(false);
+                }
+              });
+            } else {
+              // Fallback para ambientes sem requestIdleCallback
+              setTimeout(async () => {
+                try {
+                  const isOnline = await checkFirebaseConnection();
+                  resolve(isOnline);
+                } catch (error) {
+                  console.error('[ConnectionStatus] Erro na verificação:', error);
+                  resolve(false);
+                }
+              }, 0);
+            }
+          });
+        };
+
+        const isOnline = await checkConnection();
+        if (isComponentMounted) {
+          setIsConnected(isOnline);
+        }
       } catch (error) {
         console.error('[ConnectionStatus] Erro na verificação:', error);
-        setIsConnected(false);
+        if (isComponentMounted) {
+          setIsConnected(false);
+        }
       } finally {
-        setIsChecking(false);
+        if (isComponentMounted) {
+          setIsChecking(false);
+        }
       }
     }
     
     // Verificação inicial
     checkFirestoreConnection();
     
-    // Verificação periódica a cada 30 segundos
-    const interval = setInterval(checkFirestoreConnection, 30000);
+    // Verificação periódica a cada 60 segundos (reduzido de 30s para melhor performance)
+    intervalId = setInterval(() => {
+      if (isComponentMounted) {
+        checkFirestoreConnection();
+      }
+    }, 60000);
     
-    return () => clearInterval(interval);
+    return () => {
+      isComponentMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, []);
 
   // Debug: logar valores no console
@@ -144,4 +192,4 @@ const styles = StyleSheet.create({
     color: '#2196F3',
     fontWeight: '500',
   },
-}); 
+});
