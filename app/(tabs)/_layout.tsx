@@ -14,7 +14,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
 import { useSite } from '@/contexts/SiteContext';
-import CustomTabBar from '@/components/CustomTabBar';
+import CustomTabBar from '@/components/customtabbar';
 import { Slot } from 'expo-router';
 import { TabBarProvider, useTabBar } from '@/contexts/TabBarContext';
 

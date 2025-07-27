@@ -238,10 +238,10 @@ export default function ProgressScreen() {
         {/* Cabeçalho do card */}
         <View style={styles.taskHeader}>
           <View style={styles.taskHeaderLeft}>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task.status) }]}> 
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task.status) }]}>
               <Text style={styles.statusText}>{getStatusText(task.status)}</Text>
             </View>
-            <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}> 
+            <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}>
               <Text style={styles.priorityText}>{getPriorityText(task.priority)}</Text>
             </View>
           </View>
@@ -330,22 +330,23 @@ export default function ProgressScreen() {
           />
         }
       >
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.title}>Progresso da Obra</Text>
-          <View style={styles.completionContainer}>
-            <Text style={styles.completionRate}>{progressData.completionRate}%</Text>
-            <Text style={styles.completionLabel}>Concluído</Text>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>Progresso da Obra</Text>
+            <View style={styles.completionContainer}>
+              <Text style={styles.completionRate}>{progressData.completionRate}%</Text>
+              <Text style={styles.completionLabel}>Concluído</Text>
+            </View>
           </View>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw size={20} color="#6B7280" style={refreshing ? { opacity: 0.5 } : undefined} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={onRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw size={20} color="#6B7280" style={refreshing ? { opacity: 0.5 } : undefined} />
-        </TouchableOpacity>
-      </View>
+
         {/* Gráfico de Pizza */}
         <View style={styles.chartSection}>
           <Text style={styles.sectionTitle}>Distribuição por Status</Text>
