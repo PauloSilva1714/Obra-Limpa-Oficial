@@ -37,7 +37,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   };
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
     let isComponentMounted = true;
 
     async function checkFirestoreConnection() {
