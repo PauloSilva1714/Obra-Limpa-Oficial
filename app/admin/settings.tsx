@@ -130,11 +130,11 @@ export default function SettingsScreen() {
 
   const handleNotificationToggle = async (value: boolean) => {
     if (Platform.OS === 'web') {
-      // Para web, usar a API nativa do navegador
-      if (typeof window !== 'undefined' && 'Notification' in window) {
+      // Para web, usar a função global criada no expo-notifications.js
+      if (typeof window !== 'undefined' && window.__requestNotificationPermission__) {
         if (value) {
           try {
-            const permission = await Notification.requestPermission();
+            const permission = await window.__requestNotificationPermission__();
             setNotificationsEnabled(permission === 'granted');
             if (permission === 'granted') {
               Alert.alert(t('success'), 'Notificações ativadas!');

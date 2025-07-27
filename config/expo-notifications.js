@@ -54,12 +54,27 @@ if (Platform.OS === 'web') {
   if (typeof window !== 'undefined') {
     // Configuração para notificações web
     if ('Notification' in window) {
-      // Solicitar permissão para notificações de forma silenciosa
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().catch(() => {
-          // Ignorar erros de permissão
-        });
-      }
+      // NÃO solicitar permissão automaticamente para evitar violation
+      // A permissão deve ser solicitada apenas em resposta a um gesto do usuário
+      
+      // Disponibilizar função global para solicitar permissão quando necessário
+      window.__requestNotificationPermission__ = async () => {
+        try {
+          if (Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            return permission;
+          }
+          return Notification.permission;
+        } catch (error) {
+          console.warn('Erro ao solicitar permissão de notificação:', error);
+          return 'denied';
+        }
+      };
+      
+      // Função para verificar se as notificações estão disponíveis
+      window.__checkNotificationSupport__ = () => {
+        return 'Notification' in window && 'serviceWorker' in navigator;
+      };
     }
   }
 }

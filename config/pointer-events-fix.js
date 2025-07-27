@@ -8,7 +8,7 @@
   console.warn = function(...args) {
     const message = args.join(' ');
     
-    // Suprimir especificamente avisos de pointerEvents, shadow props, violations e touch events
+    // Suprimir especificamente avisos de pointerEvents, shadow props, violations, touch events e notifications
     if (message.includes('pointerEvents is deprecated') || 
         message.includes('props.pointerEvents is deprecated') ||
         message.includes('shadow*') ||
@@ -26,7 +26,9 @@
         message.includes('permission-denied') ||
         message.includes('Cannot record touch end without a touch start') ||
         message.includes('Touch End:') ||
-        message.includes('Touch Bank:')) {
+        message.includes('Touch Bank:') ||
+        message.includes('Only request notification permission in response to a user gesture') ||
+        message.includes('notification permission')) {
       return; // Não exibir estes avisos
     }
     
@@ -42,7 +44,7 @@ if (typeof window !== 'undefined') {
   window.console.warn = function(...args) {
     const message = args.join(' ');
     
-    // Suprimir especificamente avisos de pointerEvents, shadow props, violations e touch events
+    // Suprimir especificamente avisos de pointerEvents, shadow props, violations, touch events e notifications
     if (message.includes('pointerEvents is deprecated') || 
         message.includes('props.pointerEvents is deprecated') ||
         message.includes('shadow*') ||
@@ -60,7 +62,9 @@ if (typeof window !== 'undefined') {
         message.includes('permission-denied') ||
         message.includes('Cannot record touch end without a touch start') ||
         message.includes('Touch End:') ||
-        message.includes('Touch Bank:')) {
+        message.includes('Touch Bank:') ||
+        message.includes('Only request notification permission in response to a user gesture') ||
+        message.includes('notification permission')) {
       return; // Não exibir estes avisos
     }
     
