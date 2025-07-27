@@ -12,7 +12,8 @@ import {
   Dimensions,
   Modal,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -357,27 +358,32 @@ export default function RegisterScreen() {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header fixo no topo */}
-        <View style={styles.headerContainer}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <View style={styles.logoContainer}>
-            <Image
-              source={logo}
-              resizeMode="contain"
-              style={{ width: 120, height: 120, borderRadius: 60 }}
-            />
-          </View>
-          <Text style={styles.title}>Obra Limpa</Text>
-          <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
-        </View>
-
         {/* Form com scroll se necessário */}
-        <View style={styles.formContainer}>
+        <ScrollView 
+          contentContainerStyle={styles.formContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header que rola junto com o conteúdo */}
+          <View style={styles.headerContainer}>
+            <View style={styles.headerTop}>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => router.back()}
+              >
+                <ArrowLeft size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.logoContainer}>
+              <Image
+                source={logo}
+                resizeMode="contain"
+                style={{ width: 120, height: 120, borderRadius: 60 }}
+              />
+            </View>
+            <Text style={styles.title}>Obra Limpa</Text>
+            <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
+          </View>
+
           <Animated.View 
             style={[
               styles.form,
@@ -649,7 +655,7 @@ export default function RegisterScreen() {
               <Text style={styles.backToLoginText}>Já tem uma conta? Faça login</Text>
             </TouchableOpacity>
           </Animated.View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Modal de Sucesso */}
@@ -712,13 +718,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
     paddingTop: 20,
-    zIndex: 1,
+    backgroundColor: '#18344A', // Adicionar cor de fundo
   },
-  backButton: {
+  headerTop: {
     position: 'absolute',
     top: 20,
     left: 20,
     zIndex: 10,
+  },
+  backButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoContainer: {
     width: 120,
@@ -751,12 +764,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   formContainer: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    boxShadow: '0px 12px 12px rgba(0,0,0,0.1)',
-    zIndex: 2,
+    paddingBottom: 40,
+    marginTop: -32, // Sobrepor o header com o container branco
   },
   form: {
     flex: 1,

@@ -25,8 +25,10 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
-import logo from './obra-limpa-logo.png';
+
 import { shadows } from '../../utils/shadowUtils';
+
+const logo = require('./obra-limpa-logo.png');
 
 const { width, height } = Dimensions.get('window');
 
@@ -358,18 +360,78 @@ export default function LoginScreen() {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header fixo no topo */}
-        <View style={styles.headerContainer}>
-          <View style={styles.logoContainer}>
-            <Image source={logo} resizeMode="contain" style={{ width: 90, height: 90 }} />
-          </View>
-          <Text style={styles.title}>Obra Limpa</Text>
-          <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
-        </View>
-
-        {/* Formulário com rolagem */}
         {isWeb ? (
-          <div style={{ width: '100%', height: '100%', overflowY: 'auto', flex: 1 }}>
+          <div style={{ 
+            width: '100%', 
+            height: '100%', 
+            overflowY: 'auto', 
+            flex: 1,
+            scrollbarWidth: 'none', /* Firefox */
+            msOverflowStyle: 'none', /* IE and Edge */
+          }}>
+            <style>{`
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+            {/* Header para Web */}
+            <div style={{
+              height: Math.min(300, height * 0.35),
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingLeft: 32,
+              paddingRight: 32,
+              paddingTop: 20,
+              backgroundColor: '#18344A',
+              zIndex: 10,
+            }}>
+              <div style={{
+                width: Math.min(120, width * 0.25),
+                height: Math.min(120, width * 0.25),
+                borderRadius: Math.min(60, width * 0.125),
+                backgroundColor: 'transparent',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 32,
+                border: 'none',
+                boxShadow: 'none',
+              }}>
+                <img 
+                  src="obra-limpa-logo.png" 
+                  alt="Obra Limpa Logo"
+                  style={{ 
+                    width: 90, 
+                    height: 90,
+                    objectFit: 'contain',
+                    borderRadius: '50%'
+                  }}
+                  onLoad={() => console.log('Logo web carregado com sucesso')}
+                  onError={(error) => console.log('Erro ao carregar logo web:', error)}
+                />
+              </div>
+              <h1 style={{
+                fontSize: Math.min(48, width * 0.1),
+                fontFamily: 'Inter-Bold, sans-serif',
+                color: '#FFFFFF',
+                textAlign: 'center',
+                marginBottom: 16,
+                fontWeight: '900',
+                letterSpacing: '2px',
+                margin: 0,
+              }}>Obra Limpa</h1>
+              <p style={{
+                fontSize: Math.min(20, width * 0.045),
+                fontFamily: 'Inter-Regular, sans-serif',
+                color: 'rgba(255, 255, 255, 0.9)',
+                textAlign: 'center',
+                letterSpacing: '0.8px',
+                margin: 0,
+              }}>Sistema de Gestão Inteligente</p>
+            </div>
+            
             <form
               onSubmit={e => {
                 e.preventDefault();
@@ -382,11 +444,50 @@ export default function LoginScreen() {
             </form>
           </div>
         ) : (
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-            <View style={styles.formContainer}>
-              {LoginForm}
-            </View>
-          </ScrollView>
+          <>
+            {/* Header FIXO no topo */}
+            <Animated.View 
+              style={[
+                styles.headerContainer, 
+                { backgroundColor: '#18344A' },
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
+            >
+              <View style={styles.logoContainer}>
+                <Image 
+                  source={logo} 
+                  resizeMode="contain" 
+                  style={{ 
+                    width: 90, 
+                    height: 90,
+                    borderRadius: 45
+                  }}
+                  onLoad={() => console.log('Logo mobile carregado com sucesso')}
+                  onError={(error) => console.log('Erro ao carregar logo mobile:', error)}
+                />
+                {/* Fallback caso o logo não carregue */}
+                <View style={styles.logoFallback}>
+                  <Building2 size={48} color="#38A3C0" strokeWidth={3} />
+                </View>
+              </View>
+              <Text style={styles.title}>Obra Limpa</Text>
+              <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
+            </Animated.View>
+
+            <ScrollView 
+              contentContainerStyle={{ flexGrow: 1 }} 
+              style={{ flex: 1 }} 
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.formContainer}>
+                {LoginForm}
+              </View>
+            </ScrollView>
+          </>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -407,30 +508,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
     paddingTop: 20,
-    zIndex: 1,
+    backgroundColor: '#18344A',
+    zIndex: 10, // Garantir que apareça acima
   },
   logoContainer: {
     width: Math.min(120, width * 0.25),
     height: Math.min(120, width * 0.25),
     borderRadius: Math.min(60, width * 0.125),
-    backgroundColor: '#E6F4FA',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
-    borderWidth: 3,
-    borderColor: '#38A3C0',
+    borderWidth: 0,
     ...Platform.select({
       web: {
-        boxShadow: '0px 8px 25px rgba(56, 163, 192, 0.3)',
+        boxShadow: 'none',
       },
       default: {
-        elevation: 8,
-        shadowColor: '#38A3C0',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+        elevation: 0,
+        shadowColor: 'transparent',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
       },
     }),
+  },
+  logoFallback: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E6F4FA',
+    borderRadius: Math.min(60, width * 0.125),
+    borderWidth: 3,
+    borderColor: '#38A3C0',
   },
   title: {
     fontSize: Math.min(48, width * 0.1),
@@ -455,18 +569,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    ...Platform.select({
-      web: {
-        boxShadow: '0px -8px 25px rgba(0,0,0,0.1)',
-      },
-      default: {
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-    }),
+    paddingHorizontal: 32,
+    paddingTop: 40,
+    paddingBottom: 40,
+    marginTop: -32, // Sobreposição com o header
     zIndex: 2,
   },
   form: {
