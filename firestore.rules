@@ -132,6 +132,26 @@ service cloud.firestore {
       allow read, list: if isAuthenticated() && isAdmin();
       allow create, update, delete: if isAuthenticated() && isAdmin();
     }
+
+    // Regras para notificações administrativas corrigidas
+    match /adminNotifications/{notificationId} {
+      allow read, list: if isAuthenticated() && (
+        isAdmin() && request.auth.uid == resource.data.recipientId
+      );
+      allow create: if isAuthenticated() && isAdmin();
+      allow update: if isAuthenticated() && isAdmin() && (
+        request.auth.uid == resource.data.recipientId ||
+        request.auth.uid == resource.data.senderId
+      );
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Regras para atividades administrativas
+    match /adminActivities/{activityId} {
+      allow read, list: if isAuthenticated() && isAdmin();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update, delete: if isAuthenticated() && isAdmin();
+    }
   }
 }
 

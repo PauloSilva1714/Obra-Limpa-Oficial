@@ -18,7 +18,12 @@
         message.includes('scroll-blocking') ||
         message.includes('handler took') ||
         message.includes('setTimeout') ||
-        message.includes('message')) {
+        message.includes('message') ||
+        message.includes('Forced reflow') ||
+        message.includes('reflow while executing') ||
+        message.includes('Missing or insufficient permissions') ||
+        message.includes('FirebaseError') ||
+        message.includes('permission-denied')) {
       return; // Não exibir estes avisos
     }
     
@@ -44,7 +49,12 @@ if (typeof window !== 'undefined') {
         message.includes('scroll-blocking') ||
         message.includes('handler took') ||
         message.includes('setTimeout') ||
-        message.includes('message')) {
+        message.includes('message') ||
+        message.includes('Forced reflow') ||
+        message.includes('reflow while executing') ||
+        message.includes('Missing or insufficient permissions') ||
+        message.includes('FirebaseError') ||
+        message.includes('permission-denied')) {
       return; // Não exibir estes avisos
     }
     

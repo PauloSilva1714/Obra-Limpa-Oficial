@@ -285,6 +285,13 @@ export class AdminService {
         return [];
       }
 
+      if (currentUser.role !== 'admin') {
+        console.warn(
+          '❌ AdminService.getNotifications() - Usuário não é admin, retornando array vazio'
+        );
+        return [];
+      }
+
       const q = query(
         collection(db, 'adminNotifications'),
         where('recipientId', '==', currentUser.id),
@@ -303,7 +310,15 @@ export class AdminService {
       );
 
       return notifications;
-    } catch (error) {
+    } catch (error: any) {
+      // Verificar se é erro de permissão específico
+      if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
+        console.warn(
+          '⚠️ AdminService.getNotifications() - Permissões insuficientes para acessar notificações. Verifique as regras do Firestore.'
+        );
+        return [];
+      }
+
       console.error(
         '❌ AdminService.getNotifications() - Erro ao buscar notificações:',
         error
