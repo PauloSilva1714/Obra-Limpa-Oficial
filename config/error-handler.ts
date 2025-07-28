@@ -140,7 +140,7 @@ export const setupGlobalErrorHandler = () => {
   // Tratamento de erros não capturados
   if (Platform.OS === 'web') {
     // Para web
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('error', (event) => {
         const error = {
           message: event.message,

@@ -25,7 +25,7 @@ if (Platform.OS === 'web') {
   };
   
   // Configuração para melhorar a navegação
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.addEventListener) {
     // Configuração para melhorar a performance da navegação
     window.addEventListener('popstate', () => {
       // Forçar re-render quando necessário

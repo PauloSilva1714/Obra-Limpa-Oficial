@@ -4,21 +4,23 @@
 // Otimização para React Native Web
 if (typeof window !== 'undefined') {
   // Configurar passive event listeners para melhor performance
-  const addEventListenerOriginal = EventTarget.prototype.addEventListener;
-  EventTarget.prototype.addEventListener = function(type, listener, options) {
-    // Tornar eventos de scroll e touch passivos por padrão
-    if (type === 'scroll' || type === 'touchstart' || type === 'touchmove' || type === 'wheel') {
-      if (typeof options === 'boolean') {
-        options = { capture: options, passive: true };
-      } else if (typeof options === 'object' && options !== null) {
-        options = { ...options, passive: true };
-      } else {
-        options = { passive: true };
+  if (typeof EventTarget !== 'undefined' && EventTarget.prototype.addEventListener) {
+    const addEventListenerOriginal = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function(type, listener, options) {
+      // Tornar eventos de scroll e touch passivos por padrão
+      if (type === 'scroll' || type === 'touchstart' || type === 'touchmove' || type === 'wheel') {
+        if (typeof options === 'boolean') {
+          options = { capture: options, passive: true };
+        } else if (typeof options === 'object' && options !== null) {
+          options = { ...options, passive: true };
+        } else {
+          options = { passive: true };
+        }
       }
-    }
-    
-    return addEventListenerOriginal.call(this, type, listener, options);
-  };
+      
+      return addEventListenerOriginal.call(this, type, listener, options);
+    };
+  }
 
   // Otimizar requestAnimationFrame para melhor performance
   let rafId: number | null = null;

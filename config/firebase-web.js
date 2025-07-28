@@ -25,7 +25,7 @@ if (Platform.OS === 'web') {
   };
   
   // Configuração para melhorar a performance do Firebase
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.addEventListener) {
     // Configuração para melhorar a performance das consultas
     window.addEventListener('beforeunload', () => {
       // Limpar cache do Firebase antes de sair
@@ -37,7 +37,8 @@ if (Platform.OS === 'web') {
         }
       }
     });
-    
+  }
+
   // Configurações para evitar problemas de CORS
   const originalFetch = window.fetch;
   window.fetch = function(url, options = {}) {
@@ -64,10 +65,13 @@ if (Platform.OS === 'web') {
   if (window.navigator && window.navigator.serviceWorker) {
     // Registrar service worker para melhorar cache
     window.navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      .then(() => // console.log removed)
-      .catch(() => // console.log removed'));
+      .then(() => {
+        // console.log('Service worker registrado');
+      })
+      .catch(() => {
+        // console.log('Falha ao registrar service worker');
+      });
   }
-}
-}
+} // Fecha o if (Platform.OS === 'web')
 
 export default Platform; 

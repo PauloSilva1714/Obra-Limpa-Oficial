@@ -56,7 +56,7 @@ class ErrorHandler {
       });
 
       // Capturar promises rejeitadas
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && window.addEventListener) {
         window.addEventListener('unhandledrejection', (event) => {
           console.error('[ErrorHandler] Promise rejeitada:', event.reason);
           this.saveErrorLog(

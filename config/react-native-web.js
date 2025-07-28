@@ -104,9 +104,11 @@ if (Platform.OS === 'web') {
   // Configuração para melhorar a compatibilidade
   if (typeof window !== 'undefined') {
     // Configuração para touch events
-    window.addEventListener('touchstart', () => {}, { passive: true });
-    window.addEventListener('touchmove', () => {}, { passive: true });
-    window.addEventListener('touchend', () => {}, { passive: true });
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('touchstart', () => {}, { passive: true });
+      window.addEventListener('touchmove', () => {}, { passive: true });
+      window.addEventListener('touchend', () => {}, { passive: true });
+    }
     
     // SOLUÇÃO MAIS AGRESSIVA: Interceptar o React Native Web diretamente
     const originalCreateElement = document.createElement;

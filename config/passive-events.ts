@@ -1,7 +1,7 @@
 // Configuração para tornar event listeners passivos por padrão
 // Isso resolve o aviso: "Added non-passive event listener to a scroll-blocking 'wheel' event"
 
-if (typeof window !== 'undefined') {
+if (typeof EventTarget !== 'undefined' && EventTarget.prototype.addEventListener) {
   // Sobrescreve addEventListener para tornar eventos de scroll passivos por padrão
   const originalAddEventListener = EventTarget.prototype.addEventListener;
   

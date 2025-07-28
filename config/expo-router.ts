@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // Configurações para Expo Router
 if (Platform.OS === 'web') {
   // Configurar roteamento para web
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.addEventListener) {
     // Prevenir comportamentos padrão do navegador que podem interferir
     window.addEventListener('beforeunload', (e) => {
       // Permitir navegação normal

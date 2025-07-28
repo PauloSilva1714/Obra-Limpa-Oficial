@@ -59,11 +59,13 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
-    document.title = 'Obra Limpa';
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.href = '/favicon.ico';
-    document.head.appendChild(link);
+    if (typeof document !== 'undefined') {
+      document.title = 'Obra Limpa';
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.href = '/favicon.ico';
+      document.head.appendChild(link);
+    }
   }, []);
 
   useEffect(() => {

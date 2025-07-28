@@ -92,7 +92,7 @@ export class ErrorHandler {
 
 // Interceptor global para requisições
 export const setupGlobalErrorHandler = () => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.addEventListener) {
     // Interceptar erros não capturados
     window.addEventListener('error', (event) => {
       console.error('[GlobalErrorHandler] Erro capturado:', event.error);
