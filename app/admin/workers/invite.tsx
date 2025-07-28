@@ -141,8 +141,23 @@ export default function InviteWorkerScreen() {
           </TouchableOpacity>
         ) : null}
       </View>
-      <Text style={styles.inviteStatus}>Status: {item.status === 'pending' ? 'Pendente' : item.status === 'rejected' ? 'Cancelado' : item.status}</Text>
-      <Text style={styles.inviteDate}>Enviado em: {new Date(typeof item.createdAt === 'string' ? item.createdAt : (item.createdAt as any)?.seconds ? (item.createdAt as any).seconds * 1000 : Date.now()).toLocaleString('pt-BR')}</Text>
+      <Text style={styles.inviteStatus}>
+        Status: {item.status === 'pending' ? 'Pendente' : item.status === 'rejected' ? 'Cancelado' : (item.status || 'Desconhecido')}
+      </Text>
+      <Text style={styles.inviteDate}>
+        Enviado em: {(() => {
+          try {
+            const date = typeof item.createdAt === 'string' 
+              ? new Date(item.createdAt) 
+              : (item.createdAt as any)?.seconds 
+                ? new Date((item.createdAt as any).seconds * 1000) 
+                : new Date();
+            return isNaN(date.getTime()) ? 'Data inválida' : date.toLocaleString('pt-BR');
+          } catch (error) {
+            return 'Data inválida';
+          }
+        })()}
+      </Text>
     </View>
   );
 

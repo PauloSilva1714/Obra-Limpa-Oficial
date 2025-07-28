@@ -123,13 +123,13 @@ export default function AdminsScreen() {
       </View>
       
       <View style={styles.adminDetails}>
-        {item.phone && (
+        {Boolean(item.phone) && (
           <View style={styles.detailRow}>
             <Phone size={14} color={colors.textMuted} />
             <Text style={[styles.detailText, { color: colors.textMuted }]}>{item.phone}</Text>
           </View>
         )}
-        {item.company && (
+        {Boolean(item.company) && (
           <View style={styles.detailRow}>
             <Building2 size={14} color={colors.textMuted} />
             <Text style={[styles.detailText, { color: colors.textMuted }]}>{item.company}</Text>

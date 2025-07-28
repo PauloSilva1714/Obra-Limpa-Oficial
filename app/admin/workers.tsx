@@ -165,10 +165,10 @@ export default function WorkersScreen() {
         </View>
       </View>
       <View style={styles.workerInfo}>
-        {item.phone && (
+        {Boolean(item.phone) && (
           <Text style={styles.workerInfoText}>Telefone: {item.phone}</Text>
         )}
-        {item.company && (
+        {Boolean(item.company) && (
           <Text style={styles.workerInfoText}>Empresa: {item.company}</Text>
         )}
         <Text style={[

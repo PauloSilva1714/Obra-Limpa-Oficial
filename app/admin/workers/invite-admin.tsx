@@ -221,14 +221,28 @@ export default function InviteAdminScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    try {
+      if (!dateString || dateString.trim() === '') {
+        return 'Data não disponível';
+      }
+      
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Data inválida';
+      }
+      
+      const formatted = date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      
+      return formatted || 'Data inválida';
+    } catch (error) {
+      return 'Data inválida';
+    }
   };
 
   const renderInvite = ({ item }: { item: Invite }) => {

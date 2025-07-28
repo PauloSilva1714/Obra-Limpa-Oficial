@@ -304,7 +304,7 @@ export default function StatsScreen() {
                   <View key={user.id || idx} style={{ borderBottomWidth: idx < modalUsers.length - 1 ? 1 : 0, borderBottomColor: '#eee', paddingVertical: 10 }}>
                     <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{user.name}</Text>
                     <Text style={{ color: '#666', fontSize: 14 }}>{user.role === 'admin' ? 'Administrador' : 'Colaborador'}{user.funcao ? ` - ${user.funcao}` : ''}</Text>
-                    {user.company && <Text style={{ color: '#888', fontSize: 13 }}>Empresa: {user.company}</Text>}
+                    {Boolean(user.company) && <Text style={{ color: '#888', fontSize: 13 }}>Empresa: {user.company}</Text>}
                   </View>
                 ))}
               </ScrollView>

@@ -355,7 +355,7 @@ export default function AdminScreen() {
               <Building2 size={18} color={colors.primary} style={{ marginRight: 6 }} />
               <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 15 }}>
                 {currentSite.name}
-                {stats.totalTasks > 0 && ` (${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%)`}
+                {Boolean(stats.totalTasks > 0) && ` (${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%)`}
               </Text>
             </View>
           )}
@@ -475,8 +475,8 @@ export default function AdminScreen() {
                 renderItem={({ item }) => (
                   <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                     <Text style={{ fontSize: 16, color: colors.text }}>
-                      {item.name}
-                      {item.company ? ` (${item.company})` : ''}
+                      {item.name || 'Nome não disponível'}
+                      {Boolean(item.company) ? ` (${item.company})` : ''}
                     </Text>
                     <Text style={{ fontSize: 14, color: colors.textSecondary }}>
                       Função: {item.funcao ? item.funcao : (item.role === 'admin' ? 'Administrador' : 'Não informada')}
@@ -545,10 +545,10 @@ export default function AdminScreen() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4, color: isSelected ? colors.primary : '#000' }}>
-                            {item.name}
+                            {item.name || 'Nome não disponível'}
                           </Text>
                           <Text style={{ color: isSelected ? colors.primary : '#374151', fontSize: 14 }}>
-                            {item.address}
+                            {item.address || 'Endereço não informado'}
                           </Text>
                         </View>
                         {isSelected && (
@@ -609,23 +609,30 @@ export default function AdminScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                       <CheckCircle size={20} color={colors.success} style={{ marginRight: 8 }} />
                       <Text style={{ fontWeight: 'bold', fontSize: 16, color: colors.text, flex: 1 }}>
-                        {item.title}
+                        {item.title || 'Título não disponível'}
                       </Text>
                     </View>
-                    {item.description && (
+                    {Boolean(item.description) && (
                       <Text style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 8 }}>
                         {item.description}
                       </Text>
                     )}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      {item.area && (
+                      {Boolean(item.area) && (
                         <Text style={{ color: colors.textMuted, fontSize: 12 }}>
                           Área: {item.area}
                         </Text>
                       )}
-                      {item.completedAt && (
+                      {Boolean(item.completedAt) && (
                         <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                          Concluída em: {new Date(item.completedAt).toLocaleDateString('pt-BR')}
+                          Concluída em: {(() => {
+                            try {
+                              const date = new Date(item.completedAt);
+                              return isNaN(date.getTime()) ? 'Data inválida' : date.toLocaleDateString('pt-BR');
+                            } catch (error) {
+                              return 'Data inválida';
+                            }
+                          })()}
                         </Text>
                       )}
                     </View>
@@ -715,7 +722,7 @@ export default function AdminScreen() {
                           flex: 1, 
                           marginLeft: 8 
                         }}>
-                          {item.title}
+                          {item.title || 'Título não disponível'}
                         </Text>
                         <View style={{
                           backgroundColor: statusInfo.bgColor,
@@ -734,7 +741,7 @@ export default function AdminScreen() {
                           </Text>
                         </View>
                       </View>
-                      {item.description && (
+                      {Boolean(item.description) && (
                         <Text style={{ 
                           color: item.status === 'delayed' ? colors.error : colors.textSecondary, 
                           fontSize: 14, 
@@ -744,7 +751,7 @@ export default function AdminScreen() {
                         </Text>
                       )}
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        {item.area && (
+                        {Boolean(item.area) && (
                           <Text style={{ 
                             color: item.status === 'delayed' ? colors.error : colors.textMuted, 
                             fontSize: 12 
@@ -752,12 +759,19 @@ export default function AdminScreen() {
                             Área: {item.area}
                           </Text>
                         )}
-                        {item.dueDate && (
+                        {Boolean(item.dueDate) && (
                           <Text style={{ 
                             color: item.status === 'delayed' ? colors.error : colors.textMuted, 
                             fontSize: 12 
                           }}>
-                            Prazo: {new Date(item.dueDate).toLocaleDateString('pt-BR')}
+                            Prazo: {(() => {
+                              try {
+                                const date = new Date(item.dueDate);
+                                return isNaN(date.getTime()) ? 'Data inválida' : date.toLocaleDateString('pt-BR');
+                              } catch (error) {
+                                return 'Data inválida';
+                              }
+                            })()}
                           </Text>
                         )}
                       </View>
