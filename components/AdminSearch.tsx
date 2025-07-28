@@ -35,12 +35,22 @@ export default function AdminSearch({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!siteId) return;
+    if (!siteId) {
+      console.log('[AdminSearch] siteId não fornecido');
+      return;
+    }
+    console.log('[AdminSearch] Carregando administradores para siteId:', siteId);
     setLoading(true);
     AuthService.getAdminsBySite(siteId).then(async admins => {
+      console.log('[AdminSearch] Administradores encontrados:', admins.length, admins);
       const currentUser = await AuthService.getCurrentUser();
+      console.log('[AdminSearch] Usuário atual:', currentUser?.id, currentUser?.name);
       const filteredAdmins = currentUser ? admins.filter(admin => admin.id !== currentUser.id) : admins;
+      console.log('[AdminSearch] Administradores filtrados:', filteredAdmins.length, filteredAdmins);
       setAdmins(filteredAdmins);
+      setLoading(false);
+    }).catch(error => {
+      console.error('[AdminSearch] Erro ao carregar administradores:', error);
       setLoading(false);
     });
   }, [siteId]);
@@ -59,11 +69,14 @@ export default function AdminSearch({
 
   const loadAdmins = async () => {
     try {
+      console.log('[AdminSearch] loadAdmins - Carregando administradores para siteId:', siteId);
       setLoading(true);
       const adminsData = await AdminService.getOtherAdmins(siteId);
+      console.log('[AdminSearch] loadAdmins - Administradores encontrados:', adminsData.length, adminsData);
       setAdmins(adminsData);
       setFilteredAdmins(adminsData);
     } catch (error) {
+      console.error('[AdminSearch] loadAdmins - Erro ao carregar administradores:', error);
       Alert.alert('Erro', 'Não foi possível carregar a lista de administradores');
     } finally {
       setLoading(false);
@@ -288,4 +301,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 32,
   },
-}); 
+});

@@ -24,4 +24,14 @@ config.resolver.alias = {
 // Configuração para resolver problemas de compatibilidade
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
+// Configuração de polyfills para APIs não disponíveis no Expo Go
+config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
+
+// Configuração para evitar problemas com crypto e outras APIs nativas
+config.resolver.fallback = {
+  'crypto': false,
+  'stream': false,
+  'buffer': false,
+};
+
 module.exports = config;

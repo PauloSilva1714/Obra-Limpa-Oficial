@@ -415,18 +415,23 @@ export class AdminService {
    */
   static async getOtherAdmins(siteId: string): Promise<User[]> {
     try {
+      console.log('[AdminService] getOtherAdmins - Buscando administradores para siteId:', siteId);
       if (!siteId) {
-        console.warn('siteId é undefined, retornando array vazio');
+        console.warn('[AdminService] getOtherAdmins - siteId é undefined, retornando array vazio');
         return [];
       }
 
       const currentUser = await AuthService.getCurrentUser();
+      console.log('[AdminService] getOtherAdmins - Usuário atual:', currentUser?.id, currentUser?.name);
       if (!currentUser) return [];
 
       const admins = await AuthService.getSiteAdmins(siteId);
-      return admins.filter((admin) => admin.id !== currentUser.id);
+      console.log('[AdminService] getOtherAdmins - Todos os administradores:', admins.length, admins);
+      const filteredAdmins = admins.filter((admin) => admin.id !== currentUser.id);
+      console.log('[AdminService] getOtherAdmins - Administradores filtrados:', filteredAdmins.length, filteredAdmins);
+      return filteredAdmins;
     } catch (error) {
-      console.error('Erro ao buscar outros administradores:', error);
+      console.error('[AdminService] getOtherAdmins - Erro ao buscar outros administradores:', error);
       return [];
     }
   }

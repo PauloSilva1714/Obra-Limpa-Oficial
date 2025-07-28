@@ -19,7 +19,7 @@ import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { Timestamp, FieldValue, query, collection, where, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { v4 as uuidv4 } from 'uuid';
+import { createUniqueId } from '../utils/idUtils';
 
 interface AdminDirectChatProps {
   siteId: string;
@@ -133,7 +133,7 @@ export default function AdminDirectChat({
     try {
       setSending(true);
       // Mensagem otimista com clientId
-      const clientId = uuidv4();
+      const clientId = createUniqueId();
       const tempId = 'temp-' + clientId;
       const optimisticMsg: AdminDirectMessage = {
         id: tempId,

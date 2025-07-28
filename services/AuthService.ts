@@ -1335,17 +1335,21 @@ export class AuthService {
 
   static async getSiteAdmins(siteId: string): Promise<User[]> {
     try {
+      console.log('[AuthService] getSiteAdmins - Buscando administradores para siteId:', siteId);
       const q = query(
         collection(db, 'users'),
         where('role', '==', 'admin'),
         where('sites', 'array-contains', siteId)
       );
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const admins = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
       } as User));
+      console.log('[AuthService] getSiteAdmins - Administradores encontrados:', admins.length, admins);
+      return admins;
     } catch (error) {
+      console.error('[AuthService] getSiteAdmins - Erro ao buscar administradores:', error);
       return [];
     }
   }
@@ -2020,15 +2024,18 @@ export class AuthService {
   // Novo método para buscar administradores de uma obra
   static async getAdminsBySite(siteId: string): Promise<User[]> {
     try {
+      console.log('[AuthService] getAdminsBySite - Buscando administradores para siteId:', siteId);
       const usersQuery = query(
         collection(db, 'users'),
         where('role', '==', 'admin'),
         where('sites', 'array-contains', siteId)
       );
       const snapshot = await getDocs(usersQuery);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      const admins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      console.log('[AuthService] getAdminsBySite - Administradores encontrados:', admins.length, admins);
+      return admins;
     } catch (error) {
-      console.error('Erro ao buscar administradores da obra:', error);
+      console.error('[AuthService] getAdminsBySite - Erro ao buscar administradores da obra:', error);
       return [];
     }
   }
