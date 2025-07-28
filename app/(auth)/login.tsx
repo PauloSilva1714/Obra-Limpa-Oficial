@@ -66,7 +66,10 @@ export default function LoginScreen() {
   });
 
   useEffect(() => {
-    document.title = 'Obra Limpa';
+    // Só definir o título se estivermos no ambiente web
+    if (typeof document !== 'undefined') {
+      document.title = 'Obra Limpa';
+    }
     
     // Sequência de animações modernas
     const animationSequence = async () => {
@@ -221,17 +224,15 @@ export default function LoginScreen() {
           style={[
             styles.particle1,
             {
+              opacity: particlesAnim.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0.3, 0.8, 0.3],
+              }),
               transform: [
                 {
                   translateY: particlesAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [0, -20],
-                  }),
-                },
-                {
-                  opacity: particlesAnim.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0.3, 0.8, 0.3],
                   }),
                 },
               ],
@@ -242,17 +243,15 @@ export default function LoginScreen() {
           style={[
             styles.particle2,
             {
+              opacity: particlesAnim.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0.2, 0.6, 0.2],
+              }),
               transform: [
                 {
                   translateY: particlesAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [0, 15],
-                  }),
-                },
-                {
-                  opacity: particlesAnim.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0.2, 0.6, 0.2],
                   }),
                 },
               ],
@@ -323,128 +322,126 @@ export default function LoginScreen() {
             },
           ]}
         >
-          <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
-            {/* Campo de Email */}
-            <View style={styles.inputGroup}>
-              <Animated.View 
-                style={[
-                  styles.inputContainer,
-                  {
-                    borderColor: emailFocusAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['#E5E7EB', '#3B82F6'],
-                    }),
-                    transform: [
-                      {
-                        scale: emailFocusAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [1, 1.02],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Mail size={20} color="#6B7280" style={styles.inputIcon} />
-                <TextInput
-                  ref={emailInputRef}
-                  style={styles.input}
-                  placeholder="Digite seu email"
-                  placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  onFocus={() => handleInputFocus('email')}
-                  onBlur={() => handleInputBlur('email')}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="email"
-                />
-              </Animated.View>
-            </View>
-
-            {/* Campo de Senha */}
-            <View style={styles.inputGroup}>
-              <Animated.View 
-                style={[
-                  styles.inputContainer,
-                  {
-                    borderColor: passwordFocusAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['#E5E7EB', '#3B82F6'],
-                    }),
-                    transform: [
-                      {
-                        scale: passwordFocusAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [1, 1.02],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Lock size={20} color="#6B7280" style={styles.inputIcon} />
-                <TextInput
-                  ref={passwordInputRef}
-                  style={styles.input}
-                  placeholder="Digite sua senha"
-                  placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
-                  onFocus={() => handleInputFocus('password')}
-                  onBlur={() => handleInputBlur('password')}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
-                </TouchableOpacity>
-              </Animated.View>
-            </View>
-
-            {/* Botão de Login */}
-            <Animated.View
+          {/* Campo de Email */}
+          <View style={styles.inputGroup}>
+            <Animated.View 
               style={[
-                styles.buttonContainer,
+                styles.inputContainer,
                 {
-                  transform: [{ scale: buttonScaleAnim }],
+                  borderColor: emailFocusAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#E5E7EB', '#3B82F6'],
+                  }),
+                  transform: [
+                    {
+                      scale: emailFocusAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 1.02],
+                      }),
+                    },
+                  ],
                 },
               ]}
             >
-              <TouchableOpacity
-                style={[
-                  styles.loginButton,
-                  loading && styles.loginButtonDisabled,
-                ]}
-                onPress={handleLogin}
-                onPressIn={handleButtonPress}
-                disabled={loading}
-                activeOpacity={0.9}
-              >
-                <Animated.View
-                  style={[
-                    styles.buttonGlow,
+              <Mail size={20} color="#6B7280" style={styles.inputIcon} />
+              <TextInput
+                ref={emailInputRef}
+                style={styles.input}
+                placeholder="Digite seu email"
+                placeholderTextColor="#9CA3AF"
+                value={email}
+                onChangeText={setEmail}
+                onFocus={() => handleInputFocus('email')}
+                onBlur={() => handleInputBlur('email')}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+              />
+            </Animated.View>
+          </View>
+
+          {/* Campo de Senha */}
+          <View style={styles.inputGroup}>
+            <Animated.View 
+              style={[
+                styles.inputContainer,
+                {
+                  borderColor: passwordFocusAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#E5E7EB', '#3B82F6'],
+                  }),
+                  transform: [
                     {
-                      opacity: buttonGlowAnim,
+                      scale: passwordFocusAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 1.02],
+                      }),
                     },
-                  ]}
-                />
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <>
-                    <Text style={styles.loginButtonText}>Entrar</Text>
-                    <ArrowRight size={20} color="#FFFFFF" />
-                  </>
-                )}
+                  ],
+                },
+              ]}
+            >
+              <Lock size={20} color="#6B7280" style={styles.inputIcon} />
+              <TextInput
+                ref={passwordInputRef}
+                style={styles.input}
+                placeholder="Digite sua senha"
+                placeholderTextColor="#9CA3AF"
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => handleInputFocus('password')}
+                onBlur={() => handleInputBlur('password')}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
               </TouchableOpacity>
             </Animated.View>
-          </form>
+          </View>
+
+          {/* Botão de Login */}
+          <Animated.View
+            style={[
+              styles.buttonContainer,
+              {
+                transform: [{ scale: buttonScaleAnim }],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                loading && styles.loginButtonDisabled,
+              ]}
+              onPress={handleLogin}
+              onPressIn={handleButtonPress}
+              disabled={loading}
+              activeOpacity={0.9}
+            >
+              <Animated.View
+                style={[
+                  styles.buttonGlow,
+                  {
+                    opacity: buttonGlowAnim,
+                  },
+                ]}
+              />
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.loginButtonText}>Entrar</Text>
+                  <ArrowRight size={20} color="#FFFFFF" />
+                </>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
 
           {/* Links de navegação */}
           <View style={styles.linksContainer}>

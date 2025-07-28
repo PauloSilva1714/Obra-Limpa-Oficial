@@ -46,7 +46,10 @@ export default function ForgotPasswordScreen() {
   });
 
   useEffect(() => {
-    document.title = 'Recuperar Senha - Obra Limpa';
+    // Só definir o título se estivermos no ambiente web
+    if (typeof document !== 'undefined') {
+      document.title = 'Recuperar Senha - Obra Limpa';
+    }
     
     // Animação de entrada
     Animated.parallel([

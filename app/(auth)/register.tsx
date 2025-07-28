@@ -117,7 +117,10 @@ export default function RegisterScreen() {
   const nomeInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    document.title = 'Obra Limpa - Cadastro';
+    // Só definir o título se estivermos no ambiente web
+    if (typeof document !== 'undefined') {
+      document.title = 'Obra Limpa - Cadastro';
+    }
     
     // Animação de entrada
     Animated.parallel([

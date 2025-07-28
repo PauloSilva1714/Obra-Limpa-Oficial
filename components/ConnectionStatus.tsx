@@ -111,7 +111,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   // Debug: logar valores no console
 
   // Avatar padrão
-  const defaultAvatar = require('@/assets/icon.png');
+  const defaultAvatar = require('@/assets/images/icon.png');
   const avatarSource = user?.photoURL ? { uri: user.photoURL } : defaultAvatar;
 
   return (

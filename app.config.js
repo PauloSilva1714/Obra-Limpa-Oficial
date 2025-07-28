@@ -26,7 +26,7 @@ module.exports = {
     },
     package: 'com.obralimpa.app',
     versionCode: 1,
-    googleServicesFile: './google-services.json'
+    googleServicesFile: './android/app/google-services.json'
   },
   web: {
     bundler: 'metro',

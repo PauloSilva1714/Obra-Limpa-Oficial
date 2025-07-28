@@ -14,7 +14,11 @@ config.resolver.alias = {
   '@components': path.resolve(__dirname, './components'),
   '@services': path.resolve(__dirname, './services'),
   '@config': path.resolve(__dirname, './config'),
+  '@contexts': path.resolve(__dirname, './contexts'),
   '@assets': path.resolve(__dirname, './assets'),
+  '@types': path.resolve(__dirname, './types'),
+  '@utils': path.resolve(__dirname, './utils'),
+  '@hooks': path.resolve(__dirname, './hooks'),
 };
 
 // Configuração para resolver problemas de compatibilidade
