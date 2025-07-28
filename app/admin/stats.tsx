@@ -210,80 +210,86 @@ export default function StatsScreen() {
           <Text>Carregando...</Text>
         </View>
       ) : (
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Colaboradores</Text>
-          <View style={styles.statsGrid}>
-            <StatCard
-              icon={Users}
-              value={stats.totalWorkers}
-              title="Total"
-              color={colors.primary}
-              onPress={openWorkersModal}
-            />
-            <StatCard
-              icon={Users}
-              value={stats.activeWorkers}
-              title="Ativos"
-              color={colors.success}
-              onPress={openWorkersModal}
-            />
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <Text style={styles.sectionTitle}>Colaboradores</Text>
+            <View style={styles.statsGrid}>
+              <StatCard
+                icon={Users}
+                value={stats.totalWorkers}
+                title="Total"
+                color={colors.primary}
+                onPress={openWorkersModal}
+              />
+              <StatCard
+                icon={Users}
+                value={stats.activeWorkers}
+                title="Ativos"
+                color={colors.success}
+                onPress={openWorkersModal}
+              />
+            </View>
+            <Text style={styles.sectionTitle}>Administradores</Text>
+            <View style={styles.statsGrid}>
+              <StatCard
+                icon={Users}
+                value={stats.totalAdmins}
+                title="Total"
+                color={colors.primary}
+                onPress={openAdminsModal}
+              />
+              <StatCard
+                icon={Users}
+                value={stats.activeAdmins}
+                title="Ativos"
+                color={colors.success}
+                onPress={openAdminsModal}
+              />
+            </View>
+            <Text style={styles.sectionTitle}>Tarefas</Text>
+            <View style={[styles.statsGrid, isSmallScreen && { flexDirection: 'column', alignItems: 'center' }]}>
+              <StatCard
+                icon={ClipboardCheck}
+                value={stats.totalTasks}
+                title="Total"
+                color={statusColors.total}
+                onPress={() => handleCardPress('all')}
+              />
+              <StatCard
+                icon={ClipboardCheck}
+                value={stats.completedTasks}
+                title="Concluídas"
+                color={statusColors.completed}
+                onPress={() => handleCardPress('completed')}
+              />
+              <StatCard
+                icon={Clock}
+                value={stats.inProgressTasks}
+                title="Em Andamento"
+                color={statusColors.inProgress}
+                onPress={() => handleCardPress('in_progress')}
+              />
+              <StatCard
+                icon={AlertCircle}
+                value={stats.pendingTasks}
+                title="Pendentes"
+                color={statusColors.pending}
+                onPress={() => handleCardPress('pending')}
+              />
+              <StatCard
+                icon={AlertTriangle}
+                value={stats.overdueTasks}
+                title="Atrasadas"
+                color={statusColors.overdue}
+                onPress={() => handleCardPress('overdue')}
+              />
+            </View>
           </View>
-          <Text style={styles.sectionTitle}>Administradores</Text>
-          <View style={styles.statsGrid}>
-            <StatCard
-              icon={Users}
-              value={stats.totalAdmins}
-              title="Total"
-              color={colors.primary}
-              onPress={openAdminsModal}
-            />
-            <StatCard
-              icon={Users}
-              value={stats.activeAdmins}
-              title="Ativos"
-              color={colors.success}
-              onPress={openAdminsModal}
-            />
-          </View>
-          <Text style={styles.sectionTitle}>Tarefas</Text>
-          <View style={[styles.statsGrid, isSmallScreen && { flexDirection: 'column', alignItems: 'center' }]}>
-            <StatCard
-              icon={ClipboardCheck}
-              value={stats.totalTasks}
-              title="Total"
-              color={statusColors.total}
-              onPress={() => handleCardPress('all')}
-            />
-            <StatCard
-              icon={ClipboardCheck}
-              value={stats.completedTasks}
-              title="Concluídas"
-              color={statusColors.completed}
-              onPress={() => handleCardPress('completed')}
-            />
-            <StatCard
-              icon={Clock}
-              value={stats.inProgressTasks}
-              title="Em Andamento"
-              color={statusColors.inProgress}
-              onPress={() => handleCardPress('in_progress')}
-            />
-            <StatCard
-              icon={AlertCircle}
-              value={stats.pendingTasks}
-              title="Pendentes"
-              color={statusColors.pending}
-              onPress={() => handleCardPress('pending')}
-            />
-            <StatCard
-              icon={AlertTriangle}
-              value={stats.overdueTasks}
-              title="Atrasadas"
-              color={statusColors.overdue}
-              onPress={() => handleCardPress('overdue')}
-            />
-          </View>
-        </View>
+        </ScrollView>
       )}
 
       {/* Modal de lista de usuários */}
@@ -391,5 +397,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 20,
   },
 });

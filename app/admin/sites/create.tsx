@@ -10,10 +10,10 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
-import { AuthService } from '@/services/AuthService';
-import AddressSearch from '@/components/AddressSearch';
-import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { DuplicateSiteModal } from '@/components/DuplicateSiteModal';
+import { AuthService } from '../../../services/AuthService';
+import AddressSearch from '../../../components/AddressSearch';
+import { ConfirmationModal } from '../../../components/ConfirmationModal';
+import { DuplicateSiteModal } from '../../../components/DuplicateSiteModal';
 
 export default function CreateSiteScreen() {
   const [name, setName] = useState('');
@@ -27,7 +27,23 @@ export default function CreateSiteScreen() {
 
   // Função para capitalizar a primeira letra de cada palavra
   const capitalizeWords = (text: string) => {
-    return text.replace(/\b\w/g, (char) => char.toUpperCase());
+    // Se o texto estiver vazio, retornar vazio
+    if (!text || text.trim() === '') {
+      return text;
+    }
+    
+    // Capitalizar a primeira letra de cada palavra
+    return text
+      .toLowerCase() // Primeiro converte tudo para minúsculo
+      .split(' ') // Divide por espaços
+      .map(word => {
+        // Se a palavra não estiver vazia, capitaliza a primeira letra
+        if (word.length > 0) {
+          return word.charAt(0).toUpperCase() + word.slice(1);
+        }
+        return word;
+      })
+      .join(' '); // Junta novamente com espaços
   };
 
   // Função para lidar com a mudança do nome da obra
@@ -96,6 +112,9 @@ export default function CreateSiteScreen() {
             onChangeText={handleNameChange}
             placeholder="Digite o nome da obra"
             placeholderTextColor="#999"
+            autoCapitalize="words"
+            autoCorrect={false}
+            textContentType="none"
           />
         </View>
 

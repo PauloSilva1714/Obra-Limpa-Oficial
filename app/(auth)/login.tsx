@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Building2, User, Lock, Eye, EyeOff, Mail, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { Building2, User, Lock, Eye, EyeOff, Mail, ArrowRight, CheckCircle, AlertCircle, Sparkles } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import {
   useFonts,
@@ -40,11 +40,19 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Animações modernas
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
+  const [logoScaleAnim] = useState(new Animated.Value(0.8));
+  const [logoRotateAnim] = useState(new Animated.Value(0));
+  const [formSlideAnim] = useState(new Animated.Value(100));
+  const [buttonScaleAnim] = useState(new Animated.Value(1));
+  const [buttonGlowAnim] = useState(new Animated.Value(0));
   const [emailFocusAnim] = useState(new Animated.Value(0));
   const [passwordFocusAnim] = useState(new Animated.Value(0));
-  const [buttonScaleAnim] = useState(new Animated.Value(1));
+  const [particlesAnim] = useState(new Animated.Value(0));
+  
   const [message, setMessage] = useState<{ type: 'success' | 'error' | null; text: string }>({ type: null, text: '' });
 
   const passwordInputRef = useRef<TextInput>(null);
@@ -60,19 +68,51 @@ export default function LoginScreen() {
   useEffect(() => {
     document.title = 'Obra Limpa';
     
-    // Animação de entrada
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: false,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: false,
-      }),
-    ]).start();
+    // Sequência de animações modernas
+    const animationSequence = async () => {
+      // Animação do logo
+      Animated.parallel([
+        Animated.timing(logoScaleAnim, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: false,
+        }),
+        Animated.timing(logoRotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: false,
+        }),
+      ]).start();
+
+      // Animação de entrada do formulário
+      setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+          Animated.timing(formSlideAnim, {
+            toValue: 0,
+            duration: 600,
+            useNativeDriver: false,
+          }),
+        ]).start();
+      }, 300);
+
+      // Animação de partículas
+      setTimeout(() => {
+        Animated.loop(
+          Animated.timing(particlesAnim, {
+            toValue: 1,
+            duration: 3000,
+            useNativeDriver: false,
+          })
+        ).start();
+      }, 500);
+    };
+
+    animationSequence();
   }, []);
 
   // Aguarda as fontes carregarem
@@ -113,12 +153,12 @@ export default function LoginScreen() {
       Animated.timing(buttonScaleAnim, {
         toValue: 0.95,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(buttonScaleAnim, {
         toValue: 1,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   };
@@ -173,323 +213,294 @@ export default function LoginScreen() {
     });
   };
 
-  // JSX do formulário
-  const LoginForm = (
-    <Animated.View 
-      style={[
-        styles.form,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }
-      ]}
-    >
-      <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
-      <Text style={styles.loginText}>Faça login para continuar</Text>
-
-      {/* Mensagem de feedback */}
-      {message.type && (
-        <Animated.View 
-          style={[
-            styles.messageContainer,
-            message.type === 'success' ? styles.successMessage : styles.errorMessage
-          ]}
-        >
-          {message.type === 'success' ? (
-            <CheckCircle size={20} color="#10B981" />
-          ) : (
-            <AlertCircle size={20} color="#EF4444" />
-          )}
-          <Text style={[
-            styles.messageText,
-            message.type === 'success' ? styles.successText : styles.errorText
-          ]}>
-            {message.text}
-          </Text>
-        </Animated.View>
-      )}
-
-      {/* Campo de Email */}
-      <Animated.View 
-        style={[
-          styles.inputContainer,
-          {
-            borderColor: emailFocusAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['#E5E7EB', '#3B82F6']
-            }),
-            borderWidth: emailFocusAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 2]
-            })
-          }
-        ]}
-      >
-        <Mail size={20} color={emailFocusAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: ['#6B7280', '#3B82F6']
-        })} style={styles.inputIcon} />
-        <TextInput
-          ref={emailInputRef}
-          style={styles.input}
-          placeholder="Digite seu e-mail"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholderTextColor="#9CA3AF"
-          returnKeyType="next"
-          onSubmitEditing={() => passwordInputRef.current?.focus()}
-          onFocus={() => handleInputFocus('email')}
-          onBlur={() => handleInputBlur('email')}
-        />
-      </Animated.View>
-
-      {/* Campo de Senha */}
-      <Animated.View 
-        style={[
-          styles.inputContainer,
-          {
-            borderColor: passwordFocusAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['#E5E7EB', '#3B82F6']
-            }),
-            borderWidth: passwordFocusAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 2]
-            })
-          }
-        ]}
-      >
-        <Lock size={20} color={passwordFocusAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: ['#6B7280', '#3B82F6']
-        })} style={styles.inputIcon} />
-        <TextInput
-          ref={passwordInputRef}
-          style={styles.input}
-          placeholder="Digite sua senha"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!showPassword}
-          placeholderTextColor="#9CA3AF"
-          onSubmitEditing={handleLogin}
-          textContentType={isWeb ? undefined : 'password'}
-          onFocus={() => handleInputFocus('password')}
-          onBlur={() => handleInputBlur('password')}
-        />
-        <TouchableOpacity
-          onPress={() => setShowPassword(!showPassword)}
-          style={styles.eyeButton}
-        >
-          {showPassword ? (
-            <EyeOff size={20} color="#6B7280" />
-          ) : (
-            <Eye size={20} color="#6B7280" />
-          )}
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Esqueceu a senha */}
-      <TouchableOpacity
-        style={styles.forgotPasswordButton}
-        onPress={handleForgotPassword}
-      >
-        <Text style={styles.forgotPasswordText}>Esqueceu sua senha?</Text>
-      </TouchableOpacity>
-
-      {/* Botão de Login */}
-      <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>
-      <TouchableOpacity
-        style={[styles.loginButton, loading && styles.buttonDisabled]}
-          onPress={() => {
-            handleButtonPress();
-            handleLogin();
-          }}
-        disabled={loading}
-        activeOpacity={0.8}
-      >
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Text style={styles.loginButtonText}>Entrar</Text>
-        <ArrowRight size={20} color="#FFFFFF" />
-            </>
-          )}
-      </TouchableOpacity>
-      </Animated.View>
-
-      {/* Divisor */}
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>ou</Text>
-        <View style={styles.dividerLine} />
-      </View>
-
-      {/* Seção de Registro */}
-      <View style={styles.registerSection}>
-        <Text style={styles.registerTitle}>Novo por aqui?</Text>
-        <TouchableOpacity
-          style={styles.registerButton}
-          onPress={() => handleRegister('admin')}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.registerButtonText}>
-            Cadastrar como Administrador
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.registerButton}
-          onPress={() => handleRegister('worker')}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.registerButtonText}>
-            Cadastrar como Colaborador
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {isWeb ? (
-          <div style={{ 
-            width: '100%', 
-            height: '100%', 
-            overflowY: 'auto', 
-            flex: 1,
-            scrollbarWidth: 'none', /* Firefox */
-            msOverflowStyle: 'none', /* IE and Edge */
-          }}>
-            <style>{`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
-            {/* Header para Web */}
-            <div style={{
-              height: Math.min(300, height * 0.35),
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              paddingLeft: 32,
-              paddingRight: 32,
-              paddingTop: 20,
-              backgroundColor: '#18344A',
-              zIndex: 10,
-            }}>
-              <div style={{
-                width: Math.min(120, width * 0.25),
-                height: Math.min(120, width * 0.25),
-                borderRadius: Math.min(60, width * 0.125),
-                backgroundColor: 'transparent',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginBottom: 32,
-                border: 'none',
-                boxShadow: 'none',
-              }}>
-                <img 
-                  src="obra-limpa-logo.png" 
-                  alt="Obra Limpa Logo"
-                  style={{ 
-                    width: 90, 
-                    height: 90,
-                    objectFit: 'contain',
-                    borderRadius: '50%'
-                  }}
-                  onLoad={() => console.log('Logo web carregado com sucesso')}
-                  onError={(error) => console.log('Erro ao carregar logo web:', error)}
-                />
-              </div>
-              <h1 style={{
-                fontSize: Math.min(48, width * 0.1),
-                fontFamily: 'Inter-Bold, sans-serif',
-                color: '#FFFFFF',
-                textAlign: 'center',
-                marginBottom: 16,
-                fontWeight: '900',
-                letterSpacing: '2px',
-                margin: 0,
-              }}>Obra Limpa</h1>
-              <p style={{
-                fontSize: Math.min(20, width * 0.045),
-                fontFamily: 'Inter-Regular, sans-serif',
-                color: 'rgba(255, 255, 255, 0.9)',
-                textAlign: 'center',
-                letterSpacing: '0.8px',
-                margin: 0,
-              }}>Sistema de Gestão Inteligente</p>
-            </div>
-            
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                handleLogin();
-              }}
-              autoComplete="on"
-              style={{ width: '100%' }}
-            >
-              {LoginForm}
-            </form>
-          </div>
-        ) : (
-          <>
-            {/* Header FIXO no topo */}
-            <Animated.View 
-              style={[
-                styles.headerContainer, 
-                { backgroundColor: '#18344A' },
+      {/* Background com gradiente animado */}
+      <View style={styles.backgroundGradient}>
+        <Animated.View 
+          style={[
+            styles.particle1,
+            {
+              transform: [
                 {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }]
-                }
+                  translateY: particlesAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -20],
+                  }),
+                },
+                {
+                  opacity: particlesAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.3, 0.8, 0.3],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        <Animated.View 
+          style={[
+            styles.particle2,
+            {
+              transform: [
+                {
+                  translateY: particlesAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 15],
+                  }),
+                },
+                {
+                  opacity: particlesAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.2, 0.6, 0.2],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header com logo animado */}
+        <Animated.View 
+          style={[
+            styles.headerContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                {
+                  scale: logoScaleAnim,
+                },
+                {
+                  rotate: logoRotateAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.logoContainer}>
+            <Image 
+              source={logo} 
+              resizeMode="contain" 
+              style={styles.logo}
+              onLoad={() => {
+                Animated.timing(logoScaleAnim, {
+                  toValue: 1,
+                  duration: 800,
+                  useNativeDriver: false,
+                }).start();
+              }}
+            />
+          </View>
+          <Text style={styles.title}>Obra Limpa</Text>
+          <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
+          <View style={styles.sparklesContainer}>
+            <Sparkles size={16} color="#3B82F6" />
+            <Sparkles size={12} color="#1D4ED8" />
+            <Sparkles size={14} color="#3B82F6" />
+          </View>
+        </Animated.View>
+
+        {/* Formulário animado */}
+        <Animated.View 
+          style={[
+            styles.formContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                {
+                  translateY: formSlideAnim,
+                },
+              ],
+            },
+          ]}
+        >
+          <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+            {/* Campo de Email */}
+            <View style={styles.inputGroup}>
+              <Animated.View 
+                style={[
+                  styles.inputContainer,
+                  {
+                    borderColor: emailFocusAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['#E5E7EB', '#3B82F6'],
+                    }),
+                    transform: [
+                      {
+                        scale: emailFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.02],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Mail size={20} color="#6B7280" style={styles.inputIcon} />
+                <TextInput
+                  ref={emailInputRef}
+                  style={styles.input}
+                  placeholder="Digite seu email"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={setEmail}
+                  onFocus={() => handleInputFocus('email')}
+                  onBlur={() => handleInputBlur('email')}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                />
+              </Animated.View>
+            </View>
+
+            {/* Campo de Senha */}
+            <View style={styles.inputGroup}>
+              <Animated.View 
+                style={[
+                  styles.inputContainer,
+                  {
+                    borderColor: passwordFocusAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['#E5E7EB', '#3B82F6'],
+                    }),
+                    transform: [
+                      {
+                        scale: passwordFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.02],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Lock size={20} color="#6B7280" style={styles.inputIcon} />
+                <TextInput
+                  ref={passwordInputRef}
+                  style={styles.input}
+                  placeholder="Digite sua senha"
+                  placeholderTextColor="#9CA3AF"
+                  value={password}
+                  onChangeText={setPassword}
+                  onFocus={() => handleInputFocus('password')}
+                  onBlur={() => handleInputBlur('password')}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+
+            {/* Botão de Login */}
+            <Animated.View
+              style={[
+                styles.buttonContainer,
+                {
+                  transform: [{ scale: buttonScaleAnim }],
+                },
               ]}
             >
-              <View style={styles.logoContainer}>
-                <Image 
-                  source={logo} 
-                  resizeMode="contain" 
-                  style={{ 
-                    width: 90, 
-                    height: 90,
-                    borderRadius: 45
-                  }}
-                  onLoad={() => console.log('Logo mobile carregado com sucesso')}
-                  onError={(error) => console.log('Erro ao carregar logo mobile:', error)}
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  loading && styles.loginButtonDisabled,
+                ]}
+                onPress={handleLogin}
+                onPressIn={handleButtonPress}
+                disabled={loading}
+                activeOpacity={0.9}
+              >
+                <Animated.View
+                  style={[
+                    styles.buttonGlow,
+                    {
+                      opacity: buttonGlowAnim,
+                    },
+                  ]}
                 />
-                {/* Fallback caso o logo não carregue */}
-                <View style={styles.logoFallback}>
-                  <Building2 size={48} color="#38A3C0" strokeWidth={3} />
-                </View>
-              </View>
-              <Text style={styles.title}>Obra Limpa</Text>
-              <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.loginButtonText}>Entrar</Text>
+                    <ArrowRight size={20} color="#FFFFFF" />
+                  </>
+                )}
+              </TouchableOpacity>
             </Animated.View>
+          </form>
 
-            <ScrollView 
-              contentContainerStyle={{ flexGrow: 1 }} 
-              style={{ flex: 1 }} 
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+          {/* Links de navegação */}
+          <View style={styles.linksContainer}>
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={handleForgotPassword}
             >
-              <View style={styles.formContainer}>
-                {LoginForm}
-              </View>
-            </ScrollView>
-          </>
+              <Text style={styles.linkText}>Esqueceu a senha?</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Seção de Registro */}
+          <View style={styles.registerSection}>
+            <Text style={styles.registerTitle}>Novo por aqui?</Text>
+            <TouchableOpacity
+              style={styles.registerButton}
+              onPress={() => handleRegister('admin')}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.registerButtonText}>
+                Cadastrar como Administrador
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.registerButton}
+              onPress={() => handleRegister('worker')}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.registerButtonText}>
+                Cadastrar como Colaborador
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* Mensagem de feedback */}
+        {message.type && (
+          <Animated.View
+            style={[
+              styles.messageContainer,
+              {
+                backgroundColor: message.type === 'success' ? '#10B981' : '#EF4444',
+              },
+            ]}
+          >
+            {message.type === 'success' ? (
+              <CheckCircle size={20} color="#FFFFFF" />
+            ) : (
+              <AlertCircle size={20} color="#FFFFFF" />
+            )}
+            <Text style={styles.messageText}>{message.text}</Text>
+          </Animated.View>
         )}
-      </KeyboardAvoidingView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -497,140 +508,147 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#18344A',
+    backgroundColor: '#F8FAFC',
   },
-  keyboardView: {
-    flex: 1,
-  },
-  headerContainer: {
-    height: Math.min(300, height * 0.35),
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 20,
-    backgroundColor: '#18344A',
-    zIndex: 10, // Garantir que apareça acima
-  },
-  logoContainer: {
-    width: Math.min(120, width * 0.25),
-    height: Math.min(120, width * 0.25),
-    borderRadius: Math.min(60, width * 0.125),
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-    borderWidth: 0,
-    ...Platform.select({
-      web: {
-        boxShadow: 'none',
-      },
-      default: {
-        elevation: 0,
-        boxShadow: 'none',
-      },
-    }),
-  },
-  logoFallback: {
+  backgroundGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: Platform.select({
+      web: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      default: '#667eea',
+    }),
+    zIndex: -1,
+  },
+  particle1: {
+    position: 'absolute',
+    top: '20%',
+    left: '10%',
+    width: 6,
+    height: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 3,
+    opacity: 0.3,
+  },
+  particle2: {
+    position: 'absolute',
+    top: '60%',
+    right: '15%',
+    width: 4,
+    height: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 2,
+    opacity: 0.2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 40,
+    paddingHorizontal: 32,
+  },
+  logoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E6F4FA',
-    borderRadius: Math.min(60, width * 0.125),
-    borderWidth: 3,
-    borderColor: '#38A3C0',
+    marginBottom: 24,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+      },
+      default: {
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+    }),
+  },
+  logo: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
   },
   title: {
-    fontSize: Math.min(48, width * 0.1),
+    fontSize: 36,
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 16,
-    fontWeight: '900',
-    letterSpacing: 2,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
+    marginBottom: 8,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    ...Platform.select({
+      web: {
+        filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))',
+      },
+    }),
   },
   subtitle: {
-    fontSize: Math.min(20, width * 0.045),
-    fontFamily: 'Inter-Regular',
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 22,
+    fontFamily: 'Inter-Medium',
+    color: '#FFFFFF',
     textAlign: 'center',
     letterSpacing: 0.8,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+    marginBottom: 8,
+    ...Platform.select({
+      web: {
+        filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))',
+      },
+    }),
+  },
+  sparklesContainer: {
+    flexDirection: 'row',
+    marginTop: 16,
+    gap: 8,
   },
   formContainer: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 32,
-    paddingTop: 40,
-    paddingBottom: 40,
-    marginTop: -32, // Sobreposição com o header
-    zIndex: 2,
+    marginHorizontal: 24,
+    marginTop: 20,
+    borderRadius: 24,
+    padding: 32,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      },
+      default: {
+        elevation: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+      },
+    }),
   },
-  form: {
-    flex: 1,
-    paddingHorizontal: Math.max(32, width * 0.08),
-    paddingTop: 40,
-    paddingBottom: 40,
-  },
-  messageContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  successMessage: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#10B981',
-  },
-  errorMessage: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#EF4444',
-  },
-  messageText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-  },
-  successText: {
-    color: '#065F46',
-  },
-  errorText: {
-    color: '#991B1B',
-  },
-  welcomeText: {
-    fontSize: Math.min(24, width * 0.06),
-    fontFamily: 'Inter-Bold',
-    color: '#1F2937',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  loginText: {
-    fontSize: Math.min(16, width * 0.04),
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 32,
+  inputGroup: {
+    marginBottom: 24,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
     borderRadius: 16,
-    marginBottom: 20,
-    paddingHorizontal: 20,
-    height: 60,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     ...Platform.select({
       web: {
         transition: 'all 0.2s ease',
@@ -638,125 +656,182 @@ const styles = StyleSheet.create({
     }),
   },
   inputIcon: {
-    marginRight: 16,
+    marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#1F2937',
+    paddingVertical: 0,
   },
   eyeButton: {
     padding: 4,
   },
-  forgotPasswordButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#3B82F6',
-    textDecorationLine: 'underline',
+  buttonContainer: {
+    marginTop: 32,
   },
   loginButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-    minHeight: 56,
+    backgroundColor: '#3B82F6',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    gap: 12,
+    position: 'relative',
+    overflow: 'hidden',
     ...Platform.select({
       web: {
         backgroundColor: '#3B82F6',
-        boxShadow: '0px 8px 25px rgba(59, 130, 246, 0.4)',
+        boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.4)',
         transition: 'all 0.2s ease',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: '0px 12px 30px rgba(59, 130, 246, 0.5)',
-        },
       },
       default: {
         elevation: 8,
-        boxShadow: '0px 4px 8px rgba(59, 130, 246, 0.4)',
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
       },
     }),
   },
-  buttonDisabled: {
+  loginButtonDisabled: {
     backgroundColor: '#9CA3AF',
-    boxShadow: 'none',
+    ...Platform.select({
+      web: {
+        backgroundColor: '#9CA3AF',
+        boxShadow: 'none',
+      },
+      default: {
+        elevation: 0,
+        shadowOpacity: 0,
+      },
+    }),
+  },
+  buttonGlow: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+    opacity: 0,
+    zIndex: -1,
   },
   loginButtonText: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
-    marginRight: 8,
   },
-  divider: {
+  linksContainer: {
+    marginTop: 32,
+    alignItems: 'center',
+  },
+  linkButton: {
+    marginBottom: 16,
+  },
+  linkText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#3B82F6',
+    textDecorationLine: 'underline',
+  },
+  registerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
+  registerText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
-    marginHorizontal: 16,
+  },
+  registerLink: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#3B82F6',
+    textDecorationLine: 'underline',
   },
   registerSection: {
+    marginTop: 32,
     alignItems: 'center',
   },
   registerTitle: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
-    color: '#374151',
+    color: '#333',
     marginBottom: 16,
   },
   registerButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#3B82F6',
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     width: '100%',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
     ...Platform.select({
       web: {
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          backgroundColor: '#E5E7EB',
-        },
+        backgroundColor: '#3B82F6',
+        boxShadow: '0 8px 15px rgba(59, 130, 246, 0.3)',
+      },
+      default: {
+        elevation: 6,
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
       },
     }),
   },
   registerButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
+  },
+  messageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 24,
+    marginTop: 16,
+    gap: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      },
+      default: {
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+    }),
+  },
+  messageText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#374151',
-    textAlign: 'center',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   titleFallback: {
-    fontSize: 48,
-    fontWeight: '900',
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 16,
-    letterSpacing: 2,
+    marginBottom: 8,
   },
   subtitleFallback: {
-    fontSize: 20,
-    fontWeight: '400',
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    letterSpacing: 0.8,
   },
 });

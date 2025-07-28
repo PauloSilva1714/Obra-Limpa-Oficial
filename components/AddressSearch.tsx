@@ -11,6 +11,7 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { MapPin, Search, X, Navigation, Clock, Heart, HeartOff, Star } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -388,9 +389,24 @@ export default function AddressSearch({
         animationType="fade"
         transparent={true}
         onRequestClose={() => setShowModal(false)}
-        accessible={true}
+        {...Platform.select({
+          web: {
+            accessibilityRole: 'dialog',
+            accessibilityLabel: 'Modal de busca de endereço',
+            accessibilityModal: true,
+          },
+        })}
       >
-        <View style={styles.modalOverlay} accessible={true}>
+        <View 
+          style={styles.modalOverlay}
+          {...Platform.select({
+            web: {
+              accessibilityRole: 'presentation',
+              'aria-modal': 'true',
+              'aria-hidden': 'false',
+            },
+          })}
+        >
           {renderModalContent()}
         </View>
       </Modal>
