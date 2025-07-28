@@ -231,9 +231,9 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     onSave(taskData);
   };
 
-  const isReadOnly = detailsMode;
-  const isEditing = !!task;
-  const canEdit = userRole === 'admin' || (userRole === 'worker' && !isReadOnly);
+  const isReadOnly = detailsMode === true;
+  const isEditing = task !== null && task !== undefined;
+  const canEdit = (userRole === 'admin' || (userRole === 'worker' && !isReadOnly)) || false;
 
   // LOGS DE DEPURAÇÃO
 
@@ -626,8 +626,13 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
 
   // Função para formatar data do comentário
   const formatCommentDate = (timestamp: string) => {
+    if (!timestamp) return 'Data não disponível';
+    
     try {
       const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return 'Data inválida';
+      }
       return date.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
@@ -644,16 +649,23 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const getAssigneesNames = (assignedTo: string | string[] | undefined): string => {
     if (!assignedTo) return 'Não atribuído';
     
-    const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
-    const names = assignedIds.map(id => {
-      const worker = workers.find(w => w.id === id);
-      if (worker) {
-        return worker.company ? `${worker.name} (${worker.company})` : worker.name;
-      }
-      return id; // Retorna o ID se não encontrou o worker
-    });
-    
-    return names.join(', ');
+    try {
+      const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+      const names = assignedIds.map(id => {
+        if (!id) return 'ID inválido';
+        
+        const worker = workers.find(w => w.id === id);
+        if (worker) {
+          return worker.company ? `${worker.name || 'Nome não disponível'} (${worker.company})` : (worker.name || 'Nome não disponível');
+        }
+        return id; // Retorna o ID se não encontrou o worker
+      }).filter(name => name && name.trim() !== '');
+      
+      if (names.length === 0) return 'Não atribuído';
+      return names.join(', ');
+    } catch (error) {
+      return 'Erro ao processar atribuições';
+    }
   };
 
   const statusMap: { [key: string]: string } = {
@@ -672,15 +684,21 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   if (detailsMode && !task) return null;
 
   function renderMedia(media: any, style: any, videoRef?: any, extraProps = {}) {
-    if (!media) return null;
-    if (media.type === 'photo') {
-      return <Image source={{ uri: media.url }} style={style} resizeMode="cover" />;
+    if (!media || !media.url) return null;
+    
+    try {
+      if (media.type === 'photo') {
+        return <Image source={{ uri: media.url }} style={style} resizeMode="cover" />;
+      }
+      if (media.type === 'video' && Platform.OS === 'web') {
+        return <video src={media.url} controls style={style} {...extraProps} />;
+      }
+      // Video component removido temporariamente devido a problemas de importação
+      return null;
+    } catch (error) {
+      console.error('Erro ao renderizar mídia:', error);
+      return null;
     }
-    if (Platform.OS === 'web') {
-      return <video src={media.url} controls style={style} {...extraProps} />;
-    }
-    // Video component removido temporariamente devido a problemas de importação
-    return null;
   }
 
   return (
@@ -691,7 +709,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
             <Text style={styles.title}>
               {detailsMode ? 'Detalhes da Tarefa' : isEditing ? 'Editar Tarefa' : 'Nova Tarefa'}
             </Text>
-            {detailsMode && (
+            {Boolean(detailsMode) && (
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(formData.status) }]}>
                 <Text style={styles.statusBadgeText}>{getStatusText(formData.status)}</Text>
               </View>
@@ -703,21 +721,21 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         </View>
 
         {/* BLOCO DE VISUALIZAÇÃO - Detalhes da Tarefa */}
-        {detailsMode && task && (
+        {Boolean(detailsMode) && Boolean(task) && (
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             {/* Seção: Mídias Destacadas - AGORA PRIMEIRA */}
             <View style={styles.sectionContainer}>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Mídias</Text>
               {/* Carrossel de mídia (detalhes da tarefa) */}
-              {hasMedia && (
+              {Boolean(hasMedia) && (
                 <View style={{ alignItems: 'center', marginBottom: 24 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    {medias.length > 1 && (
+                    {Boolean(medias.length > 1) && (
                       <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(handlePrev)} style={{ padding: 8 }}>
                         <ChevronLeft size={32} color="#111827" />
                       </TouchableOpacity>
                     )}
-                    {currentMedia && (
+                    {Boolean(currentMedia) && (
                       <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(() => { setFullscreenMedia(currentMedia); setFullscreenVisible(true); })}>
                         {renderMedia(
                           currentMedia,
@@ -744,14 +762,14 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                         )}
                       </TouchableOpacity>
                     )}
-                    {medias.length > 1 && (
+                    {Boolean(medias.length > 1) && (
                       <TouchableOpacity {...safeTouchProps} onPress={createDebouncedPress(handleNext)} style={{ padding: 8 }}>
                         <ChevronRight size={32} color="#111827" />
                       </TouchableOpacity>
                     )}
                   </View>
                   {/* Miniaturas */}
-                  {medias.length > 1 && (
+                  {Boolean(medias.length > 1) && (
                     <View style={{ flexDirection: 'row', marginTop: 12 }}>
                       {medias.map((m, idx) => (
                         <TouchableOpacity {...safeTouchProps} key={idx} onPress={createDebouncedPress(() => setMediaIndex(idx))}>
@@ -769,7 +787,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 </View>
               )}
               {/* Modal de mídia em tela cheia */}
-              {fullscreenVisible && fullscreenMedia && (
+              {Boolean(fullscreenVisible) && Boolean(fullscreenMedia) && (
                 <Modal visible={fullscreenVisible} transparent animationType="fade" onRequestClose={() => setFullscreenVisible(false)} {...safeModalProps}>
                   <View style={styles.fullscreenOverlay}>
                     <TouchableOpacity {...safeTouchProps} style={{ position: 'absolute', top: 32, right: 32, zIndex: 10 }} onPress={createDebouncedPress(() => setFullscreenVisible(false))}>
@@ -814,7 +832,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
             </View>
 
             {/* Painel de comentários dentro do ScrollView */}
-            {isEditing && (
+            {Boolean(isEditing) && (
               <View style={{
                 maxWidth: 420,
                 width: '100%',
@@ -840,7 +858,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                       <Text style={[styles.commentDate, { fontSize: 11 }]}>{formatCommentDate(comment.timestamp)}</Text> 
                     </View> 
                   ))} 
-                  {(!task?.comments || task.comments.length === 0) && ( 
+                  {Boolean(!task?.comments || task.comments.length === 0) && ( 
                     <Text style={[styles.noComments, { fontSize: 13 }]}>Nenhum comentário ainda.</Text> 
                   )} 
                 </ScrollView> 
@@ -875,7 +893,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         )}
 
         {/* FORMULÁRIO PRINCIPAL - renderizar sempre que não estiver em detailsMode */}
-        {!detailsMode && (
+        {Boolean(!detailsMode) && (
           <ScrollView contentContainerStyle={{ padding: 16 }}>
             {/* Seção: Informações Básicas */}
             <View style={styles.sectionContainer}>
@@ -932,7 +950,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                 </TouchableOpacity>
               </View>
               {/* Exibir responsáveis selecionados */}
-              {selectedAssignees.length > 0 && (
+              {Boolean(selectedAssignees.length > 0) && (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
                   {selectedAssignees.map((assignee, idx) => (
                     <View key={assignee + idx} style={{ backgroundColor: '#e0e7ef', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginRight: 6, marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}>
@@ -1006,7 +1024,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                     </TouchableOpacity>
                   </View>
                 ))}
-                {formData.photos.length === 0 && formData.videos.length === 0 && (
+                {Boolean(formData.photos.length === 0 && formData.videos.length === 0) && (
                   <Text style={{ color: '#888' }}>Nenhuma mídia adicionada.</Text>
                 )}
               </View>
@@ -1288,10 +1306,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
+        boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
         elevation: 6,
       },
     }),
@@ -1369,10 +1384,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
         elevation: 4,
       },
     }),
@@ -1406,10 +1418,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
         elevation: 4,
       },
     }),
@@ -1543,10 +1552,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
         elevation: 4,
       },
     }),
@@ -1608,10 +1614,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
         elevation: 4,
       },
     }),
@@ -1634,10 +1637,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
         elevation: 4,
       },
     }),
@@ -1657,10 +1657,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
         elevation: 4,
       },
     }),
@@ -1733,10 +1730,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
         elevation: 4,
       },
     }),
@@ -1832,10 +1826,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
+        boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
         elevation: 6,
       },
     }),
@@ -1899,10 +1890,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
         elevation: 4,
       },
     }),

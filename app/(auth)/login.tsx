@@ -300,24 +300,24 @@ export default function LoginScreen() {
 
       {/* Botão de Login */}
       <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>
-        <TouchableOpacity
-          style={[styles.loginButton, loading && styles.buttonDisabled]}
+      <TouchableOpacity
+        style={[styles.loginButton, loading && styles.buttonDisabled]}
           onPress={() => {
             handleButtonPress();
             handleLogin();
           }}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
+        disabled={loading}
+        activeOpacity={0.8}
+      >
           {loading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
               <Text style={styles.loginButtonText}>Entrar</Text>
-              <ArrowRight size={20} color="#FFFFFF" />
+        <ArrowRight size={20} color="#FFFFFF" />
             </>
           )}
-        </TouchableOpacity>
+      </TouchableOpacity>
       </Animated.View>
 
       {/* Divisor */}
@@ -526,10 +526,7 @@ const styles = StyleSheet.create({
       },
       default: {
         elevation: 0,
-        shadowColor: 'transparent',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0,
-        shadowRadius: 0,
+        boxShadow: 'none',
       },
     }),
   },
@@ -684,10 +681,7 @@ const styles = StyleSheet.create({
       },
       default: {
         elevation: 8,
-        shadowColor: '#3B82F6',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
+        boxShadow: '0px 4px 8px rgba(59, 130, 246, 0.4)',
       },
     }),
   },

@@ -107,28 +107,46 @@ export default function ProgressScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
+    if (!dateString || dateString.trim() === '') return 'Data não disponível';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Data inválida';
+      }
+      const formatted = date.toLocaleDateString('pt-BR');
+      return formatted || 'Data inválida';
+    } catch (error) {
+      return 'Data inválida';
+    }
   };
 
   const getAssigneesNames = (assignedTo: string | string[] | undefined): string => {
     if (!assignedTo) return 'Não atribuído';
     
-    const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
-    
-    const assignedNames = assignedIds.map(id => {
-      const worker = workers.find(w => w.id === id);
-      if (worker) {
-        return worker.company ? `${worker.name} (${worker.company})` : worker.name;
-      }
-      // Se não encontrou o worker, pode ser um nome manual
-      return id;
-    });
-    
-    if (assignedNames.length === 0) return 'Não atribuído';
-    if (assignedNames.length === 1) return assignedNames[0];
-    if (assignedNames.length === 2) return `${assignedNames[0]} e ${assignedNames[1]}`;
-    return `${assignedNames[0]} e mais ${assignedNames.length - 1}`;
+    try {
+      const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+      
+      const assignedNames = assignedIds.map(id => {
+        if (!id || id.trim() === '') return 'ID inválido';
+        
+        const worker = workers.find(w => w.id === id);
+        if (worker) {
+          const name = worker.name || 'Nome não disponível';
+          const company = worker.company || '';
+          return company ? `${name} (${company})` : name;
+        }
+        // Se não encontrou o worker, pode ser um nome manual
+        return id.trim() || 'ID inválido';
+      }).filter(name => name && name.trim() !== '');
+      
+      if (assignedNames.length === 0) return 'Não atribuído';
+      if (assignedNames.length === 1) return assignedNames[0];
+      if (assignedNames.length === 2) return `${assignedNames[0]} e ${assignedNames[1]}`;
+      return `${assignedNames[0]} e mais ${assignedNames.length - 1}`;
+    } catch (error) {
+      return 'Erro ao processar atribuições';
+    }
   };
 
   // Cálculo dos status diretamente das tarefas carregadas
@@ -160,6 +178,14 @@ export default function ProgressScreen() {
     }
 
     const total = data.reduce((sum, item) => sum + item.value, 0);
+    if (total === 0) {
+      return (
+        <View style={styles.emptyChartContainer}>
+          <Text style={styles.emptyChartText}>Nenhuma tarefa com dados válidos</Text>
+        </View>
+      );
+    }
+
     let currentAngle = 0;
 
     const segments = data.map((item, index) => {
@@ -167,6 +193,12 @@ export default function ProgressScreen() {
       const angle = percentage * 360;
       const startAngle = currentAngle;
       currentAngle += angle;
+      
+      // Verificar se os valores são válidos
+      if (isNaN(percentage) || isNaN(angle) || isNaN(startAngle)) {
+        return null;
+      }
+      
       return (
         <Circle
           key={index}
@@ -181,7 +213,7 @@ export default function ProgressScreen() {
           transform={`rotate(-90 ${center} ${center})`}
         />
       );
-    });
+    }).filter(Boolean);
 
     return (
       <View style={styles.chartContainer}>
@@ -203,7 +235,7 @@ export default function ProgressScreen() {
             textAnchor="middle"
             fill="#111827"
           >
-            {totalTasks}
+            {totalTasks.toString()}
           </SvgText>
           <SvgText
             x={center}
@@ -245,7 +277,7 @@ export default function ProgressScreen() {
               <Text style={styles.priorityText}>{getPriorityText(task.priority)}</Text>
             </View>
           </View>
-          <Text style={styles.taskDate}>{formatDate(task.createdAt)}</Text>
+          <Text style={styles.taskDate}>{task.createdAt ? (formatDate(task.createdAt) || 'Data inválida') : 'Data não disponível'}</Text>
         </View>
 
         {/* Foto principal */}
@@ -255,7 +287,7 @@ export default function ProgressScreen() {
             style={styles.mainPhoto}
             resizeMode="cover"
           />
-          {task.photos && task.photos.length > 1 && (
+          {Boolean(task.photos) && task.photos.length > 1 && (
             <View style={styles.photoCountBadge}>
               <Text style={styles.photoCountText}>+{task.photos.length - 1}</Text>
             </View>
@@ -264,17 +296,17 @@ export default function ProgressScreen() {
 
         {/* Conteúdo do card */}
         <View style={styles.taskContent}>
-          <Text style={styles.taskTitle} numberOfLines={2}>{task.title}</Text>
-          <Text style={styles.taskDescription} numberOfLines={3}>{task.description}</Text>
+          <Text style={styles.taskTitle} numberOfLines={2}>{task.title || 'Título não disponível'}</Text>
+          <Text style={styles.taskDescription} numberOfLines={3}>{task.description || 'Descrição não disponível'}</Text>
           
           {/* Informações da tarefa */}
           <View style={styles.taskInfo}>
             <View style={styles.taskInfoItem}>
               <MapPin size={16} color="#6B7280" />
-              <Text style={styles.taskInfoText}>{task.area}</Text>
+              <Text style={styles.taskInfoText}>{task.area || 'Área não definida'}</Text>
             </View>
             
-            {task.assignedTo && (
+            {Boolean(task.assignedTo) && (
               <View style={styles.taskInfoItem}>
                 <User size={16} color="#6B7280" />
                 <Text style={styles.taskInfoText}>
@@ -283,10 +315,10 @@ export default function ProgressScreen() {
               </View>
             )}
             
-            {task.dueDate && (
+            {Boolean(task.dueDate) && (
               <View style={styles.taskInfoItem}>
                 <Calendar size={16} color="#6B7280" />
-                <Text style={styles.taskInfoText}>Vence: {formatDate(task.dueDate)}</Text>
+                <Text style={styles.taskInfoText}>Vence: {formatDate(task.dueDate) || 'Data inválida'}</Text>
               </View>
             )}
           </View>
@@ -334,7 +366,9 @@ export default function ProgressScreen() {
           <View style={styles.headerContent}>
             <Text style={styles.title}>Progresso da Obra</Text>
             <View style={styles.completionContainer}>
-              <Text style={styles.completionRate}>{progressData.completionRate}%</Text>
+              <Text style={styles.completionRate}>
+                {typeof progressData.completionRate === 'number' ? `${progressData.completionRate}%` : '0%'}
+              </Text>
               <Text style={styles.completionLabel}>Concluído</Text>
             </View>
           </View>

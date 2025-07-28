@@ -364,25 +364,25 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Header que rola junto com o conteúdo */}
-          <View style={styles.headerContainer}>
+        <View style={styles.headerContainer}>
             <View style={styles.headerTop}>
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => router.back()}
-              >
-                <ArrowLeft size={24} color="#FFFFFF" />
-              </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <ArrowLeft size={24} color="#FFFFFF" />
+          </TouchableOpacity>
             </View>
-            <View style={styles.logoContainer}>
-              <Image
-                source={logo}
-                resizeMode="contain"
-                style={{ width: 120, height: 120, borderRadius: 60 }}
-              />
-            </View>
-            <Text style={styles.title}>Obra Limpa</Text>
-            <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
+          <View style={styles.logoContainer}>
+            <Image
+              source={logo}
+              resizeMode="contain"
+              style={{ width: 120, height: 120, borderRadius: 60 }}
+            />
           </View>
+          <Text style={styles.title}>Obra Limpa</Text>
+          <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
+        </View>
 
           <Animated.View 
             style={[

@@ -152,47 +152,47 @@ export default function ForgotPasswordScreen() {
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
           >
-            <Animated.View 
-              style={[
-                styles.form,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }]
-                }
-              ]}
-            >
-              <View style={styles.successContainer}>
-                <CheckCircle size={80} color="#10B981" style={styles.successIcon} />
-                <Text style={styles.successTitle}>Email Enviado!</Text>
-                <Text style={styles.successMessage}>
-                  Enviamos um link de recuperação para:
-                </Text>
-                <Text style={styles.emailText}>{email}</Text>
-                <Text style={styles.instructions}>
-                  Verifique sua caixa de entrada e clique no link para redefinir sua senha.
-                  O link expira em 1 hora.
-                </Text>
-              </View>
+          <Animated.View 
+            style={[
+              styles.form,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <View style={styles.successContainer}>
+              <CheckCircle size={80} color="#10B981" style={styles.successIcon} />
+              <Text style={styles.successTitle}>Email Enviado!</Text>
+              <Text style={styles.successMessage}>
+                Enviamos um link de recuperação para:
+              </Text>
+              <Text style={styles.emailText}>{email}</Text>
+              <Text style={styles.instructions}>
+                Verifique sua caixa de entrada e clique no link para redefinir sua senha.
+                O link expira em 1 hora.
+              </Text>
+            </View>
 
               {/* Botão principal para voltar ao login */}
-              <TouchableOpacity
-                style={styles.backToLoginButton}
-                onPress={handleBackToLogin}
-                activeOpacity={0.8}
-              >
-                <ArrowLeft size={20} color="#FFFFFF" />
-                <Text style={styles.backToLoginText}>Voltar ao Login</Text>
-              </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.backToLoginButton}
+              onPress={handleBackToLogin}
+              activeOpacity={0.8}
+            >
+              <ArrowLeft size={20} color="#FFFFFF" />
+              <Text style={styles.backToLoginText}>Voltar ao Login</Text>
+            </TouchableOpacity>
 
               {/* Botão secundário para reenviar */}
-              <TouchableOpacity
-                style={styles.resendButton}
-                onPress={handleResendEmail}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.resendText}>Reenviar Email</Text>
-              </TouchableOpacity>
-            </Animated.View>
+            <TouchableOpacity
+              style={styles.resendButton}
+              onPress={handleResendEmail}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.resendText}>Reenviar Email</Text>
+            </TouchableOpacity>
+          </Animated.View>
           </ScrollView>
         </View>
       </SafeAreaView>
@@ -306,10 +306,7 @@ const styles = StyleSheet.create({
       },
       default: {
         elevation: 8,
-        shadowColor: '#38A3C0',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+        boxShadow: '0px -4px 8px rgba(0, 0, 0, 0.1)',
       },
     }),
   },
@@ -351,10 +348,7 @@ const styles = StyleSheet.create({
       },
       default: {
         elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
+        boxShadow: '0px -4px 8px rgba(0, 0, 0, 0.1)',
       },
     }),
     zIndex: 2,
