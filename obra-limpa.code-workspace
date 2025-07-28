@@ -1,0 +1,47 @@
+{
+  "folders": [
+    {
+      "name": "Obra Limpa",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/.git/**": true,
+      "**/android/**": true,
+      "**/ios/**": true,
+      "**/.expo/**": true,
+      "**/.metro-cache/**": true,
+      "**/build/**": true,
+      "**/dist/**": true,
+      "**/web-build/**": true,
+      "**/functions/node_modules/**": true,
+      "**/functions/lib/**": true,
+      "**/.firebase/**": true,
+      "**/.vercel/**": true,
+      "**/.bolt/**": true,
+      "**/*.tsbuildinfo": true,
+      "**/*.log": true,
+      "**/*.tmp": true,
+      "**/*.temp": true,
+      "**/package-lock.json": true,
+      "**/yarn.lock": true
+    },
+    "search.useIgnoreFiles": true,
+    "search.useGlobalIgnoreFiles": true,
+    "typescript.preferences.includePackageJsonAutoImports": "off",
+    "typescript.suggest.autoImports": false,
+    "typescript.validate.enable": false,
+    "javascript.validate.enable": false,
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "editor.formatOnSave": false
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.vscode-typescript-next",
+      "expo.vscode-expo-tools"
+    ]
+  }
+}

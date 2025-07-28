@@ -31,8 +31,13 @@ node_modules/**/*.lock
 
 # Cache folders
 .expo/
+node_modules/
 node_modules/.cache/
 .metro-cache/
+
+# TypeScript cache
+.tsbuildinfo
+*.tsbuildinfo
 
 # Temporary files
 *.tmp
