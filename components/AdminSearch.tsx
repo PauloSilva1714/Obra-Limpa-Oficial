@@ -39,28 +39,21 @@ export default function AdminSearch({
       console.log('[AdminSearch] siteId não fornecido');
       return;
     }
-    console.log('[AdminSearch] Carregando administradores para siteId:', siteId);
-    setLoading(true);
-    AuthService.getAdminsBySite(siteId).then(async admins => {
-      console.log('[AdminSearch] Administradores encontrados:', admins.length, admins);
-      const currentUser = await AuthService.getCurrentUser();
-      console.log('[AdminSearch] Usuário atual:', currentUser?.id, currentUser?.name);
-      const filteredAdmins = currentUser ? admins.filter(admin => admin.id !== currentUser.id) : admins;
-      console.log('[AdminSearch] Administradores filtrados:', filteredAdmins.length, filteredAdmins);
-      setAdmins(filteredAdmins);
-      setLoading(false);
-    }).catch(error => {
-      console.error('[AdminSearch] Erro ao carregar administradores:', error);
-      setLoading(false);
-    });
+    loadAdmins();
   }, [siteId]);
 
   useEffect(() => {
     if (searchText.trim()) {
-      const filtered = admins.filter(admin => 
-        admin.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        admin.email.toLowerCase().includes(searchText.toLowerCase())
-      );
+      const searchLower = searchText.toLowerCase();
+      const filtered = admins.filter(admin => {
+        const name = admin.name?.toLowerCase() || '';
+        const email = admin.email?.toLowerCase() || '';
+        const funcao = admin.funcao?.toLowerCase() || '';
+        
+        return name.includes(searchLower) || 
+               email.includes(searchLower) || 
+               funcao.includes(searchLower);
+      });
       setFilteredAdmins(filtered);
     } else {
       setFilteredAdmins(admins);
@@ -71,10 +64,20 @@ export default function AdminSearch({
     try {
       console.log('[AdminSearch] loadAdmins - Carregando administradores para siteId:', siteId);
       setLoading(true);
-      const adminsData = await AdminService.getOtherAdmins(siteId);
-      console.log('[AdminSearch] loadAdmins - Administradores encontrados:', adminsData.length, adminsData);
-      setAdmins(adminsData);
-      setFilteredAdmins(adminsData);
+      
+      // Buscar todos os administradores da obra
+      const allAdmins = await AuthService.getAdminsBySite(siteId);
+      console.log('[AdminSearch] loadAdmins - Todos os administradores encontrados:', allAdmins.length, allAdmins);
+      
+      // Filtrar o usuário atual
+      const currentUser = await AuthService.getCurrentUser();
+      console.log('[AdminSearch] loadAdmins - Usuário atual:', currentUser?.id, currentUser?.name);
+      
+      const filteredAdmins = currentUser ? allAdmins.filter(admin => admin.id !== currentUser.id) : allAdmins;
+      console.log('[AdminSearch] loadAdmins - Administradores filtrados (sem usuário atual):', filteredAdmins.length, filteredAdmins);
+      
+      setAdmins(filteredAdmins);
+      setFilteredAdmins(filteredAdmins);
     } catch (error) {
       console.error('[AdminSearch] loadAdmins - Erro ao carregar administradores:', error);
       Alert.alert('Erro', 'Não foi possível carregar a lista de administradores');
@@ -109,7 +112,7 @@ export default function AdminSearch({
             <Search size={20} color={colors.textMuted} style={styles.searchIcon} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Pesquisar por nome ou email..."
+              placeholder="Buscar administrador..."
               placeholderTextColor={colors.textMuted}
               value={searchText}
               onChangeText={setSearchText}
@@ -133,6 +136,7 @@ export default function AdminSearch({
               <TouchableOpacity
                 style={[styles.adminItem, { borderBottomColor: colors.border }]}
                 onPress={() => handleSelectAdmin(item)}
+                activeOpacity={0.7}
               >
                 <View style={styles.adminInfo}>
                   {item.photoURL ? (
@@ -143,21 +147,23 @@ export default function AdminSearch({
                     />
                   ) : (
                     <View style={[styles.avatar, { backgroundColor: colors.primary }]}> 
-                      <User size={20} color="white" />
+                      <User size={24} color="white" />
                     </View>
                   )}
                   <View style={styles.adminDetails}>
                     <Text style={[styles.adminName, { color: colors.text }]}>
                       {item.name}
                     </Text>
-                    <Text style={[styles.adminEmail, { color: colors.textMuted }]}> 
-                      {item.funcao ? item.funcao : 'Administrador'}
+                    <Text style={[styles.adminRole, { color: colors.textMuted }]}> 
+                      {item.funcao || 'Administrador'}
                     </Text>
+                    {item.email && (
+                      <Text style={[styles.adminEmail, { color: colors.textMuted }]}> 
+                        {item.email}
+                      </Text>
+                    )}
                   </View>
                 </View>
-                <Text style={[styles.selectText, { color: colors.primary }]}>
-                  Selecionar
-                </Text>
               </TouchableOpacity>
             )}
             keyExtractor={(item) => item.id}
@@ -251,10 +257,9 @@ const styles = StyleSheet.create({
   adminItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
   },
   adminInfo: {
     flexDirection: 'row',
@@ -262,27 +267,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   adminDetails: {
     flex: 1,
   },
   adminName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  adminRole: {
+    fontSize: 14,
+    marginBottom: 2,
   },
   adminEmail: {
-    fontSize: 14,
-  },
-  selectText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    opacity: 0.8,
   },
   emptyContainer: {
     flex: 1,
