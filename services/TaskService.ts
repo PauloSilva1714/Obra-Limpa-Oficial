@@ -91,7 +91,7 @@ export class TaskService {
           } as Task;
         }
       );
-      
+
       return tasks;
     } catch (error) {
       console.error('[TaskService] Erro ao obter tarefas:', error);
@@ -103,7 +103,7 @@ export class TaskService {
     task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<Task> {
     try {
-      
+
       const currentSite = await AuthService.getCurrentSite();
       if (!currentSite) {
         throw new Error('Nenhuma obra selecionada');
@@ -412,7 +412,7 @@ export class TaskService {
       where('siteId', '==', siteId),
       orderBy('createdAt', 'desc')
     );
-    
+
     return onSnapshot(tasksQuery, (snapshot) => {
       const tasks = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -424,21 +424,21 @@ export class TaskService {
 
   static async addComment(taskId: string, comment: Comment): Promise<void> {
     try {
-      
+
       const taskRef = doc(db, 'tasks', taskId);
-      
+
       const taskDoc = await getDoc(taskRef);
-      
+
       if (!taskDoc.exists()) {
         throw new Error('Tarefa não encontrada');
       }
-      
+
       const taskData = taskDoc.data();
-      
+
       const currentComments = taskData.comments || [];
-      
+
       const updatedComments = [...currentComments, comment];
-      
+
       await updateDoc(taskRef, {
         comments: updatedComments,
         updatedAt: serverTimestamp(),
@@ -446,6 +446,49 @@ export class TaskService {
     } catch (error) {
       console.error('[TaskService] Erro ao adicionar comentário:', error);
       throw error;
+    }
+  }
+
+  static async getAllTasks(): Promise<Task[]> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) {
+        console.warn('Usuário não autenticado');
+        return [];
+      }
+
+      let tasksQuery;
+
+      if (currentUser.role === 'admin') {
+        // Administradores podem ver todas as tarefas
+        tasksQuery = query(
+          collection(db, 'tasks'),
+          orderBy('createdAt', 'desc')
+        );
+      } else {
+        // Workers só veem tarefas das obras que têm acesso
+        if (!currentUser.sites || currentUser.sites.length === 0) {
+          return [];
+        }
+
+        tasksQuery = query(
+          collection(db, 'tasks'),
+          where('siteId', 'in', currentUser.sites),
+          orderBy('createdAt', 'desc')
+        );
+      }
+
+      const snapshot = await getDocs(tasksQuery);
+
+      const tasks = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Task));
+
+      return tasks;
+    } catch (error) {
+      console.error('[TaskService] Erro ao obter todas as tarefas:', error);
+      return [];
     }
   }
 }

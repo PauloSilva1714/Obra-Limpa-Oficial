@@ -25,6 +25,7 @@ import {
   deleteDoc,
   serverTimestamp,
   onSnapshot,
+  orderBy,
 } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { isFirestoreOnline, forceReconnectAndCheck, checkFirebaseConfiguration, reinitializeFirestore, testFirestoreConnectivity, tryFirestoreOperation, tryAlternativeFirestoreConfig, diagnoseAndFixFirestoreIssue, simpleFirestoreOperation, fixClientOfflineIssue, tryAlternativeApproach, fixWebClientOfflineIssue, tryWebFirestoreOperation } from '../config/firebase';
@@ -103,24 +104,24 @@ export class AuthService {
     try {
       const currentUser = auth.currentUser;
       const userData = await AuthService.getCurrentUser();
-      
+
       // Se temos dados do usuário no AsyncStorage, consideramos autenticado
       // mesmo que o Firebase ainda não tenha restaurado a sessão
       if (userData) {
         return true;
       }
-      
+
       // Se não temos dados no AsyncStorage mas temos usuário no Firebase
       if (currentUser && !userData) {
         await AuthService.clearAuthData();
         return false;
       }
-      
+
       // Se não temos nem no Firebase nem no AsyncStorage
       if (!currentUser && !userData) {
         return false;
       }
-      
+
       // Caso padrão: não autenticado
       return false;
     } catch (error) {
@@ -175,23 +176,23 @@ export class AuthService {
   static async getCurrentSite(): Promise<Site | null> {
     try {
       const siteData = await AsyncStorage.getItem(AuthService.SITE_KEY);
-      
+
       if (!siteData) {
         return null;
       }
-      
+
       const parsedSite = JSON.parse(siteData);
-      
+
       if (!parsedSite || typeof parsedSite !== 'object') {
         console.error('[AuthService] Dados da obra inválidos (não é objeto)');
         return null;
       }
-      
+
       if (!parsedSite.id || typeof parsedSite.id !== 'string') {
         console.error('[AuthService] ID da obra inválido:', parsedSite.id);
         return null;
       }
-      
+
       return parsedSite;
     } catch (error) {
       console.error('[AuthService] Erro ao buscar obra atual:', error);
@@ -205,7 +206,7 @@ export class AuthService {
         if (!site.id || typeof site.id !== 'string') {
           throw new Error('Site deve ter um id válido');
         }
-        
+
         await AsyncStorage.setItem(AuthService.SITE_KEY, JSON.stringify(site));
       } else {
         await AsyncStorage.removeItem(AuthService.SITE_KEY);
@@ -218,16 +219,16 @@ export class AuthService {
   static async login(email: string, password: string): Promise<boolean> {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
+
       let userDoc: any;
-      
+
       try {
         userDoc = await tryWebFirestoreOperation(
           () => getDoc(doc(db, 'users', userCredential.user.uid)),
           5, // 5 tentativas
           3000 // 3 segundos entre tentativas
         );
-        
+
         if (!userDoc || !userDoc.exists()) {
           // Se não houver nome, não usar 'Usuário', tentar buscar do convite
           let realName = userCredential.user.displayName || '';
@@ -267,7 +268,7 @@ export class AuthService {
 
         // SINCRONIZAR photoURL DO FIREBASE AUTH
         const firebasePhotoURL = userCredential.user.photoURL;
-        
+
         if (firebasePhotoURL && firebasePhotoURL !== userData.photoURL) {
           await updateDoc(doc(db, 'users', userData.id), { photoURL: firebasePhotoURL });
           userData.photoURL = firebasePhotoURL;
@@ -294,7 +295,7 @@ export class AuthService {
           await updateDoc(doc(db, 'users', userData.id), { name: realName });
           userData.name = realName;
         }
-        
+
         const needsFix = userData.status === 'pending_invite' || userData.role === 'pending';
         if (needsFix) {
           return false;
@@ -472,7 +473,7 @@ export class AuthService {
       }
 
       const userCredential = await createUserWithEmailAndPassword(auth, cleanUserData.email, cleanUserData.password);
-      
+
       if (!auth.currentUser || auth.currentUser.uid !== userCredential.user.uid) {
         await signInWithEmailAndPassword(auth, cleanUserData.email, cleanUserData.password);
       }
@@ -493,7 +494,7 @@ export class AuthService {
         !cleanUserData.inviteId &&
         !siteId
       ) {
-        
+
         // Verificar se já existe uma obra com nome exato
         const sitesQuery = query(
           collection(db, 'sites'),
@@ -503,13 +504,13 @@ export class AuthService {
 
         if (!existingSites.empty) {
           const existingSite = existingSites.docs[0];
-          
+
           // Deletar o usuário criado
           await deleteDoc(doc(db, 'users', user.id));
           await deleteUser(auth.currentUser!);
           throw new Error('DUPLICATE_SITE: Já existe uma obra com este nome no sistema');
         }
-        
+
         // Verificar se já existe uma obra com nome similar
         const similarSitesQuery = query(
           collection(db, 'sites'),
@@ -517,11 +518,11 @@ export class AuthService {
           where('name', '<=', cleanUserData.siteName + '\uf8ff')
         );
         const similarSites = await getDocs(similarSitesQuery);
-        
+
         similarSites.docs.forEach((doc, index) => {
           const site = doc.data();
         });
-        
+
         if (!similarSites.empty) {
           // Deletar o usuário criado
           await deleteDoc(doc(db, 'users', user.id));
@@ -542,12 +543,12 @@ export class AuthService {
           autoCreated: true
         };
         await setDoc(siteRef, newSite);
-        
+
         await updateDoc(doc(db, 'users', user.id), {
           sites: [siteId],
           siteId: siteId
         });
-        
+
         user.sites = [siteId];
         user.siteId = siteId;
       }
@@ -566,12 +567,12 @@ export class AuthService {
       if (error.code === 'auth/weak-password') throw new Error('Senha muito fraca. Use pelo menos 6 caracteres');
       if (error.code === 'auth/operation-not-allowed') throw new Error('Operação não permitida. Contate o suporte');
       if (error.code === 'auth/network-request-failed') throw new Error('Erro de conexão. Verifique sua internet');
-      
+
       // Preservar erros com prefixo específico
       if (error.message && (error.message.startsWith('DUPLICATE_ADMIN:') || error.message.startsWith('DUPLICATE_SITE:'))) {
         throw error;
       }
-      
+
       throw new Error(`Erro no registro: ${error.message || 'Erro desconhecido'}`);
     }
   }
@@ -610,11 +611,11 @@ export class AuthService {
     try {
       const debugInvitesQuery = query(collection(db, 'invites'));
       const debugInvitesSnapshot = await getDocs(debugInvitesQuery);
-      
+
       debugInvitesSnapshot.docs.forEach((doc, index) => {
         const invite = doc.data() as Invite;
       });
-      
+
     } catch (error) {
     }
   }
@@ -623,28 +624,28 @@ export class AuthService {
     try {
       const checkInvitesQuery = query(collection(db, 'invites'));
       const checkInvitesSnapshot = await getDocs(checkInvitesQuery);
-      
+
       if (checkInvitesSnapshot.empty) {
         return;
       }
-      
+
       const firstDoc = checkInvitesSnapshot.docs[0];
       const firstInvite = firstDoc.data();
-      
+
       let validInvites = 0;
       let invalidInvites = 0;
-      
+
       checkInvitesSnapshot.docs.forEach((doc, index) => {
         const invite = doc.data();
         const hasRequiredFields = invite.email && invite.role && invite.status && invite.siteId;
-        
+
         if (hasRequiredFields) {
           validInvites++;
         } else {
           invalidInvites++;
         }
       });
-      
+
     } catch (error) {
     }
   }
@@ -822,23 +823,23 @@ export class AuthService {
       if (error.code === 'auth/email-already-in-use') {
         throw new Error('Email já está em uso');
       }
-      
+
       if (error.code === 'auth/invalid-email') {
         throw new Error('Email inválido');
       }
-      
+
       if (error.code === 'auth/weak-password') {
         throw new Error('Senha muito fraca. Use pelo menos 6 caracteres');
       }
-      
+
       if (error.code === 'auth/operation-not-allowed') {
         throw new Error('Operação não permitida. Contate o suporte');
       }
-      
+
       if (error.code === 'auth/network-request-failed') {
         throw new Error('Erro de conexão. Verifique sua internet');
       }
-      
+
       throw new Error(`Erro no registro completamente estático: ${error.message || 'Erro desconhecido'}`);
     }
   }
@@ -898,11 +899,11 @@ export class AuthService {
   static async getUserRole(): Promise<'admin' | 'worker'> {
     try {
       const userData = await AsyncStorage.getItem(AuthService.USER_KEY);
-      
+
       if (!userData) {
         return 'worker';
       }
-      
+
       const user = JSON.parse(userData);
       return user.role;
     } catch (error) {
@@ -913,7 +914,7 @@ export class AuthService {
   async getWorkers(): Promise<User[]> {
     try {
       const workersSnapshot = await getDocs(collection(db, 'users'));
-      
+
       const workers = workersSnapshot.docs
         .map(doc => {
           const data = doc.data();
@@ -923,7 +924,7 @@ export class AuthService {
           } as User;
         })
         .filter(worker => !!worker.inviteId);
-      
+
       return workers;
     } catch (error) {
       throw error;
@@ -1012,7 +1013,7 @@ export class AuthService {
         where('name', '==', siteData.name.trim())
       );
       const existingSites = await getDocs(sitesQuery);
-      
+
       if (!existingSites.empty) {
         throw new Error(`Já existe uma obra com o nome "${siteData.name}". Por favor, escolha um nome diferente.`);
       }
@@ -1027,7 +1028,7 @@ export class AuthService {
       };
 
       const docRef = await addDoc(collection(db, 'sites'), newSite);
-      
+
       const userRef = doc(db, 'users', currentUser.id);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
@@ -1083,7 +1084,7 @@ export class AuthService {
           where('name', '==', updates.name.trim())
         );
         const existingSites = await getDocs(sitesQuery);
-        
+
         const conflictingSites = existingSites.docs.filter(doc => doc.id !== siteId);
         if (conflictingSites.length > 0) {
           throw new Error(`Já existe uma obra com o nome "${updates.name}". Por favor, escolha um nome diferente.`);
@@ -1153,11 +1154,11 @@ export class AuthService {
     try {
       const q = query(collection(db, 'users'), where('email', '==', email));
       const querySnapshot = await getDocs(q);
-      
+
       if (querySnapshot.empty) {
         return null;
       }
-      
+
       const doc = querySnapshot.docs[0];
       return {
         id: doc.id,
@@ -1190,14 +1191,14 @@ export class AuthService {
       await reauthenticateWithCredential(currentUser, credential);
 
       await updatePassword(currentUser, newPassword);
-      
+
       // Registrar a alteração de senha no console para debug
-      
+
       // Atualizar o perfil do usuário no Firebase Auth para garantir que a alteração seja persistida
       await updateProfile(currentUser, {
         displayName: currentUser.displayName // Mantém o mesmo nome, apenas para forçar uma atualização
       });
-      
+
       return true;
     } catch (error) {
       console.error('[AuthService] Erro ao alterar senha:', error);
@@ -1210,7 +1211,7 @@ export class AuthService {
       // Usar o método padrão do Firebase sem configurações adicionais
       // Isso evita o erro de URL inválida
       await sendPasswordResetEmail(auth, email);
-      
+
     } catch (error: any) {
       // Tratar erros específicos do Firebase Auth
       if (error.code === 'auth/user-not-found') {
@@ -1222,7 +1223,7 @@ export class AuthService {
       } else if (error.code === 'auth/network-request-failed') {
         throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
       }
-      
+
       // Para outros erros, relançar o erro original
       throw error;
     }
@@ -1231,7 +1232,7 @@ export class AuthService {
   static async createAdminInvite(email: string, siteId: string): Promise<Invite> {
     try {
       const currentUser = await AuthService.getCurrentUser();
-      
+
       if (!currentUser || currentUser.role !== 'admin') {
         throw new Error('Apenas administradores podem convidar outros administradores');
       }
@@ -1285,7 +1286,7 @@ export class AuthService {
           invitedBy: currentUser.name,
           inviteId: invite.id,
         });
-        
+
         if (!emailResult.success) {
           console.warn('⚠️ E-mail não pôde ser enviado, mas convite foi criado:', emailResult.error);
           // Não falhar o processo, apenas avisar
@@ -1357,27 +1358,27 @@ export class AuthService {
   static async cancelAdminInvite(inviteId: string): Promise<void> {
     try {
       const currentUser = await AuthService.getCurrentUser();
-      
+
       if (!currentUser) {
         throw new Error('Usuário não autenticado');
       }
-      
+
       if (currentUser.role !== 'admin') {
         throw new Error('Apenas administradores podem cancelar convites');
       }
 
       const inviteDoc = await getDoc(doc(db, 'invites', inviteId));
-      
+
       if (!inviteDoc.exists()) {
         throw new Error('Convite não encontrado');
       }
 
       const invite = inviteDoc.data() as Invite;
-      
+
       if (!currentUser.sites || currentUser.sites.length === 0) {
         throw new Error('Usuário não tem acesso a nenhuma obra');
       }
-      
+
       if (!currentUser.sites.includes(invite.siteId)) {
         throw new Error('Você não tem permissão para cancelar este convite');
       }
@@ -1394,7 +1395,7 @@ export class AuthService {
         status: 'rejected',
         updatedAt: new Date().toISOString(),
       });
-      
+
     } catch (error) {
       throw error;
     }
@@ -1403,27 +1404,27 @@ export class AuthService {
   static async deleteAdminInvite(inviteId: string): Promise<void> {
     try {
       const currentUser = await AuthService.getCurrentUser();
-      
+
       if (!currentUser) {
         throw new Error('Usuário não autenticado');
       }
-      
+
       if (currentUser.role !== 'admin') {
         throw new Error('Apenas administradores podem excluir convites');
       }
 
       const inviteDoc = await getDoc(doc(db, 'invites', inviteId));
-      
+
       if (!inviteDoc.exists()) {
         throw new Error('Convite não encontrado');
       }
 
       const invite = inviteDoc.data() as Invite;
-      
+
       if (!currentUser.sites || currentUser.sites.length === 0) {
         throw new Error('Usuário não tem acesso a nenhuma obra');
       }
-      
+
       if (!currentUser.sites.includes(invite.siteId)) {
         throw new Error('Você não tem permissão para excluir este convite');
       }
@@ -1433,7 +1434,7 @@ export class AuthService {
       }
 
       await deleteDoc(doc(db, 'invites', inviteId));
-      
+
     } catch (error) {
       throw error;
     }
@@ -1518,7 +1519,7 @@ export class AuthService {
       }
 
       const userData = userDoc.data() as any;
-      
+
       const needsFix = userData.status === 'pending_invite' || userData.role === 'pending';
       if (!needsFix) {
         return true;
@@ -1529,9 +1530,9 @@ export class AuthService {
         where('email', '==', userData.email),
         where('status', '==', 'pending')
       );
-      
+
       const invitesSnapshot = await getDocs(invitesQuery);
-      
+
       let updatedUser: Partial<User> = {
         status: 'active',
         name: userData.name || 'Nome não fornecido',
@@ -1604,7 +1605,7 @@ export class AuthService {
       }
 
       const userData = userDoc.data() as any;
-      
+
       const hasDefaultData = userData.name === 'Nome não fornecido' || userData.company === 'Não informada';
       if (!hasDefaultData) {
         return true;
@@ -1711,23 +1712,23 @@ export class AuthService {
           error: 'Auth não está configurado'
         };
       }
-      
+
       if (!auth.app) {
         return {
           success: false,
           error: 'Auth não está inicializado corretamente'
         };
       }
-      
+
       const authConfig = auth.app.options;
-      
+
       if (!authConfig.apiKey) {
         return {
           success: false,
           error: 'API Key não configurada'
         };
       }
-      
+
       return {
         success: true,
         details: {
@@ -1739,7 +1740,7 @@ export class AuthService {
           test: 'auth_only_test'
         }
       };
-      
+
     } catch (error: any) {
       return {
         success: false,
@@ -1762,25 +1763,25 @@ export class AuthService {
       if (!authTest.success) {
         return authTest;
       }
-      
+
       if (!db) {
         return {
           success: false,
           error: 'Firestore não está configurado'
         };
       }
-      
+
       try {
         const testDocRef = doc(db, '_system', 'connection-test');
-        
+
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Connection timeout')), 3000);
         });
-        
+
         const getDocPromise = getDoc(testDocRef);
-        
+
         await Promise.race([getDocPromise, timeoutPromise]);
-        
+
         return {
           success: true,
           details: {
@@ -1790,12 +1791,12 @@ export class AuthService {
             test: 'firestore_read_success'
           }
         };
-        
+
       } catch (firestoreError: any) {
         const errorMessage = firestoreError.message || '';
         const errorCode = firestoreError.code || '';
-        
-        if (errorCode === 'permission-denied' || 
+
+        if (errorCode === 'permission-denied' ||
             errorCode === 'not-found' ||
             errorMessage.includes('permission') ||
             errorMessage.includes('not found') ||
@@ -1811,7 +1812,7 @@ export class AuthService {
             }
           };
         }
-        
+
         if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
           return {
             success: false,
@@ -1823,7 +1824,7 @@ export class AuthService {
             }
           };
         }
-        
+
         if (errorCode === '400' || errorMessage.includes('400')) {
           try {
             if (db && db.app) {
@@ -1863,7 +1864,7 @@ export class AuthService {
             };
           }
         }
-        
+
         return {
           success: false,
           error: `Erro na conexão com Firebase: ${errorMessage}`,
@@ -1875,7 +1876,7 @@ export class AuthService {
           }
         };
       }
-      
+
     } catch (error: any) {
       return {
         success: false,
@@ -1896,20 +1897,20 @@ export class AuthService {
     try {
       const testEmail = `test-${Date.now()}@test.com`;
       const testPassword = '123456';
-      
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         testEmail,
         testPassword
       );
-      
+
       await userCredential.user.delete();
-      
+
       return {
         success: true,
         userId: userCredential.user.uid
       };
-      
+
     } catch (error: any) {
       return {
         success: false,
@@ -1929,7 +1930,7 @@ export class AuthService {
   static async debugAsyncStorage(): Promise<void> {
     try {
       const userData = await AsyncStorage.getItem(AuthService.USER_KEY);
-      
+
       if (userData) {
         const user = JSON.parse(userData);
       } else {
@@ -1990,33 +1991,31 @@ export class AuthService {
   // Novo método para buscar colaboradores de uma obra
   static async getWorkersBySite(siteId: string): Promise<User[]> {
     try {
-      
-      // Primeiro, vamos tentar buscar todos os usuários com role 'worker'
-      const workersQuery = query(
-        collection(db, 'users'),
-        where('role', '==', 'worker')
-      );
-      const workersSnapshot = await getDocs(workersQuery);
-      
-      // Log dos workers encontrados
-      workersSnapshot.docs.forEach(doc => {
-        const data = doc.data();
+      console.log('[AuthService] getWorkersBySite - Buscando colaboradores para siteId:', siteId);
 
-      });
-      
-      // Agora vamos filtrar por site
+      if (!siteId) {
+        console.warn('[AuthService] getWorkersBySite - siteId é undefined');
+        return [];
+      }
+
+      // Buscar usuários que são workers E têm acesso à obra específica
       const usersQuery = query(
         collection(db, 'users'),
         where('role', '==', 'worker'),
         where('sites', 'array-contains', siteId)
       );
+
       const snapshot = await getDocs(usersQuery);
-      
-      const workers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-      
+      const workers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as User));
+
+      console.log('[AuthService] getWorkersBySite - Colaboradores encontrados:', workers.length, workers.map(w => ({ id: w.id, name: w.name, email: w.email })));
+
       return workers;
     } catch (error) {
-      console.error('Erro ao buscar colaboradores da obra:', error);
+      console.error('[AuthService] getWorkersBySite - Erro ao buscar colaboradores da obra:', error);
       return [];
     }
   }
@@ -2036,6 +2035,152 @@ export class AuthService {
       return admins;
     } catch (error) {
       console.error('[AuthService] getAdminsBySite - Erro ao buscar administradores da obra:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca todos os colaboradores (workers) do sistema
+   */
+  static async getAllWorkers(): Promise<User[]> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) {
+        console.warn('[AuthService] getAllWorkers - Usuário não autenticado');
+        return [];
+      }
+
+      console.log('[AuthService] getAllWorkers - Usuário atual:', {
+        id: currentUser.id,
+        name: currentUser.name,
+        role: currentUser.role,
+        sites: currentUser.sites
+      });
+
+      let workers: User[] = [];
+
+      if (currentUser.role === 'admin') {
+        // Para administradores, verificar se há uma obra selecionada
+        const currentSite = await AuthService.getCurrentSite();
+
+        if (currentSite) {
+          // Se há uma obra selecionada, buscar apenas colaboradores dessa obra
+          console.log('[AuthService] getAllWorkers - ADMIN: Obra selecionada. Buscando colaboradores da obra:', currentSite.name, currentSite.id);
+          workers = await AuthService.getWorkersBySite(currentSite.id);
+        } else {
+          // Se não há obra selecionada, buscar todos os workers
+          console.log('[AuthService] getAllWorkers - ADMIN: Nenhuma obra selecionada. Buscando TODOS os colaboradores.');
+          const workersQuery = query(
+            collection(db, 'users'),
+            where('role', '==', 'worker')
+          );
+
+          const snapshot = await getDocs(workersQuery);
+          workers = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as User));
+
+          // Ordenar localmente após buscar
+          workers.sort((a, b) => a.name.localeCompare(b.name));
+        }
+      } else { // currentUser.role === 'worker'
+        console.log('[AuthService] getAllWorkers - WORKER: Buscando colaboradores das obras do usuário.');
+        if (!currentUser.sites || currentUser.sites.length === 0) {
+          console.warn('[AuthService] getAllWorkers - WORKER: Usuário não tem obras associadas.');
+          return [];
+        }
+
+        for (const siteId of currentUser.sites) {
+          const siteWorkers = await AuthService.getWorkersBySite(siteId);
+          workers.push(...siteWorkers);
+        }
+
+        // Remover duplicados
+        const uniqueWorkers = Array.from(
+          new Map(workers.map(w => [w.id, w])).values()
+        );
+
+        workers = uniqueWorkers;
+      }
+
+      // Garantir que o usuário logado apareça primeiro na lista
+      if (currentUser) {
+        const currentUserIndex = workers.findIndex(w => w.id === currentUser.id);
+        if (currentUserIndex > -1) {
+          const [loggedInUser] = workers.splice(currentUserIndex, 1);
+          workers.unshift(loggedInUser);
+          console.log('[AuthService] getAllWorkers - Usuário logado movido para o topo da lista:', loggedInUser.name);
+        }
+      }
+
+      console.log('[AuthService] getAllWorkers - Total de colaboradores encontrados:', workers.length);
+      console.log('[AuthService] getAllWorkers - Lista de colaboradores:', workers.map(w => ({
+        id: w.id,
+        name: w.name,
+        email: w.email,
+        funcao: w.funcao,
+        company: w.company
+      })));
+
+      return workers;
+    } catch (error) {
+      console.error('[AuthService] Erro ao obter todos os colaboradores:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca todos os usuários (workers + admins) da obra atual
+   */
+  static async getAllUsersFromCurrentSite(): Promise<User[]> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) {
+        console.warn('[AuthService] getAllUsersFromCurrentSite - Usuário não autenticado');
+        return [];
+      }
+
+      const currentSite = await AuthService.getCurrentSite();
+      if (!currentSite) {
+        console.warn('[AuthService] getAllUsersFromCurrentSite - Nenhuma obra selecionada');
+        return [];
+      }
+
+      console.log('[AuthService] getAllUsersFromCurrentSite - Buscando todos os usuários da obra:', currentSite.name, currentSite.id);
+
+      // Buscar workers da obra
+      const workers = await AuthService.getWorkersBySite(currentSite.id);
+
+      // Buscar admins da obra
+      const admins = await AuthService.getAdminsBySite(currentSite.id);
+
+      // Combinar workers e admins
+      const allUsers = [...workers, ...admins];
+
+      // Garantir que o usuário logado apareça primeiro na lista
+      if (currentUser) {
+        const currentUserIndex = allUsers.findIndex(u => u.id === currentUser.id);
+        if (currentUserIndex > -1) {
+          const [loggedInUser] = allUsers.splice(currentUserIndex, 1);
+          allUsers.unshift(loggedInUser);
+          console.log('[AuthService] getAllUsersFromCurrentSite - Usuário logado movido para o topo da lista:', loggedInUser.name);
+        }
+      }
+
+      console.log('[AuthService] getAllUsersFromCurrentSite - Total de usuários encontrados:', allUsers.length);
+      console.log('[AuthService] getAllUsersFromCurrentSite - Lista de usuários:', allUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        funcao: u.funcao,
+        company: u.company
+      })));
+
+      return allUsers;
+    } catch (error) {
+      console.error('[AuthService] Erro ao obter todos os usuários da obra:', error);
       return [];
     }
   }

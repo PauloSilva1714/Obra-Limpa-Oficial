@@ -11,6 +11,7 @@ interface Site {
 interface SiteContextData {
   currentSite: Site | null;
   setCurrentSite: (site: Site | null) => void;
+  updateCurrentSite: (site: Site | null) => void;
 }
 
 const SiteContext = createContext<SiteContextData>({} as SiteContextData);
@@ -28,8 +29,12 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     loadSite();
   }, []);
 
+  const updateCurrentSite = (site: Site | null) => {
+    setCurrentSite(site);
+  };
+
   return (
-    <SiteContext.Provider value={{ currentSite, setCurrentSite }}>
+    <SiteContext.Provider value={{ currentSite, setCurrentSite, updateCurrentSite }}>
       {children}
     </SiteContext.Provider>
   );
@@ -41,4 +46,4 @@ export function useSite() {
     throw new Error('useSite deve ser usado dentro de um SiteProvider');
   }
   return context;
-} 
+}

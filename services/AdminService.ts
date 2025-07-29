@@ -821,7 +821,7 @@ export class AdminService {
       // Buscar tarefas do site atual
       const currentSite = await AuthService.getCurrentSite();
       console.log('[AdminService] Obra atual para estatísticas:', currentSite?.name || 'Nenhuma');
-      
+
       if (!currentSite) {
         console.log('[AdminService] Nenhuma obra selecionada, retornando estatísticas básicas');
         return {
@@ -831,7 +831,7 @@ export class AdminService {
           completedTasks: 0,
         };
       }
-      
+
       console.log('[AdminService] Buscando tarefas para obra:', currentSite.id);
       const tasksQuery = query(
         collection(db, 'tasks'),
@@ -1060,9 +1060,9 @@ export class AdminService {
     clientId?: string
   ): Promise<AdminDirectMessage> {
     try {
-      
+
       const currentUser = await AuthService.getCurrentUser();
-      
+
       if (!currentUser || currentUser.role !== 'admin') {
         throw new Error('Apenas administradores podem enviar mensagens');
       }
@@ -1073,15 +1073,15 @@ export class AdminService {
 
       // Verificar se o destinatário existe
       const recipient = await AuthService.getUserById(recipientId);
-      
+
       if (!recipient) {
         throw new Error('Destinatário não encontrado');
       }
-      
+
       if (recipient.role !== 'admin') {
         throw new Error('Destinatário não é um administrador');
       }
-      
+
       if (!recipient.sites?.includes(siteId)) {
         throw new Error('Destinatário não tem acesso à obra');
       }
@@ -1365,8 +1365,8 @@ export class AdminService {
               clientId: data.clientId || undefined, // força o campo a existir
             } as AdminDirectMessage;
           })
-          .filter(msg => 
-            (msg.senderId === currentUser.id && msg.recipientId === otherUserId) || 
+          .filter(msg =>
+            (msg.senderId === currentUser.id && msg.recipientId === otherUserId) ||
             (msg.senderId === otherUserId && msg.recipientId === currentUser.id)
           );
         callback(messages);
@@ -1427,8 +1427,8 @@ export class AdminService {
       unsubscribe = onSnapshot(q, (snapshot) => {
         const unreadCount = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as AdminDirectMessage))
-          .filter(msg => 
-            msg.recipientId === currentUser.id && 
+          .filter(msg =>
+            msg.recipientId === currentUser.id &&
             (!msg.readBy || !msg.readBy.includes(currentUser.id))
           ).length;
         callback(unreadCount);
@@ -1535,13 +1535,13 @@ export class AdminService {
         orderBy('createdAt', 'asc'),
         limit(limitCount)
       );
-      
+
       const querySnapshot = await getDocs(q);
       const messages = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as AdminDirectMessage));
-      
+
       return messages;
     } catch (error) {
       console.error('Erro ao buscar mensagens diretas do admin:', error);
@@ -1608,6 +1608,71 @@ export class AdminService {
    * Integrado do Untitled-4.ts
    */
   static addPendingMessage(message: AdminDirectMessage): void {
+  }
+
+  /**
+   * Busca todas as obras (sites) do sistema
+   */
+  static async getAllSites(): Promise<Site[]> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        console.warn('Apenas administradores podem buscar todas as obras');
+        return [];
+      }
+
+      const sitesQuery = query(
+        collection(db, 'sites'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(sitesQuery);
+
+      const sites = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Site));
+
+      return sites;
+    } catch (error) {
+      console.error('Erro ao buscar todas as obras:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca todas as obras do usuário atual
+   */
+  static async getUserSites(): Promise<Site[]> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) {
+        return [];
+      }
+
+      if (!currentUser.sites || currentUser.sites.length === 0) {
+        return [];
+      }
+
+      const sites: Site[] = [];
+      for (const siteId of currentUser.sites) {
+        try {
+          const siteDoc = await getDoc(doc(db, 'sites', siteId));
+          if (siteDoc.exists()) {
+            sites.push({
+              id: siteDoc.id,
+              ...siteDoc.data()
+            } as Site);
+          }
+        } catch (error) {
+          console.error(`Erro ao buscar obra ${siteId}:`, error);
+        }
+      }
+
+      return sites;
+    } catch (error) {
+      console.error('Erro ao buscar obras do usuário:', error);
+      return [];
+    }
   }
 }
 
