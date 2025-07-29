@@ -16,7 +16,7 @@ export default function AdminTab() {
     });
   }, []);
 
-  if (isAdmin === null) return null; // ou um loading
+  if (isAdmin === null) return null;
 
   return isAdmin ? <AdminScreen /> : null;
-} 
+}

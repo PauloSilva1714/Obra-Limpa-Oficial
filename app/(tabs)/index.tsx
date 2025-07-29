@@ -667,65 +667,67 @@ export default function TasksScreen() {
               backgroundColor: colors.background,
               borderBottomColor: colors.border,
             }]}>
-              <View style={{ marginRight: 12 }}>
-                <ConnectionStatus />
-              </View>
-              {userRole === 'admin' && (
-                <TouchableOpacity
-                  style={{
-                    width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary,
-                    justifyContent: 'center', alignItems: 'center', marginRight: 8
-                  }}
-                  onPress={handleCreateTask}
-                >
-                  <Plus size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              )}
-              <View style={{ flex: 1 }}>
-                <View style={{
-                  flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
-                  borderRadius: 8, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 8, height: 36
-                }}>
-                  <Feather name="search" size={16} color={colors.textMuted} style={{ marginRight: 4 }} />
-                  <TextInput
-                    style={{ flex: 1, color: colors.text, fontSize: 15, paddingVertical: 0, backgroundColor: 'transparent' }}
-                    placeholder="Pesquisar tarefas..."
-                    placeholderTextColor={colors.textMuted}
-                    value={searchQuery}
-                    onChangeText={(text) => {
-                      setSearchQuery(text);
-                      filterTasks(text);
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View style={{ marginRight: 12 }}>
+                  <ConnectionStatus />
+                </View>
+                {userRole === 'admin' && (
+                  <TouchableOpacity
+                    style={{
+                      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary,
+                      justifyContent: 'center', alignItems: 'center', marginRight: 8
                     }}
-                  />
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={clearSearch}>
-                      <X size={16} color={colors.textMuted} />
-                    </TouchableOpacity>
-                  )}
+                    onPress={handleCreateTask}
+                  >
+                    <Plus size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
+                )}
+                <View style={{ flex: 1 }}>
+                  <View style={{
+                    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
+                    borderRadius: 8, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 8, height: 36
+                  }}>
+                    <Feather name="search" size={16} color={colors.textMuted} style={{ marginRight: 4 }} />
+                    <TextInput
+                      style={{ flex: 1, color: colors.text, fontSize: 15, paddingVertical: 0, backgroundColor: 'transparent' }}
+                      placeholder="Pesquisar tarefas..."
+                      placeholderTextColor={colors.textMuted}
+                      value={searchQuery}
+                      onChangeText={(text) => {
+                        setSearchQuery(text);
+                        filterTasks(text);
+                      }}
+                    />
+                    {searchQuery.length > 0 && (
+                      <TouchableOpacity onPress={clearSearch}>
+                        <X size={16} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
+                {currentSite?.name && (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginLeft: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 4,
+                    backgroundColor: colors.surface,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.primary,
+                    boxShadow: '0px 2px 4px rgba(0,0,0,0.2)',
+                  }}>
+                    <Building2 size={18} color={colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 15 }}>
+                      {currentSite.name}
+                      {tasks.length > 0 && ` (${completionPercentage}%)`}
+                    </Text>
+                  </View>
+                )}
               </View>
-              {currentSite?.name && (
-                <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  marginLeft: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: 4,
-                  backgroundColor: colors.surface,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: colors.primary,
-                  boxShadow: '0px 2px 4px rgba(0,0,0,0.2)',
-                }}>
-                  <Building2 size={18} color={colors.primary} style={{ marginRight: 6 }} />
-                  <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 15 }}>
-                    {currentSite.name}
-                    {tasks.length > 0 && ` (${completionPercentage}%)`}
-                  </Text>
-                </View>
-              )}
               
-              <TabBarToggleButton size={20} style={{ marginLeft: 8 }} />
+              <TabBarToggleButton size={20} variant="floating" style={{ marginLeft: 12 }} />
             </View>
             <Text style={[styles.headerTitle, { color: colors.text, marginTop: 16, marginBottom: 8, paddingHorizontal: 16 }]}>Tarefas</Text>
           </View>

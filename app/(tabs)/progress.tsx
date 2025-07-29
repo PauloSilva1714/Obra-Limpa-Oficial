@@ -1,6 +1,6 @@
 /**
  * Tela de Progresso - Layout Estilo Rede Social
- * 
+ *
  * Esta tela foi transformada em um layout estilo rede social onde:
  * - As tarefas são exibidas como cards com fotos em destaque
  * - Cada card mostra: status, prioridade, foto principal, título, descrição
@@ -18,6 +18,7 @@ import { AuthService } from '@/services/AuthService';
 import { router } from 'expo-router';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import { TaskModal } from '@/components/TaskModal';
+import TabBarToggleButton from '@/components/TabBarToggleButton';
 import { shadows } from '@/utils/shadowUtils';
 
 const { width } = Dimensions.get('window');
@@ -50,13 +51,13 @@ export default function ProgressScreen() {
       setRefreshing(true);
       const currentSite = await AuthService.getCurrentSite();
       const siteId = currentSite?.id;
-      
+
       const [progress, tasksData, workersData] = await Promise.all([
         ProgressService.getInstance().getProgressData(),
         taskService.getTasks(),
         siteId ? AuthService.getWorkersBySite(siteId) : Promise.resolve([])
       ]);
-      
+
       setProgressData(progress);
       setTasks(tasksData);
       setWorkers(workersData);
@@ -108,7 +109,7 @@ export default function ProgressScreen() {
 
   const formatDate = (dateString: string) => {
     if (!dateString || dateString.trim() === '') return 'Data não disponível';
-    
+
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
@@ -123,13 +124,13 @@ export default function ProgressScreen() {
 
   const getAssigneesNames = (assignedTo: string | string[] | undefined): string => {
     if (!assignedTo) return 'Não atribuído';
-    
+
     try {
       const assignedIds = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
-      
+
       const assignedNames = assignedIds.map(id => {
         if (!id || id.trim() === '') return 'ID inválido';
-        
+
         const worker = workers.find(w => w.id === id);
         if (worker) {
           const name = worker.name || 'Nome não disponível';
@@ -139,7 +140,7 @@ export default function ProgressScreen() {
         // Se não encontrou o worker, pode ser um nome manual
         return id.trim() || 'ID inválido';
       }).filter(name => name && name.trim() !== '');
-      
+
       if (assignedNames.length === 0) return 'Não atribuído';
       if (assignedNames.length === 1) return assignedNames[0];
       if (assignedNames.length === 2) return `${assignedNames[0]} e ${assignedNames[1]}`;
@@ -161,7 +162,7 @@ export default function ProgressScreen() {
     const size = 200;
     const radius = size / 2;
     const center = size / 2;
-    
+
     const data = [
       { value: completedTasks, color: '#10B981', label: 'Concluídas' },
       { value: inProgressTasks, color: '#F59E0B', label: 'Em Andamento' },
@@ -193,12 +194,12 @@ export default function ProgressScreen() {
       const angle = percentage * 360;
       const startAngle = currentAngle;
       currentAngle += angle;
-      
+
       // Verificar se os valores são válidos
       if (isNaN(percentage) || isNaN(angle) || isNaN(startAngle)) {
         return null;
       }
-      
+
       return (
         <Circle
           key={index}
@@ -264,7 +265,7 @@ export default function ProgressScreen() {
 
   const renderTaskCard = (task: Task) => {
     const mainPhoto = task.photos && task.photos.length > 0 ? task.photos[0] : 'https://placehold.co/600x400?text=Sem+Foto';
-    
+
     return (
       <View key={task.id} style={styles.taskCard}>
         {/* Cabeçalho do card */}
@@ -282,8 +283,8 @@ export default function ProgressScreen() {
 
         {/* Foto principal */}
         <View style={styles.photoContainer}>
-          <Image 
-            source={{ uri: mainPhoto }} 
+          <Image
+            source={{ uri: mainPhoto }}
             style={styles.mainPhoto}
             resizeMode="cover"
           />
@@ -298,14 +299,14 @@ export default function ProgressScreen() {
         <View style={styles.taskContent}>
           <Text style={styles.taskTitle} numberOfLines={2}>{task.title || 'Título não disponível'}</Text>
           <Text style={styles.taskDescription} numberOfLines={3}>{task.description || 'Descrição não disponível'}</Text>
-          
+
           {/* Informações da tarefa */}
           <View style={styles.taskInfo}>
             <View style={styles.taskInfoItem}>
               <MapPin size={16} color="#6B7280" />
               <Text style={styles.taskInfoText}>{task.area || 'Área não definida'}</Text>
             </View>
-            
+
             {Boolean(task.assignedTo) && (
               <View style={styles.taskInfoItem}>
                 <User size={16} color="#6B7280" />
@@ -314,7 +315,7 @@ export default function ProgressScreen() {
                 </Text>
               </View>
             )}
-            
+
             {Boolean(task.dueDate) && (
               <View style={styles.taskInfoItem}>
                 <Calendar size={16} color="#6B7280" />
@@ -324,7 +325,7 @@ export default function ProgressScreen() {
           </View>
 
           {/* Botão de ver detalhes */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.detailsButton}
             onPress={() => {
               setSelectedTask(task);
@@ -351,8 +352,11 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
+      <View style={styles.menuButtonContainer}>
+        <TabBarToggleButton variant="modern" />
+      </View>
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -416,6 +420,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  menuButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 1000,
   },
   loadingContainer: {
     flex: 1,

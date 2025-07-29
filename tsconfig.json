@@ -1,23 +1,59 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "module": "esnext",
+    "target": "es2020",
+    "lib": [
+      "es2020",
+      "dom",
+      "dom.iterable"
+    ],
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "jsx": "react-jsx",
     "baseUrl": ".",
     "incremental": true,
     "tsBuildInfoFile": ".tsbuildinfo",
     "skipLibCheck": true,
     "noEmit": true,
     "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./components/*"],
-      "@/services/*": ["./services/*"],
-      "@/config/*": ["./config/*"],
-      "@/contexts/*": ["./contexts/*"],
-      "@/assets/*": ["./assets/*"],
-      "@/types/*": ["./types/*"],
-      "@/utils/*": ["./utils/*"],
-      "@/hooks/*": ["./hooks/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/services/*": [
+        "./services/*"
+      ],
+      "@/config/*": [
+        "./config/*"
+      ],
+      "@/contexts/*": [
+        "./contexts/*"
+      ],
+      "@/assets/*": [
+        "./assets/*"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
+      "@/utils/*": [
+        "./utils/*"
+      ],
+      "@/hooks/*": [
+        "./hooks/*"
+      ]
     }
   },
   "include": [
@@ -62,5 +98,6 @@
     "**/*.log",
     "**/*.tmp",
     "**/*.temp"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

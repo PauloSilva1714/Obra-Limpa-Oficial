@@ -10,6 +10,7 @@ import {
   Modal,
   ScrollView,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, Users, ClipboardCheck, Clock, AlertCircle, AlertTriangle } from 'lucide-react-native';
@@ -18,6 +19,8 @@ import TaskService from '../../services/TaskService';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { shadows } from '../../utils/shadowUtils';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 // Define Task type with status property
 type Task = {
@@ -210,7 +213,7 @@ export default function StatsScreen() {
           <Text>Carregando...</Text>
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}
@@ -359,17 +362,16 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -8,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: screenWidth < 400 ? 8 : 12,
   },
   statCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 20,
-    margin: 8,
-    flex: 1,
-    minWidth: 180,
-    maxWidth: 260,
+    padding: screenWidth < 400 ? 16 : 20,
+    marginBottom: screenWidth < 400 ? 8 : 12,
+    width: screenWidth < 400 ? '48%' : '48%',
+    minWidth: screenWidth < 400 ? 140 : 180,
     alignItems: 'center',
     ...Platform.select({
       web: {
@@ -382,13 +384,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   statValue: {
-    fontSize: 32,
+    fontSize: screenWidth < 400 ? 24 : 32,
     fontWeight: 'bold',
     color: '#2196F3',
     marginTop: 8,
   },
   statTitle: {
-    fontSize: 16,
+    fontSize: screenWidth < 400 ? 14 : 16,
     color: '#444',
     marginTop: 4,
     textAlign: 'center',

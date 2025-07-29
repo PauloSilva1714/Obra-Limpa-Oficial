@@ -4,6 +4,7 @@ import AdminChat from '@/components/AdminChat';
 import AdminChatSessions from '@/components/AdminChatSessions';
 import AdminDirectChat from '@/components/AdminDirectChat';
 import AdminSearch from '@/components/AdminSearch';
+import TabBarToggleButton from '@/components/TabBarToggleButton';
 import { AuthService } from '@/services/AuthService';
 import { useRouter } from 'expo-router';
 
@@ -78,6 +79,10 @@ export default function ChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#1F2937' }}>
+      {/* Container do botão com espaçamento adequado */}
+      <View style={styles.buttonContainer}>
+        <TabBarToggleButton variant="minimal" />
+      </View>
       {/* Tabs */}
       <View style={styles.tabBar}>
         <TouchableOpacity
@@ -129,6 +134,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1F2937',
   },
+  buttonContainer: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    alignItems: 'flex-start',
+  },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: '#111827',
@@ -152,4 +163,4 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: '#F97316',
   },
-}); 
+});

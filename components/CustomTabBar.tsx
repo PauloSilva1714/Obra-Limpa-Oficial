@@ -73,7 +73,7 @@ export default function CustomTabBar({ userRole, isVisible }: CustomTabBarProps)
       styles.container,
       { 
         backgroundColor: colors.surface,
-        borderTopColor: colors.border,
+        borderRightColor: colors.border,
       }
     ]}>
       {availableTabs.map(([tabKey, config]) => {
@@ -83,12 +83,17 @@ export default function CustomTabBar({ userRole, isVisible }: CustomTabBarProps)
         return (
           <TouchableOpacity
             key={tabKey}
-            style={styles.tab}
+            style={[
+              styles.tab,
+              isActive && {
+                backgroundColor: colors.primary + '20',
+              }
+            ]}
             onPress={() => handleTabPress(config.name)}
             activeOpacity={0.7}
           >
             <IconComponent
-              size={24}
+              size={22}
               color={isActive ? colors.primary : colors.textMuted}
             />
             <Text style={[
@@ -110,25 +115,28 @@ export default function CustomTabBar({ userRole, isVisible }: CustomTabBarProps)
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
-    right: 0,
-    flexDirection: 'row',
-    height: 64,
-    borderTopWidth: 1,
-    paddingBottom: 8,
-    paddingTop: 8,
-    paddingHorizontal: 16,
+    bottom: 0,
+    width: 80,
+    flexDirection: 'column',
+    borderRightWidth: 1,
+    paddingVertical: 20,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
   },
   tab: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: 16,
+    marginVertical: 4,
+    borderRadius: 12,
+    minHeight: 60,
   },
   tabText: {
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 10,
+    marginTop: 4,
     textAlign: 'center',
+    fontWeight: '500',
   },
 });

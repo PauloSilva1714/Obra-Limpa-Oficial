@@ -1,10 +1,10 @@
-import { Tabs, useRouter, useSegments } from 'expo-router';
+import { Tabs, useRouter, useSegments, Stack } from 'expo-router';
 import { useColorScheme, View, Text, StyleSheet } from 'react-native';
-import { 
-  Home, 
-  User, 
-  BarChart3, 
-  Camera, 
+import {
+  Home,
+  User,
+  BarChart3,
+  Camera,
   Users,
   Building2,
   MessageCircle // Adiciona ícone de chat
@@ -14,9 +14,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
 import { useSite } from '@/contexts/SiteContext';
-import CustomTabBar from '@/components/customtabbar';
 import { Slot } from 'expo-router';
-import { TabBarProvider, useTabBar } from '@/contexts/TabBarContext';
 
 const TABS_CONFIG = {
   index: {
@@ -55,17 +53,16 @@ function TabLayoutContent() {
   const router = useRouter();
   const segments = useSegments();
   const { currentSite } = useSite();
-  const { isTabBarVisible } = useTabBar();
 
   useEffect(() => {
     const getUserRole = async () => {
       try {
         await AuthService.debugAsyncStorage();
-        
+
         const role = await AuthService.getUserRole();
-        
+
         setUserRole(role);
-        
+
         const currentUser = await AuthService.getCurrentUser();
         if (currentUser) {
         }
@@ -82,14 +79,14 @@ function TabLayoutContent() {
     const forceUpdateRole = async () => {
       if (!isLoading) {
         const role = await AuthService.getUserRole();
-        
+
         if (userRole !== role) {
           setUserRole(role);
           setRenderKey(prev => prev + 1); // Forçar re-render
         }
       }
     };
-    
+
     // Aguardar um pouco para garantir que o AsyncStorage foi carregado
     const timer = setTimeout(forceUpdateRole, 100);
     return () => clearTimeout(timer);
@@ -129,20 +126,21 @@ function TabLayoutContent() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.content, { paddingBottom: isTabBarVisible ? 64 : 0 }]}>
-        <Slot />
+      <View style={styles.content}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="admin" />
+          <Stack.Screen name="progress" />
+          <Stack.Screen name="chat" />
+          <Stack.Screen name="profile" />
+        </Stack>
       </View>
-      <CustomTabBar userRole={userRole} isVisible={isTabBarVisible} />
     </View>
   );
 }
 
 export default function TabLayout() {
-  return (
-    <TabBarProvider>
-      <TabLayoutContent />
-    </TabBarProvider>
-  );
+  return <TabLayoutContent />;
 }
 
 const styles = StyleSheet.create({
