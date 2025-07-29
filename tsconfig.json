@@ -1,7 +1,7 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "module": "es2022",
+    "module": "esnext",
     "baseUrl": ".",
     "incremental": true,
     "tsBuildInfoFile": ".tsbuildinfo",

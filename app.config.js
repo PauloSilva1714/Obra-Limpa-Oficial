@@ -40,7 +40,13 @@ module.exports = {
     'expo-web-browser',
     'expo-audio',
     'expo-video',
-    '@react-native-firebase/app'
+    '@react-native-firebase/app',
+    [
+      'expo-dev-client',
+      {
+        launchMode: 'most-recent'
+      }
+    ]
   ],
   experiments: {
     typedRoutes: true,
@@ -57,7 +63,7 @@ module.exports = {
     },
     EXPO_GOOGLE_PLACES_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
     eas: {
-      projectId: "your-project-id-here"
+      projectId: "daa03d49-e8d2-40c2-a009-ebd5176ff283"
     }
   }
 };
