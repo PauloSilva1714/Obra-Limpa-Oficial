@@ -39,7 +39,15 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "A aplicação acessa suas fotos para permitir que você selecione imagens.",
+          "cameraPermission": "A aplicação acessa sua câmera para permitir que você tire fotos.",
+          "microphonePermission": "A aplicação acessa seu microfone para permitir que você grave vídeos com áudio."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

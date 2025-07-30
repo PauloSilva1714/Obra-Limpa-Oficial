@@ -1057,7 +1057,8 @@ export class AdminService {
     siteId: string,
     recipientId: string,
     message: string,
-    clientId?: string
+    clientId?: string,
+    attachments?: string[]
   ): Promise<AdminDirectMessage> {
     try {
 
@@ -1097,6 +1098,7 @@ export class AdminService {
         message,
         createdAt: new Date().toISOString(), // CORRIGIDO: usar timestamp ISO
         readBy: [currentUser.id], // O remetente já leu
+        attachments: attachments || [],
         ...(clientId ? { clientId } : {}),
       };
 

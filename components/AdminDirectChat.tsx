@@ -13,10 +13,14 @@ import {
   Modal,
   Image,
 } from 'react-native';
-import { Send, ArrowLeft, Trash2, User, Check } from 'lucide-react-native';
+import { Send, ArrowLeft, Trash2, User, Check, Camera, Paperclip } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
+import { uploadImageAsync } from '../services/PhotoService';
+import MediaPicker from './MediaPicker';
+import CameraScreen from './CameraScreen'; // Importando o CameraScreen
+import * as ImagePicker from 'expo-image-picker';
 import { Timestamp, FieldValue, query, collection, where, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { createUniqueId } from '../utils/idUtils';
@@ -47,6 +51,8 @@ export default function AdminDirectChat({
   const [showOptions, setShowOptions] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<AdminDirectMessage[]>([]);
   const [otherUserPhotoURL, setOtherUserPhotoURL] = useState<string | null>(null);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [showCameraScreen, setShowCameraScreen] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
@@ -159,6 +165,74 @@ export default function AdminDirectChat({
     } finally {
       setSending(false);
     }
+  };
+
+  // Função para enviar mídia
+  const handleSendMedia = async (mediaUri: string, mediaType: 'image' | 'video', caption?: string) => {
+    try {
+      setSending(true);
+      
+      // Upload da mídia para o Firebase Storage
+      const uploadedUrl = await uploadImageAsync(mediaUri, currentUser?.id || '');
+      
+      // Criar mensagem com anexo
+      const clientId = createUniqueId();
+      const tempId = 'temp-' + clientId;
+      
+      const messageText = caption || (mediaType === 'image' ? '📷 Foto' : '🎥 Vídeo');
+      
+      const optimisticMsg: AdminDirectMessage = {
+        id: tempId,
+        siteId,
+        senderId: currentUser?.id || '',
+        senderName: currentUser?.name || 'Você',
+        senderEmail: currentUser?.email || '',
+        recipientId: otherUserId,
+        recipientName: otherUserName,
+        recipientEmail: '',
+        message: messageText,
+        createdAt: new Date().toISOString(),
+        readBy: [currentUser?.id || ''],
+        attachments: [uploadedUrl],
+        clientId,
+      };
+      
+      setPendingMessages((prev) => [...prev, optimisticMsg]);
+      setMessages((prev) => sortMessages([...prev, optimisticMsg]));
+      
+      await AdminService.sendDirectMessage(
+        siteId, 
+        otherUserId, 
+        messageText, 
+        clientId, 
+        [uploadedUrl]
+      );
+      
+    } catch (error: any) {
+      Alert.alert('Erro', 'Não foi possível enviar a mídia: ' + (error?.message || ''));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Função para lidar com foto tirada pela câmera nativa
+  const handlePhotoTaken = async (photoUri: string) => {
+    try {
+      await handleSendMedia(photoUri, 'image');
+    } catch (error) {
+      console.error('Erro ao enviar foto da câmera:', error);
+      Alert.alert('Erro', 'Não foi possível enviar a foto');
+    }
+  };
+
+  // Função para abrir câmera nativa diretamente
+  const openNativeCamera = async () => {
+    // Abrir CameraScreen com interface completa
+    setShowCameraScreen(true);
+  };
+
+  const closeCameraScreen = () => {
+    setShowCameraScreen(false);
   };
 
   // Enviar ao pressionar Enter (sem Shift)
@@ -275,9 +349,27 @@ export default function AdminDirectChat({
           </View>
         </View>
         <View style={[styles.messageBubble, { backgroundColor: isOwnMessage ? colors.primary : colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.messageText, { color: isOwnMessage ? 'white' : colors.text }]}> 
-            {item.message}
-          </Text>
+          {/* Renderizar anexos de mídia */}
+          {item.attachments && item.attachments.length > 0 && (
+            <View style={styles.attachmentsContainer}>
+              {item.attachments.map((attachment, index) => (
+                <TouchableOpacity key={index} style={styles.attachmentContainer}>
+                  <Image
+                    source={{ uri: attachment }}
+                    style={styles.attachmentImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          
+          {/* Texto da mensagem */}
+          {item.message && (
+            <Text style={[styles.messageText, { color: isOwnMessage ? 'white' : colors.text }]}> 
+              {item.message}
+            </Text>
+          )}
         </View>
       </View>
     );
@@ -362,6 +454,7 @@ export default function AdminDirectChat({
         >
           <Text style={{ fontSize: 22 }}>{showOptions ? '❌' : '😊'}</Text>
         </TouchableOpacity>
+        
         {/* Área de opções (emojis + barra de envio) */}
         {showOptions && (
           <>
@@ -378,18 +471,40 @@ export default function AdminDirectChat({
                 </TouchableOpacity>
               ))}
             </View>
-        {/* Chat Type Indicator */}
-        <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
-          <User size={16} color={colors.primary} />
-          <Text style={[styles.chatTypeText, { color: colors.primary }]}>
-            Chat Individual - Enviando para {otherUserName}
-          </Text>
-        </View>
+            
+            {/* Chat Type Indicator */}
+            <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
+              <User size={16} color={colors.primary} />
+              <Text style={[styles.chatTypeText, { color: colors.primary }]}>
+                Chat Individual - Enviando para {otherUserName}
+              </Text>
+            </View>
           </>
         )}
-        {/* Campo de mensagem e botão de enviar continuam visíveis */}
         
+        {/* Campo de mensagem e botões - sempre visíveis */}
         <View style={styles.inputRow}>
+          {/* Botões de mídia - sempre visíveis */}
+          <TouchableOpacity
+            style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+            onPress={() => {
+              console.log('Camera button pressed - opening native camera directly');
+              openNativeCamera();
+            }}
+          >
+            <Camera size={18} color="white" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+            onPress={() => {
+              console.log('Paperclip button pressed');
+              setShowMediaPicker(true);
+            }}
+          >
+            <Paperclip size={18} color="white" />
+          </TouchableOpacity>
+          
           <TextInput
             style={[styles.messageInput, { 
               backgroundColor: colors.surface, 
@@ -447,6 +562,20 @@ export default function AdminDirectChat({
           </View>
         </View>
       </Modal>
+
+      {/* MediaPicker Modal */}
+      <MediaPicker
+        visible={showMediaPicker}
+        onClose={() => setShowMediaPicker(false)}
+        onSendMedia={handleSendMedia}
+      />
+
+      {/* Camera Screen */}
+      <CameraScreen
+        visible={showCameraScreen}
+        onClose={() => setShowCameraScreen(false)}
+        onPhotoTaken={handlePhotoTaken}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -658,5 +787,36 @@ const styles = StyleSheet.create({
   headerUserInfo: {
     flexDirection: 'column',
     flex: 1,
+  },
+  mediaButtons: {
+    flexDirection: 'row',
+    gap: 6,
+    marginRight: 8,
+  },
+  mediaButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  attachmentsContainer: {
+    marginBottom: 8,
+  },
+  attachmentContainer: {
+    marginBottom: 4,
+  },
+  attachmentImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
   },
 });

@@ -11,12 +11,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Search, MessageCircle, User, Camera, MoreVertical, ArrowLeft } from 'lucide-react-native';
+import { Search, MessageCircle, User, Camera, MoreVertical, ArrowLeft, Paperclip } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { AuthService } from '@/services/AuthService';
 import { AdminService } from '@/services/AdminService';
 import TabBarToggleButton from '@/components/TabBarToggleButton';
 import * as ImagePicker from 'expo-image-picker';
+import CameraScreen from '@/components/CameraScreen';
 
 interface Admin {
   id: string;
@@ -36,6 +37,17 @@ interface ChatSession {
   unreadCount: number;
 }
 
+interface Message {
+  id: string;
+  text: string;
+  sender: string;
+  timestamp: string;
+  isOwn: boolean;
+  isPhoto?: boolean;
+  mediaType?: 'photo' | 'video' | 'gallery';
+  uri?: string;
+}
+
 export default function ChatScreen() {
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -47,8 +59,22 @@ export default function ChatScreen() {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeTab, setActiveTab] = useState<'individual' | 'grupo' | 'novo'>('individual');
   const [selectedChat, setSelectedChat] = useState<{ userId: string; userName: string } | null>(null);
-  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
-  const [showGalleryOptions, setShowGalleryOptions] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageText, setMessageText] = useState('');
+  const [showCameraEditor, setShowCameraEditor] = useState(false);
+  const [capturedMedia, setCapturedMedia] = useState<{
+    uri: string;
+    type: 'photo' | 'video';
+    width?: number;
+    height?: number;
+  } | null>(null);
+  const [mediaCaption, setMediaCaption] = useState('');
+  const [appliedFilter, setAppliedFilter] = useState<string>('');
+  const [appliedSticker, setAppliedSticker] = useState<string>('');
+  const [appliedText, setAppliedText] = useState<string>('');
+  const [drawingMode, setDrawingMode] = useState<string>('');
+  const [cropMode, setCropMode] = useState<string>('');
+  const [showCameraScreen, setShowCameraScreen] = useState(false);
 
   useEffect(() => {
     const initializeChat = async () => {
@@ -118,12 +144,9 @@ export default function ChatScreen() {
     setSelectedChat({ userId: admin.id, userName: admin.name });
   };
 
-  const [messageText, setMessageText] = useState('');
-  const [messages, setMessages] = useState<any[]>([]);
-
   const sendMessage = () => {
     if (messageText.trim()) {
-      const newMessage = {
+      const newMessage: Message = {
         id: Date.now().toString(),
         text: messageText,
         sender: currentUser?.id,
@@ -150,215 +173,387 @@ export default function ChatScreen() {
     return true;
   };
 
-    const handleCameraPress = async () => {
-    console.log('=== DEBUG: handleCameraPress iniciada ===');
-    console.log('selectedChat:', selectedChat);
-
+  const handleCameraPress = async () => {
     const hasPermissions = await requestPermissions();
-    console.log('hasPermissions:', hasPermissions);
 
     if (!hasPermissions) {
-      console.log('=== DEBUG: Permissões negadas ===');
       return;
     }
 
-    // Abrir modal moderno diretamente
-    console.log('=== DEBUG: Definindo showPhotoOptions como true ===');
-    setShowPhotoOptions(true);
-    console.log('=== DEBUG: showPhotoOptions definido ===');
+    // Abrir CameraScreen com interface completa
+    setShowCameraScreen(true);
+  };
+
+  const openCameraDirectly = async () => {
+    try {
+      // Solicitar permissões
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'Precisamos de acesso à câmera para tirar fotos.');
+        return;
+      }
+
+      console.log('=== DEBUG: Abrindo câmera diretamente ===');
+      
+      // Abrir câmera nativa com configurações mínimas para interface completa
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All, // Voltando para a sintaxe original
+        allowsEditing: false,
+        quality: 1.0, // Qualidade máxima
+      });
+
+      console.log('=== DEBUG: Resultado da câmera:', result);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log('=== DEBUG: Mídia capturada:', asset.uri);
+
+        // Determinar tipo de mídia
+        const isVideo = asset.type === 'video';
+        console.log('=== DEBUG: Tipo de mídia:', isVideo ? 'video' : 'photo');
+
+        // Abrir diretamente o editor (como na imagem)
+        console.log('=== DEBUG: Definindo capturedMedia ===');
+        setCapturedMedia({
+          uri: asset.uri,
+          type: isVideo ? 'video' : 'photo',
+          width: asset.width,
+          height: asset.height,
+        });
+        console.log('=== DEBUG: Definindo showCameraEditor como true ===');
+        setShowCameraEditor(true);
+        console.log('=== DEBUG: Estados definidos ===');
+      } else {
+        console.log('=== DEBUG: Câmera cancelada ou sem assets ===');
+      }
+    } catch (error) {
+      console.error('Erro ao abrir câmera:', error);
+      Alert.alert('Erro', 'Não foi possível abrir a câmera.');
+    }
   };
 
   const takePhotoComplete = async () => {
     try {
+      console.log('=== DEBUG: takePhotoComplete iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Voltando para a sintaxe original
+        allowsEditing: false, // Sem crop intermediário
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        const photoMessage = {
-          id: Date.now().toString(),
-          text: '📷 Foto enviada',
-          sender: currentUser?.id,
-          timestamp: new Date().toISOString(),
-          isOwn: true,
-          isPhoto: true,
-          mediaType: 'photo',
-          uri: result.assets[0].uri
-        };
-        setMessages([...messages, photoMessage]);
+      console.log('=== DEBUG: Resultado da câmera:', result);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log('=== DEBUG: Foto capturada:', asset.uri);
+
+        // Abrir diretamente o editor (como na imagem)
+        console.log('=== DEBUG: Definindo capturedMedia ===');
+        setCapturedMedia({
+          uri: asset.uri,
+          type: 'photo',
+          width: asset.width,
+          height: asset.height,
+        });
+        console.log('=== DEBUG: Definindo showCameraEditor como true ===');
+        setShowCameraEditor(true);
+        console.log('=== DEBUG: Estados definidos ===');
+      } else {
+        console.log('=== DEBUG: Câmera cancelada ou sem assets ===');
       }
     } catch (error) {
       console.error('Erro ao tirar foto:', error);
-      Alert.alert('Erro', 'Não foi possível tirar a foto. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível tirar a foto.');
     }
-    setShowPhotoOptions(false);
-  };
-
-  const takePhotoCropped = async () => {
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const photoMessage = {
-          id: Date.now().toString(),
-          text: '📷 Foto enviada',
-          sender: currentUser?.id,
-          timestamp: new Date().toISOString(),
-          isOwn: true,
-          isPhoto: true,
-          mediaType: 'photo',
-          uri: result.assets[0].uri
-        };
-        setMessages([...messages, photoMessage]);
-      }
-    } catch (error) {
-      console.error('Erro ao tirar foto cortada:', error);
-      Alert.alert('Erro', 'Não foi possível tirar a foto. Tente novamente.');
-    }
-    setShowPhotoOptions(false);
   };
 
   const recordVideo = async () => {
     try {
+      console.log('=== DEBUG: recordVideo iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: false,
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos, // Voltando para a sintaxe original
+        allowsEditing: false, // Sem crop intermediário
         quality: 0.8,
-        videoMaxDuration: 30, // 30 segundos máximo
+        videoMaxDuration: 30,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        const videoMessage = {
-          id: Date.now().toString(),
-          text: '🎥 Vídeo enviado',
-          sender: currentUser?.id,
-          timestamp: new Date().toISOString(),
-          isOwn: true,
-          isPhoto: true,
-          mediaType: 'video',
-          uri: result.assets[0].uri
-        };
-        setMessages([...messages, videoMessage]);
+      console.log('=== DEBUG: Resultado do vídeo:', result);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log('=== DEBUG: Vídeo gravado:', asset.uri);
+
+        // Abrir diretamente o editor (como na imagem)
+        console.log('=== DEBUG: Definindo capturedMedia (vídeo) ===');
+        setCapturedMedia({
+          uri: asset.uri,
+          type: 'video',
+          width: asset.width,
+          height: asset.height,
+        });
+        console.log('=== DEBUG: Definindo showCameraEditor como true (vídeo) ===');
+        setShowCameraEditor(true);
+        console.log('=== DEBUG: Estados definidos (vídeo) ===');
+      } else {
+        console.log('=== DEBUG: Vídeo cancelado ou sem assets ===');
       }
     } catch (error) {
       console.error('Erro ao gravar vídeo:', error);
-      Alert.alert('Erro', 'Não foi possível gravar o vídeo. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível gravar o vídeo.');
     }
-    setShowPhotoOptions(false);
   };
 
   const selectMediaComplete = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
-        allowsEditing: false,
+        mediaTypes: ImagePicker.MediaTypeOptions.All, // Voltando para a sintaxe original
+        allowsEditing: false, // Sem crop intermediário
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        const isVideo = result.assets[0].type === 'video';
-        const galleryMessage = {
-          id: Date.now().toString(),
-          text: isVideo ? '🎥 Vídeo da galeria' : '🖼️ Imagem da galeria',
-          sender: currentUser?.id,
-          timestamp: new Date().toISOString(),
-          isOwn: true,
-          isPhoto: true,
-          mediaType: isVideo ? 'video' : 'gallery',
-          uri: result.assets[0].uri
-        };
-        setMessages([...messages, galleryMessage]);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log('Mídia selecionada:', asset.uri);
+
+        // Abrir diretamente o editor (como na imagem)
+        const isVideo = asset.type === 'video';
+        setCapturedMedia({
+          uri: asset.uri,
+          type: isVideo ? 'video' : 'photo',
+          width: asset.width,
+          height: asset.height,
+        });
+        setShowCameraEditor(true);
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível selecionar a mídia. Tente novamente.');
+      console.error('Erro ao selecionar mídia:', error);
+      Alert.alert('Erro', 'Não foi possível selecionar a mídia.');
     }
-    setShowGalleryOptions(false);
-  };
-
-  const selectMediaCropped = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const isVideo = result.assets[0].type === 'video';
-        const galleryMessage = {
-          id: Date.now().toString(),
-          text: isVideo ? '🎥 Vídeo da galeria' : '🖼️ Imagem da galeria',
-          sender: currentUser?.id,
-          timestamp: new Date().toISOString(),
-          isOwn: true,
-          isPhoto: true,
-          mediaType: isVideo ? 'video' : 'gallery',
-          uri: result.assets[0].uri
-        };
-        setMessages([...messages, galleryMessage]);
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível selecionar a mídia. Tente novamente.');
-    }
-    setShowGalleryOptions(false);
   };
 
   const handleMoreOptionsPress = () => {
     Alert.alert(
-      'Opções do Chat',
+      'Opções',
       'Escolha uma opção:',
       [
         {
-          text: 'Informações do Contato',
-          onPress: () => {
-            Alert.alert(
-              'Informações do Contato',
-              `Nome: ${selectedChat?.userName}\nStatus: Online\nFunção: Administrador`,
-              [{ text: 'OK' }]
-            );
-          }
+          text: '📷 Câmera',
+          onPress: () => setShowCameraScreen(true),
         },
         {
-          text: 'Silenciar Notificações',
-          onPress: () => {
-            Alert.alert('Notificações silenciadas para este chat');
-          }
-        },
-        {
-          text: 'Limpar Conversa',
+          text: '🖼️ Galeria',
           onPress: () => {
             Alert.alert(
-              'Limpar Conversa',
-              'Tem certeza que deseja limpar toda a conversa?',
+              'Galeria',
+              'Escolha uma opção:',
               [
                 {
-                  text: 'Cancelar',
-                  style: 'cancel'
+                  text: '🖼️ Selecionar Mídia',
+                  onPress: () => selectMediaComplete(),
                 },
                 {
-                  text: 'Limpar',
-                  style: 'destructive',
-                  onPress: () => {
-                    setMessages([]);
-                    Alert.alert('Conversa limpa com sucesso!');
-                  }
-                }
+                  text: 'Cancelar',
+                  style: 'cancel',
+                },
               ]
             );
-          }
+          },
         },
         {
-          text: 'Fechar',
-          style: 'cancel'
-        }
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const closeCameraEditor = () => {
+    setShowCameraEditor(false);
+    setCapturedMedia(null);
+    setMediaCaption('');
+    setAppliedFilter('');
+    setAppliedSticker('');
+    setAppliedText('');
+    setDrawingMode('');
+    setCropMode('');
+  };
+
+  const closeCameraScreen = () => {
+    setShowCameraScreen(false);
+  };
+
+  const handleCameraCapture = (photoUri: string) => {
+     setCapturedMedia({
+       uri: photoUri,
+       type: 'photo',
+     });
+     setShowCameraScreen(false);
+     setShowCameraEditor(true);
+   };
+
+   const sendMediaWithCaption = () => {
+    if (!capturedMedia) return;
+
+    const mediaMessage: Message = {
+      id: Date.now().toString(),
+      text: mediaCaption || (capturedMedia.type === 'video' ? '🎥 Vídeo enviado' : '📷 Foto enviada'),
+      sender: currentUser?.id,
+      timestamp: new Date().toISOString(),
+      isOwn: true,
+      isPhoto: true,
+      mediaType: capturedMedia.type,
+      uri: capturedMedia.uri
+    };
+
+    setMessages([...messages, mediaMessage]);
+    closeCameraEditor();
+  };
+
+  const applyFilter = (filterType: string) => {
+    Alert.alert(
+      'Filtros',
+      'Escolha um filtro:',
+      [
+        {
+          text: 'Normal',
+          onPress: () => {
+            setAppliedFilter('Normal');
+            Alert.alert('Filtro Aplicado', 'Filtro Normal aplicado!');
+          },
+        },
+        {
+          text: 'Vintage',
+          onPress: () => {
+            setAppliedFilter('Vintage');
+            Alert.alert('Filtro Aplicado', 'Filtro Vintage aplicado!');
+          },
+        },
+        {
+          text: 'Preto e Branco',
+          onPress: () => {
+            setAppliedFilter('P&B');
+            Alert.alert('Filtro Aplicado', 'Filtro P&B aplicado!');
+          },
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const addText = () => {
+    Alert.prompt(
+      'Adicionar Texto',
+      'Digite o texto que deseja adicionar:',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Adicionar',
+          onPress: (text) => {
+            if (text) {
+              setAppliedText(text);
+              Alert.alert('Texto Adicionado', `Texto "${text}" adicionado à mídia!`);
+            }
+          },
+        },
+      ],
+      'plain-text'
+    );
+  };
+
+  const addSticker = () => {
+    Alert.alert(
+      'Adicionar Sticker',
+      'Escolha um sticker:',
+      [
+        {
+          text: '😊',
+          onPress: () => {
+            setAppliedSticker('😊');
+            Alert.alert('Sticker Adicionado', 'Sticker 😊 adicionado!');
+          },
+        },
+        {
+          text: '👍',
+          onPress: () => {
+            setAppliedSticker('👍');
+            Alert.alert('Sticker Adicionado', 'Sticker 👍 adicionado!');
+          },
+        },
+        {
+          text: '❤️',
+          onPress: () => {
+            setAppliedSticker('❤️');
+            Alert.alert('Sticker Adicionado', 'Sticker ❤️ adicionado!');
+          },
+        },
+        {
+          text: '🎉',
+          onPress: () => {
+            setAppliedSticker('🎉');
+            Alert.alert('Sticker Adicionado', 'Sticker 🎉 adicionado!');
+          },
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const drawOnMedia = () => {
+    Alert.alert(
+      'Desenhar',
+      'Escolha uma cor para desenhar:',
+      [
+        {
+          text: '🖍️ Vermelho',
+          onPress: () => {
+            setDrawingMode('Vermelho');
+            Alert.alert('Desenho Ativado', 'Modo desenho vermelho ativado!');
+          },
+        },
+        {
+          text: '🖍️ Azul',
+          onPress: () => {
+            setDrawingMode('Azul');
+            Alert.alert('Desenho Ativado', 'Modo desenho azul ativado!');
+          },
+        },
+        {
+          text: '🖍️ Verde',
+          onPress: () => {
+            setDrawingMode('Verde');
+            Alert.alert('Desenho Ativado', 'Modo desenho verde ativado!');
+          },
+        },
+        {
+          text: '🖍️ Amarelo',
+          onPress: () => {
+            setDrawingMode('Amarelo');
+            Alert.alert('Desenho Ativado', 'Modo desenho amarelo ativado!');
+          },
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const cropMedia = () => {
+    Alert.alert(
+      'Cortar Mídia',
+      'Crop será feito no editor! Use as ferramentas de edição.',
+      [
+        {
+          text: 'OK',
+          onPress: () => {},
+        },
       ]
     );
   };
@@ -592,6 +787,18 @@ export default function ChatScreen() {
 
         {/* Message Input */}
         <View style={styles.messageInputContainer}>
+          <TouchableOpacity
+            style={styles.mediaButton}
+            onPress={handleCameraPress}
+          >
+            <Camera size={20} color="#F97316" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.mediaButton}
+            onPress={handleMoreOptionsPress}
+          >
+            <Paperclip size={20} color="#F97316" />
+          </TouchableOpacity>
           <TextInput
             style={styles.messageInput}
             placeholder="Digite sua mensagem..."
@@ -609,53 +816,95 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Modal Moderno - Opções de Foto */}
-        {console.log('=== DEBUG: Renderizando modal, showPhotoOptions =', showPhotoOptions)}
-        {showPhotoOptions && (
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Tirar Foto</Text>
-                <TouchableOpacity onPress={() => setShowPhotoOptions(false)}>
-                  <Text style={styles.modalClose}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.modalOptions}>
-                <TouchableOpacity style={styles.modalOption} onPress={takePhotoComplete}>
-                  <View style={styles.optionIcon}>📷</View>
-                  <Text style={styles.optionText}>Foto Completa</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption} onPress={takePhotoCropped}>
-                  <View style={styles.optionIcon}>✂️</View>
-                  <Text style={styles.optionText}>Cortar Foto</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption} onPress={recordVideo}>
-                  <View style={styles.optionIcon}>🎥</View>
-                  <Text style={styles.optionText}>Gravar Vídeo</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
+        {/* CameraScreen Component */}
+         {showCameraScreen && (
+           <CameraScreen
+             visible={showCameraScreen}
+             onClose={closeCameraScreen}
+             onPhotoTaken={handleCameraCapture}
+           />
+         )}
 
-        {/* Modal Moderno - Opções de Galeria */}
-        {showGalleryOptions && (
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Galeria</Text>
-                <TouchableOpacity onPress={() => setShowGalleryOptions(false)}>
-                  <Text style={styles.modalClose}>✕</Text>
-                </TouchableOpacity>
+        {/* Editor da Câmera (como WhatsApp) */}
+        {console.log('=== DEBUG: Renderizando editor, showCameraEditor =', showCameraEditor, 'capturedMedia =', capturedMedia)}
+        {showCameraEditor && capturedMedia && (
+          <View style={styles.cameraEditorOverlay}>
+            {/* Top Toolbar */}
+            <View style={styles.cameraEditorToolbar}>
+              <TouchableOpacity style={styles.toolbarButton} onPress={closeCameraEditor}>
+                <Text style={styles.toolbarIcon}>✕</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton}>
+                <Text style={styles.toolbarIcon}>HD ✓</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toolbarButton, cropMode && styles.toolbarButtonActive]}
+                onPress={cropMedia}
+              >
+                <Text style={styles.toolbarIcon}>⏹️</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toolbarButton, appliedSticker && styles.toolbarButtonActive]}
+                onPress={addSticker}
+              >
+                <Text style={styles.toolbarIcon}>😊</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toolbarButton, appliedText && styles.toolbarButtonActive]}
+                onPress={addText}
+              >
+                <Text style={styles.toolbarIcon}>T</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toolbarButton, drawingMode && styles.toolbarButtonActive]}
+                onPress={drawOnMedia}
+              >
+                <Text style={styles.toolbarIcon}>✏️</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Media Preview */}
+            <View style={styles.cameraEditorPreview}>
+              {capturedMedia.type === 'video' ? (
+                <View style={styles.videoPreviewContainer}>
+                  <Text style={styles.videoPreviewIcon}>🎥</Text>
+                  <Text style={styles.videoPreviewText}>Vídeo Capturado</Text>
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: capturedMedia.uri }}
+                  style={styles.cameraEditorImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+
+            {/* Bottom Controls */}
+            <View style={styles.cameraEditorBottom}>
+              <TouchableOpacity
+                style={[styles.filterButton, appliedFilter && styles.filterButtonActive]}
+                onPress={() => applyFilter()}
+              >
+                <Text style={styles.filterText}>
+                  {appliedFilter ? `Filtros (${appliedFilter})` : 'Filtros'}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.captionContainer}>
+                <TextInput
+                  style={styles.captionInput}
+                  placeholder="Adicione uma legenda..."
+                  placeholderTextColor="#9CA3AF"
+                  value={mediaCaption}
+                  onChangeText={setMediaCaption}
+                  multiline
+                />
               </View>
-              <View style={styles.modalOptions}>
-                <TouchableOpacity style={styles.modalOption} onPress={selectMediaComplete}>
-                  <View style={styles.optionIcon}>🖼️</View>
-                  <Text style={styles.optionText}>Mídia Completa</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalOption} onPress={selectMediaCropped}>
-                  <View style={styles.optionIcon}>✂️</View>
-                  <Text style={styles.optionText}>Cortar Mídia</Text>
+
+              <View style={styles.sendInfoContainer}>
+                <Text style={styles.sendInfoText}>Eu (você)</Text>
+                <TouchableOpacity style={styles.sendButton} onPress={sendMediaWithCaption}>
+                  <Text style={styles.sendButtonIcon}>➤</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -800,143 +1049,50 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#374151',
-    margin: 16,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 12,
   },
   searchInput: {
     flex: 1,
     color: '#FFFFFF',
     fontSize: 16,
-    paddingVertical: 12,
-    marginRight: 8,
   },
   searchMenuButton: {
-    padding: 4,
-  },
-  headerButton: {
-    padding: 8,
+    marginLeft: 12,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#111827',
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
+    backgroundColor: '#374151',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: '#F97316',
+    backgroundColor: '#F97316',
   },
   tabText: {
+    fontSize: 12,
     color: '#9CA3AF',
-    fontSize: 14,
-    fontWeight: '600',
+    marginTop: 4,
   },
   activeTabText: {
-    color: '#F97316',
+    color: '#FFFFFF',
   },
   content: {
     flex: 1,
-  },
-  adminItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
-  },
-  avatarContainer: {
-    marginRight: 12,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  adminInfo: {
-    flex: 1,
-  },
-  adminName: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  adminRole: {
-    color: '#9CA3AF',
-    fontSize: 14,
-    marginTop: 2,
-  },
-  adminCompany: {
-    color: '#9CA3AF',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  chatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
-  },
-  chatInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  chatName: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  chatTime: {
-    color: '#9CA3AF',
-    fontSize: 12,
-  },
-  lastMessage: {
-    color: '#9CA3AF',
-    fontSize: 14,
-  },
-  unreadBadge: {
-    backgroundColor: '#F97316',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  unreadText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   emptyContainer: {
     flex: 1,
@@ -945,21 +1101,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyTitle: {
-    color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
-    color: '#9CA3AF',
     fontSize: 14,
+    color: '#9CA3AF',
     textAlign: 'center',
+    lineHeight: 20,
   },
   chatHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#374151',
   },
@@ -971,32 +1129,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  chatHeaderName: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 12,
-  },
-  chatHeaderStatus: {
-    color: '#9CA3AF',
-    fontSize: 12,
-    marginLeft: 12,
-  },
-  chatContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
   chatAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     marginRight: 12,
   },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  chatHeaderName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  chatHeaderStatus: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  headerButton: {
+    padding: 8,
+  },
   chatMessagesContainer: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
   },
   emptyChatContainer: {
     flex: 1,
@@ -1006,63 +1172,104 @@ const styles = StyleSheet.create({
   emptyChatText: {
     color: '#9CA3AF',
     fontSize: 16,
-    textAlign: 'center',
   },
   messageContainer: {
     marginVertical: 4,
     maxWidth: '80%',
-    padding: 12,
-    borderRadius: 16,
   },
   ownMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#F97316',
   },
   otherMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#374151',
   },
   messageText: {
-    fontSize: 16,
-    lineHeight: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    fontSize: 14,
   },
   ownMessageText: {
+    backgroundColor: '#F97316',
     color: '#FFFFFF',
   },
   otherMessageText: {
+    backgroundColor: '#374151',
     color: '#FFFFFF',
   },
   messageTime: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#9CA3AF',
     marginTop: 4,
-    alignSelf: 'flex-end',
+    textAlign: 'right',
+  },
+  mediaMessageContainer: {
+    backgroundColor: '#374151',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  mediaContentContainer: {
+    position: 'relative',
+  },
+  mediaImage: {
+    width: '100%',
+    height: 200,
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  videoIcon: {
+    fontSize: 48,
+  },
+  mediaIconContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  mediaIcon: {
+    fontSize: 48,
+  },
+  mediaTextContainer: {
+    padding: 12,
   },
   messageInputContainer: {
     flexDirection: 'row',
-    padding: 16,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#374151',
-    backgroundColor: '#111827',
+  },
+  mediaButton: {
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: '#374151',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   messageInput: {
     flex: 1,
     backgroundColor: '#374151',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     color: '#FFFFFF',
-    fontSize: 16,
-    marginRight: 12,
+    fontSize: 14,
     maxHeight: 100,
   },
   sendButton: {
     backgroundColor: '#F97316',
     borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginLeft: 8,
   },
   sendButtonDisabled: {
     backgroundColor: '#6B7280',
@@ -1072,111 +1279,115 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  mediaMessageContainer: {
+  cameraEditorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000000',
+    zIndex: 1000,
+  },
+  cameraEditorToolbar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingVertical: 10,
+    backgroundColor: '#111827',
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
   },
-  mediaIconContainer: {
-    marginRight: 8,
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  toolbarButton: {
+    padding: 10,
   },
-  mediaIcon: {
-    fontSize: 20,
-  },
-  mediaTextContainer: {
-    flex: 1,
-  },
-  mediaContentContainer: {
-    position: 'relative',
-    marginRight: 8,
-  },
-  mediaImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 12,
-  },
-  videoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  videoIcon: {
+  toolbarIcon: {
     fontSize: 24,
+    color: '#FFFFFF',
   },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  cameraEditorPreview: {
+    width: '100%',
+    height: '60%',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 9999,
-    elevation: 9999,
+    backgroundColor: '#000',
+    borderRadius: 12,
+    marginBottom: 20,
   },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    width: '85%',
-    maxWidth: 350,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+  cameraEditorImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
   },
-  modalHeader: {
+  cameraEditorBottom: {
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#111827',
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
+  },
+  filterButton: {
+    backgroundColor: '#F97316',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  filterText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  filterButtonActive: {
+    backgroundColor: '#F97316',
+  },
+  captionContainer: {
+    backgroundColor: '#374151',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  captionInput: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  sendInfoContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  modalClose: {
-    fontSize: 24,
+  sendInfoText: {
     color: '#9CA3AF',
-    fontWeight: 'bold',
+    fontSize: 12,
   },
-  modalOptions: {
-    gap: 16,
-  },
-  modalOption: {
-    flexDirection: 'row',
+  sendButton: {
+    backgroundColor: '#F97316',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
-  optionIcon: {
+  sendButtonIcon: {
     fontSize: 24,
-    marginRight: 12,
+    color: '#FFFFFF',
   },
-  optionText: {
+  videoPreviewContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  videoPreviewIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  videoPreviewText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
   },
-
+  toolbarButtonActive: {
+    backgroundColor: '#F97316',
+  },
 });
