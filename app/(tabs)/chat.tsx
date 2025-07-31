@@ -46,6 +46,29 @@ interface Message {
   isPhoto?: boolean;
   mediaType?: 'photo' | 'video' | 'gallery';
   uri?: string;
+  edits?: {
+    filter: string | null;
+    texts: Array<{
+      id: string;
+      text: string;
+      x: number;
+      y: number;
+      color: string;
+      size: number;
+    }>;
+    emojis: Array<{
+      id: string;
+      emoji: string;
+      x: number;
+      y: number;
+    }>;
+    stickers: Array<{
+      id: string;
+      sticker: string;
+      x: number;
+      y: number;
+    }>;
+  };
 }
 
 export default function ChatScreen() {
@@ -142,6 +165,101 @@ export default function ChatScreen() {
 
   const handleSelectAdmin = (admin: Admin) => {
     setSelectedChat({ userId: admin.id, userName: admin.name });
+  };
+
+  const getFilterStyle = (filterName: string | null) => {
+    if (!filterName || filterName === 'Normal') return {};
+    
+    switch (filterName) {
+      case 'Vintage':
+        return { 
+          backgroundColor: 'rgba(244, 164, 96, 0.3)',
+          opacity: 0.9
+        };
+      case 'B&W':
+        return { 
+          backgroundColor: 'rgba(128, 128, 128, 0.5)',
+          opacity: 0.8
+        };
+      case 'Sepia':
+        return { 
+          backgroundColor: 'rgba(222, 184, 135, 0.4)',
+          opacity: 0.9
+        };
+      case 'Vivid':
+        return { 
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          opacity: 1
+        };
+      case 'Cool':
+        return { 
+          backgroundColor: 'rgba(135, 206, 235, 0.3)',
+          opacity: 0.9
+        };
+      default:
+        return {};
+    }
+  };
+
+  const renderEditOverlays = (edits: any) => {
+    if (!edits) return null;
+
+    return (
+      <View style={styles.editOverlaysContainer}>
+        {/* Renderizar textos */}
+        {edits.texts?.map((textItem: any) => (
+          <Text
+            key={textItem.id}
+            style={[
+              styles.overlayText,
+              {
+                position: 'absolute',
+                left: textItem.x,
+                top: textItem.y,
+                color: textItem.color,
+                fontSize: textItem.size,
+              }
+            ]}
+          >
+            {textItem.text}
+          </Text>
+        ))}
+        
+        {/* Renderizar emojis */}
+        {edits.emojis?.map((emojiItem: any) => (
+          <Text
+            key={emojiItem.id}
+            style={[
+              styles.overlayEmoji,
+              {
+                position: 'absolute',
+                left: emojiItem.x,
+                top: emojiItem.y,
+              }
+            ]}
+          >
+            {emojiItem.emoji}
+          </Text>
+        ))}
+        
+        {/* Renderizar stickers */}
+        {edits.stickers?.map((stickerItem: any) => (
+          <Text
+            key={stickerItem.id}
+            style={[
+              styles.overlaySticker,
+              {
+                position: 'absolute',
+                left: stickerItem.x,
+                top: stickerItem.y,
+              }
+            ]}
+          >
+            {stickerItem.sticker}
+          </Text>
+        ))}
+      </View>
+    );
   };
 
   const sendMessage = () => {
@@ -379,18 +497,44 @@ export default function ChatScreen() {
     setShowCameraScreen(false);
   };
 
-  const handleCameraCapture = (photoUri: string, caption?: string) => {
-    // Criar mensagem diretamente com a foto e legenda
-    const mediaMessage: Message = {
-      id: Date.now().toString(),
-      text: caption || '📷 Foto enviada',
-      sender: currentUser?.id,
-      timestamp: new Date().toISOString(),
-      isOwn: true,
-      isPhoto: true,
-      mediaType: 'photo',
-      uri: photoUri
-    };
+  const handleCameraCapture = (media: string | { uri: string; type: string; edits: any }, caption?: string) => {
+    let mediaMessage: Message;
+    
+    if (typeof media === 'string') {
+      // Formato antigo - apenas URI da foto
+      mediaMessage = {
+        id: Date.now().toString(),
+        text: caption || '📷 Foto enviada',
+        sender: currentUser?.id,
+        timestamp: new Date().toISOString(),
+        isOwn: true,
+        isPhoto: true,
+        mediaType: 'photo',
+        uri: media
+      };
+    } else {
+      // Novo formato - mídia com edições
+      const hasEdits = media.edits && (
+        media.edits.filter || 
+        media.edits.texts.length > 0 || 
+        media.edits.emojis.length > 0 || 
+        media.edits.stickers.length > 0
+      );
+      
+      const editInfo = hasEdits ? ' (editada)' : '';
+      
+      mediaMessage = {
+        id: Date.now().toString(),
+        text: caption || `📷 Foto enviada${editInfo}`,
+        sender: currentUser?.id,
+        timestamp: new Date().toISOString(),
+        isOwn: true,
+        isPhoto: true,
+        mediaType: media.type,
+        uri: media.uri,
+        edits: media.edits // Armazenar as edições para renderização posterior
+      };
+    }
 
     setMessages([...messages, mediaMessage]);
     setShowCameraScreen(false);
@@ -736,16 +880,47 @@ export default function ChatScreen() {
                     <View style={styles.mediaMessageContainer}>
                       {item.uri ? (
                         <View style={styles.mediaContentContainer}>
-                          <Image
-                            source={{ uri: item.uri }}
-                            style={styles.mediaImage}
-                            resizeMode="cover"
-                          />
+                          <View style={[
+                            styles.imageWrapper,
+                            item.edits?.crop && {
+                              width: Math.min(item.edits.crop.width, 250),
+                              height: Math.min(item.edits.crop.height, 250),
+                              overflow: 'hidden'
+                            }
+                          ]}>
+                            <Image
+                              source={{ uri: item.uri }}
+                              style={[
+                                styles.mediaImage,
+                                {
+                                  transform: [
+                                    { rotate: `${item.edits?.rotation || 0}deg` },
+                                    ...(item.edits?.crop ? [
+                                      { translateX: -item.edits.crop.x },
+                                      { translateY: -item.edits.crop.y }
+                                    ] : [])
+                                  ]
+                                }
+                              ]}
+                              resizeMode="cover"
+                            />
+                            {/* Overlay do filtro */}
+                            {item.edits?.filter && item.edits.filter !== 'Normal' && (
+                              <View 
+                                style={[
+                                  styles.filterOverlay,
+                                  getFilterStyle(item.edits.filter)
+                                ]} 
+                              />
+                            )}
+                          </View>
                           {item.mediaType === 'video' && (
                             <View style={styles.videoOverlay}>
                               <Text style={styles.videoIcon}>▶️</Text>
                             </View>
                           )}
+                          {/* Renderizar edições como overlays */}
+                          {renderEditOverlays(item.edits)}
                         </View>
                       ) : (
                         <View style={styles.mediaIconContainer}>
@@ -1217,6 +1392,10 @@ const styles = StyleSheet.create({
   mediaContentContainer: {
     position: 'relative',
   },
+  imageWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   mediaImage: {
     width: '100%',
     height: 200,
@@ -1396,5 +1575,32 @@ const styles = StyleSheet.create({
   },
   toolbarButtonActive: {
     backgroundColor: '#F97316',
+  },
+  editOverlaysContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  overlayText: {
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  overlayEmoji: {
+    fontSize: 32,
+  },
+  overlaySticker: {
+    fontSize: 40,
+  },
+  filterOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 10,
   },
 });

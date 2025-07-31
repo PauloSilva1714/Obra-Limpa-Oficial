@@ -10,9 +10,11 @@ import {
   StatusBar,
   Image,
   TextInput,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { X, RotateCcw, Image as ImageIcon, Zap, ZapOff, Video, Mic, Send, Type, Smile, Filter } from 'lucide-react-native';
+import { X, RotateCcw, Image as ImageIcon, Zap, ZapOff, Video, Mic, Send, Type, Smile, Filter, RotateCw, Crop } from 'lucide-react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../contexts/ThemeContext';
@@ -21,11 +23,125 @@ const { width, height } = Dimensions.get('window');
 
 type CameraMode = 'photo' | 'video' | 'voice-video';
 
+interface DraggableElementProps {
+  children: React.ReactNode;
+  initialX: number;
+  initialY: number;
+  onPositionChange: (x: number, y: number) => void;
+  style?: any;
+  isCropHandle?: boolean; // Nova prop para identificar handles de corte
+}
+
+const DraggableElement: React.FC<DraggableElementProps> = ({ 
+  children, 
+  initialX, 
+  initialY, 
+  onPositionChange, 
+  style,
+  isCropHandle = false
+}) => {
+  const pan = useRef(new Animated.ValueXY()).current;
+  const [currentPosition, setCurrentPosition] = useState({ x: initialX, y: initialY });
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Atualizar posição quando initialX ou initialY mudarem
+  useEffect(() => {
+    setCurrentPosition({ x: initialX, y: initialY });
+    pan.setValue({ x: 0, y: 0 });
+  }, [initialX, initialY]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt, gestureState) => {
+        // Para handles de corte, sempre responder ao toque inicial
+        if (isCropHandle) {
+          console.log('Handle tocado - isCropHandle:', isCropHandle);
+          return true;
+        }
+        return false;
+      },
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Para handles de corte, ser extremamente sensível
+        if (isCropHandle) {
+          return Math.abs(gestureState.dx) > 0.1 || Math.abs(gestureState.dy) > 0.1;
+        }
+        return Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3;
+      },
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
+        if (isCropHandle) {
+          return Math.abs(gestureState.dx) > 0.1 || Math.abs(gestureState.dy) > 0.1;
+        }
+        return Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3;
+      },
+      onPanResponderGrant: (evt, gestureState) => {
+        console.log('PanResponder Grant - isCropHandle:', isCropHandle);
+        setIsDragging(true);
+        pan.setOffset({
+          x: currentPosition.x,
+          y: currentPosition.y,
+        });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (evt, gestureState) => {
+        setIsDragging(false);
+        pan.flattenOffset();
+        
+        if (isCropHandle) {
+          // Para handles de corte, não limitar movimento e passar delta diretamente
+          setCurrentPosition(prev => ({
+            x: prev.x + gestureState.dx,
+            y: prev.y + gestureState.dy
+          }));
+          onPositionChange(gestureState.dx, gestureState.dy);
+        } else {
+          // Para outros elementos, manter limitação
+          const newX = Math.max(0, Math.min(width - 50, currentPosition.x + gestureState.dx));
+          const newY = Math.max(0, Math.min(height - 100, currentPosition.y + gestureState.dy));
+          setCurrentPosition({ x: newX, y: newY });
+          onPositionChange(newX, newY);
+        }
+        
+        pan.setValue({ x: 0, y: 0 });
+      },
+    })
+  ).current;
+
+  return (
+    <Animated.View
+      style={[
+        style,
+        {
+          position: 'absolute',
+          left: currentPosition.x,
+          top: currentPosition.y,
+          transform: pan.getTranslateTransform(),
+          zIndex: isDragging ? 1000 : 100,
+          opacity: isDragging ? 0.9 : 1,
+          // Adicionar escala quando arrastando para feedback visual
+          ...(isDragging && isCropHandle ? { 
+            transform: [
+              ...pan.getTranslateTransform(),
+              { scale: 1.2 } // Aumentar ligeiramente quando arrastando
+            ] 
+          } : {}),
+        },
+      ]}
+      {...panResponder.panHandlers}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
 interface CameraScreenProps {
   visible: boolean;
   onClose: () => void;
-  onPhotoTaken: (photoUri: string, caption?: string) => void;
-  onVideoTaken?: (videoUri: string) => void;
+  onPhotoTaken: (media: string | { uri: string; type: string; edits: any }, caption?: string) => void;
+  onVideoTaken: (videoUri: string) => void;
 }
 
 export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTaken }: CameraScreenProps) {
@@ -45,6 +161,30 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   const [showTextEditor, setShowTextEditor] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
+  const [isCropping, setIsCropping] = useState(false);
+  const [cropArea, setCropArea] = useState({ 
+    x: width * 0.1, 
+    y: height * 0.15, 
+    width: width * 0.8, 
+    height: height * 0.5 
+  });
+  const [appliedEdits, setAppliedEdits] = useState<{
+    filter: string | null;
+    emojis: Array<{id: string, emoji: string, x: number, y: number}>;
+    stickers: Array<{id: string, sticker: string, x: number, y: number}>;
+    texts: Array<{id: string, text: string, x: number, y: number, color: string, size: number}>;
+    rotation: number;
+    crop: {x: number, y: number, width: number, height: number} | null;
+  }>({
+    filter: null,
+    emojis: [],
+    stickers: [],
+    texts: [],
+    rotation: 0,
+    crop: null
+  });
+  const [currentText, setCurrentText] = useState('');
+  const [textColor, setTextColor] = useState('#FFFFFF');
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
@@ -79,7 +219,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: isHDMode ? 1.0 : 0.8, // HD mode usa qualidade máxima
         base64: false,
       });
 
@@ -105,7 +245,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     try {
       setIsRecording(true);
       const video = await cameraRef.current.recordAsync({
-        quality: '720p',
+        quality: isHDMode ? '1080p' : '720p', // HD mode usa resolução maior
         maxDuration: mode === 'voice-video' ? 30 : 60, // 30s para recado, 60s para vídeo normal
       });
 
@@ -152,9 +292,16 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
   const sendPhoto = () => {
     if (capturedPhoto) {
-      // Passa a foto e a legenda para o componente pai
-      onPhotoTaken(capturedPhoto, caption);
-      // Limpa os estados e fecha a tela
+      // Criar um objeto com a mídia e as edições aplicadas
+      const editedMedia = {
+        uri: capturedPhoto,
+        type: 'photo',
+        edits: appliedEdits
+      };
+      
+      onPhotoTaken(editedMedia, caption);
+      
+      // Reset dos estados
       setCapturedPhoto(null);
       setCaption('');
       setIsEditing(false);
@@ -164,6 +311,16 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       setShowEmojiPicker(false);
       setShowStickers(false);
       setIsHDMode(false);
+      setAppliedEdits({
+        filter: null,
+        emojis: [],
+        stickers: [],
+        texts: [],
+        rotation: 0,
+        crop: null
+      });
+      setCurrentText('');
+      setTextColor('#FFFFFF');
       handleClose();
     }
   };
@@ -192,8 +349,93 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     setShowStickers(false);
   };
 
+  const rotateImage = () => {
+    setAppliedEdits(prev => ({
+      ...prev,
+      rotation: (prev.rotation + 90) % 360
+    }));
+  };
+
+  const cropImage = () => {
+    if (isCropping) {
+      // Aplicar o corte
+      setAppliedEdits(prev => ({
+        ...prev,
+        crop: cropArea
+      }));
+      setIsCropping(false);
+    } else {
+      // Entrar no modo de corte e resetar área com dimensões responsivas
+      setCropArea({ 
+        x: width * 0.1, 
+        y: height * 0.15, 
+        width: width * 0.8, 
+        height: height * 0.5 
+      });
+      setIsCropping(true);
+      setShowFilters(false);
+      setShowTextEditor(false);
+      setShowEmojiPicker(false);
+      setShowStickers(false);
+    }
+  };
+
+  const cancelCrop = () => {
+    setIsCropping(false);
+    // Resetar área de corte para o padrão responsivo
+    setCropArea({ 
+      x: width * 0.1, 
+      y: height * 0.15, 
+      width: width * 0.8, 
+      height: height * 0.5 
+    });
+  };
+
+  const applyCrop = () => {
+    // Aplicar o corte
+    setAppliedEdits(prev => ({
+      ...prev,
+      crop: cropArea
+    }));
+    setIsCropping(false);
+  };
+
+  const getFilterStyle = (filterName: string) => {
+    switch (filterName) {
+      case 'Vintage':
+        return { 
+          backgroundColor: 'rgba(244, 164, 96, 0.3)',
+          opacity: 0.9
+        };
+      case 'B&W':
+        return { 
+          backgroundColor: 'rgba(128, 128, 128, 0.5)',
+          opacity: 0.8
+        };
+      case 'Sepia':
+        return { 
+          backgroundColor: 'rgba(222, 184, 135, 0.4)',
+          opacity: 0.9
+        };
+      case 'Vivid':
+        return { 
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          opacity: 1
+        };
+      case 'Cool':
+        return { 
+          backgroundColor: 'rgba(135, 206, 235, 0.3)',
+          opacity: 0.9
+        };
+      default:
+        return {};
+    }
+  };
+
   const selectFilter = (filterName: string) => {
-    setSelectedFilter(selectedFilter === filterName ? null : filterName);
+    const newFilter = selectedFilter === filterName ? null : filterName;
+    setSelectedFilter(newFilter);
+    setAppliedEdits(prev => ({ ...prev, filter: newFilter }));
   };
 
   const toggleTextEditor = () => {
@@ -204,9 +446,31 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   };
 
   const addText = () => {
-    // Aqui você pode implementar a lógica real de adicionar texto à imagem
-    // Por enquanto, apenas fecha o painel
-    setShowTextEditor(false);
+    if (currentText.trim()) {
+      const newText = {
+        id: Date.now().toString(),
+        text: currentText,
+        x: width / 2 - 50, // Posição central
+        y: height / 2 - 100,
+        color: textColor,
+        size: 24
+      };
+      setAppliedEdits(prev => ({
+        ...prev,
+        texts: [...prev.texts, newText]
+      }));
+      setCurrentText('');
+      setShowTextEditor(false);
+    }
+  };
+
+  const updateTextPosition = (textId: string, x: number, y: number) => {
+    setAppliedEdits(prev => ({
+      ...prev,
+      texts: prev.texts.map(text => 
+        text.id === textId ? { ...text, x, y } : text
+      )
+    }));
   };
 
   const toggleEmojiPicker = () => {
@@ -217,9 +481,25 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   };
 
   const addEmoji = (emoji: string) => {
-    // Aqui você pode implementar a lógica real de adicionar emoji à imagem
-    // Por enquanto, apenas fecha o painel
-    setShowEmojiPicker(false);
+    const newEmoji = {
+      id: Date.now().toString(),
+      emoji: emoji,
+      x: width / 2 - 20, // Posição central
+      y: height / 2 - 100
+    };
+    setAppliedEdits(prev => ({
+      ...prev,
+      emojis: [...prev.emojis, newEmoji]
+    }));
+  };
+
+  const updateEmojiPosition = (emojiId: string, x: number, y: number) => {
+    setAppliedEdits(prev => ({
+      ...prev,
+      emojis: prev.emojis.map(emoji => 
+        emoji.id === emojiId ? { ...emoji, x, y } : emoji
+      )
+    }));
   };
 
   const toggleStickers = () => {
@@ -230,9 +510,25 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   };
 
   const addSticker = (sticker: string) => {
-    // Aqui você pode implementar a lógica real de adicionar sticker à imagem
-    // Por enquanto, apenas fecha o painel
-    setShowStickers(false);
+    const newSticker = {
+      id: Date.now().toString(),
+      sticker: sticker,
+      x: width / 2 - 25, // Posição central
+      y: height / 2 - 100
+    };
+    setAppliedEdits(prev => ({
+      ...prev,
+      stickers: [...prev.stickers, newSticker]
+    }));
+  };
+
+  const updateStickerPosition = (stickerId: string, x: number, y: number) => {
+    setAppliedEdits(prev => ({
+      ...prev,
+      stickers: prev.stickers.map(sticker => 
+        sticker.id === stickerId ? { ...sticker, x, y } : sticker
+      )
+    }));
   };
 
   const openGallery = async () => {
@@ -304,9 +600,22 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                 <X size={24} color="white" />
               </TouchableOpacity>
               
+              {/* Indicador do modo de corte */}
+              {isCropping && (
+                <View style={styles.cropModeIndicator}>
+                  <Text style={styles.cropModeText}>Modo Corte</Text>
+                </View>
+              )}
+              
               <View style={styles.editHeaderControls}>
                <TouchableOpacity onPress={toggleHDMode} style={[styles.headerButton, isHDMode && styles.activeButton]}>
                  <Text style={[styles.hdText, isHDMode && styles.activeText]}>HD</Text>
+               </TouchableOpacity>
+               <TouchableOpacity onPress={rotateImage} style={styles.headerButton}>
+                 <RotateCw size={24} color="white" />
+               </TouchableOpacity>
+               <TouchableOpacity onPress={cropImage} style={[styles.headerButton, isCropping && styles.activeButton]}>
+                 <Crop size={24} color={isCropping ? "#007AFF" : "white"} />
                </TouchableOpacity>
                <TouchableOpacity onPress={toggleCameraFacing} style={styles.headerButton}>
                  <RotateCcw size={24} color="white" />
@@ -326,9 +635,264 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
              </View>
             </View>
 
-            {/* Imagem capturada */}
+            {/* Imagem capturada com overlays de edição */}
             <View style={styles.imageContainer}>
-              <Image source={{ uri: capturedPhoto }} style={styles.capturedImage} />
+              <View style={[
+                styles.imageWrapper,
+                appliedEdits.crop && {
+                  width: appliedEdits.crop.width,
+                  height: appliedEdits.crop.height,
+                  overflow: 'hidden'
+                }
+              ]}>
+                <Image 
+                  source={{ uri: capturedPhoto }} 
+                  style={[
+                    styles.capturedImage,
+                    {
+                      transform: [
+                        { rotate: `${appliedEdits.rotation}deg` },
+                        ...(appliedEdits.crop ? [
+                          { translateX: -appliedEdits.crop.x },
+                          { translateY: -appliedEdits.crop.y }
+                        ] : [])
+                      ]
+                    }
+                  ]} 
+                />
+                {/* Overlay do filtro */}
+                {appliedEdits.filter && appliedEdits.filter !== 'Normal' && (
+                  <View 
+                    style={[
+                      styles.filterOverlay,
+                      getFilterStyle(appliedEdits.filter)
+                    ]} 
+                  />
+                )}
+              </View>
+              
+              {/* Overlay para textos */}
+              {appliedEdits.texts.map((textItem) => (
+                <DraggableElement
+                  key={textItem.id}
+                  initialX={textItem.x}
+                  initialY={textItem.y}
+                  onPositionChange={(x, y) => updateTextPosition(textItem.id, x, y)}
+                  style={styles.draggableElement}
+                >
+                  <Text
+                    style={[
+                      styles.overlayText,
+                      {
+                        color: textItem.color,
+                        fontSize: textItem.size,
+                      }
+                    ]}
+                  >
+                    {textItem.text}
+                  </Text>
+                </DraggableElement>
+              ))}
+              
+              {/* Overlay para emojis */}
+              {appliedEdits.emojis.map((emojiItem) => (
+                <DraggableElement
+                  key={emojiItem.id}
+                  initialX={emojiItem.x}
+                  initialY={emojiItem.y}
+                  onPositionChange={(x, y) => updateEmojiPosition(emojiItem.id, x, y)}
+                  style={styles.draggableElement}
+                >
+                  <Text style={styles.overlayEmoji}>
+                    {emojiItem.emoji}
+                  </Text>
+                </DraggableElement>
+              ))}
+              
+              {/* Overlay para stickers */}
+              {appliedEdits.stickers.map((stickerItem) => (
+                <DraggableElement
+                  key={stickerItem.id}
+                  initialX={stickerItem.x}
+                  initialY={stickerItem.y}
+                  onPositionChange={(x, y) => updateStickerPosition(stickerItem.id, x, y)}
+                  style={styles.draggableElement}
+                >
+                  <Text style={styles.overlaySticker}>
+                    {stickerItem.sticker}
+                  </Text>
+                </DraggableElement>
+              ))}
+              
+              {/* Interface de corte livre - estilo WhatsApp */}
+              {isCropping && (
+                <View style={styles.cropOverlay} pointerEvents="box-none">
+                  {/* Máscara escura com recorte transparente */}
+                  <View style={styles.cropMask} pointerEvents="none">
+                    {/* Área superior */}
+                    <View style={[styles.cropMaskArea, { height: cropArea.y }]} />
+                    
+                    {/* Linha do meio com laterais escuras */}
+                    <View style={[styles.cropMaskRow, { height: cropArea.height, top: cropArea.y }]}>
+                      <View style={[styles.cropMaskArea, { width: cropArea.x }]} />
+                      <View style={{ width: cropArea.width, height: cropArea.height }} />
+                      <View style={[styles.cropMaskArea, { flex: 1 }]} />
+                    </View>
+                    
+                    {/* Área inferior */}
+                    <View style={[styles.cropMaskArea, { flex: 1 }]} />
+                  </View>
+                  
+                  {/* Grid de linhas estilo WhatsApp */}
+                  <View 
+                    style={[
+                      styles.cropGrid,
+                      {
+                        left: cropArea.x,
+                        top: cropArea.y,
+                        width: cropArea.width,
+                        height: cropArea.height,
+                      }
+                    ]}
+                    pointerEvents="none"
+                  >
+                    {/* Linhas verticais */}
+                    <View style={[styles.cropGridLine, { left: cropArea.width / 3, height: cropArea.height }]} />
+                    <View style={[styles.cropGridLine, { left: (cropArea.width * 2) / 3, height: cropArea.height }]} />
+                    
+                    {/* Linhas horizontais */}
+                    <View style={[styles.cropGridLine, { top: cropArea.height / 3, width: cropArea.width, height: 1 }]} />
+                    <View style={[styles.cropGridLine, { top: (cropArea.height * 2) / 3, width: cropArea.width, height: 1 }]} />
+                    
+                    {/* Bordas da área de corte */}
+                    <View style={styles.cropBorder} />
+                  </View>
+                  
+                  {/* Handles dos cantos - maiores para mobile */}
+                  <View 
+                    style={[
+                      styles.cropHandlesContainer,
+                      {
+                        left: cropArea.x,
+                        top: cropArea.y,
+                        width: cropArea.width,
+                        height: cropArea.height,
+                      }
+                    ]}
+                    pointerEvents="box-none"
+                  >
+                    {/* Handle canto superior esquerdo */}
+                    <DraggableElement
+                      initialX={0}
+                      initialY={0}
+                      isCropHandle={true}
+                      onPositionChange={(x, y) => {
+                        const newX = Math.max(0, cropArea.x + x);
+                        const newY = Math.max(0, cropArea.y + y);
+                        const newWidth = Math.max(100, cropArea.width - x);
+                        const newHeight = Math.max(100, cropArea.height - y);
+                        setCropArea({
+                          x: newX,
+                          y: newY,
+                          width: newWidth,
+                          height: newHeight
+                        });
+                      }}
+                      style={[styles.cropCornerHandle, styles.cropTopLeft]}
+                    >
+                      <View style={styles.cropCornerIndicator} />
+                    </DraggableElement>
+                    
+                    {/* Handle canto superior direito */}
+                    <DraggableElement
+                      initialX={0}
+                      initialY={0}
+                      isCropHandle={true}
+                      onPositionChange={(x, y) => {
+                        const newY = Math.max(0, cropArea.y + y);
+                        const newWidth = Math.max(100, cropArea.width + x);
+                        const newHeight = Math.max(100, cropArea.height - y);
+                        setCropArea(prev => ({
+                          ...prev,
+                          y: newY,
+                          width: newWidth,
+                          height: newHeight
+                        }));
+                      }}
+                      style={[styles.cropCornerHandle, styles.cropTopRight]}
+                    >
+                      <View style={styles.cropCornerIndicator} />
+                    </DraggableElement>
+                    
+                    {/* Handle canto inferior esquerdo */}
+                    <DraggableElement
+                      initialX={0}
+                      initialY={0}
+                      isCropHandle={true}
+                      onPositionChange={(x, y) => {
+                        const newX = Math.max(0, cropArea.x + x);
+                        const newWidth = Math.max(100, cropArea.width - x);
+                        const newHeight = Math.max(100, cropArea.height + y);
+                        setCropArea(prev => ({
+                          x: newX,
+                          width: newWidth,
+                          height: newHeight,
+                          y: prev.y
+                        }));
+                      }}
+                      style={[styles.cropCornerHandle, styles.cropBottomLeft]}
+                    >
+                      <View style={styles.cropCornerIndicator} />
+                    </DraggableElement>
+                    
+                    {/* Handle canto inferior direito */}
+                    <DraggableElement
+                      initialX={0}
+                      initialY={0}
+                      isCropHandle={true}
+                      onPositionChange={(x, y) => {
+                        const newWidth = Math.max(100, cropArea.width + x);
+                        const newHeight = Math.max(100, cropArea.height + y);
+                        setCropArea(prev => ({
+                          ...prev,
+                          width: newWidth,
+                          height: newHeight
+                        }));
+                      }}
+                      style={[styles.cropCornerHandle, styles.cropBottomRight]}
+                    >
+                      <View style={styles.cropCornerIndicator} />
+                    </DraggableElement>
+                  </View>
+                  
+                  {/* Área central para mover */}
+                  <DraggableElement
+                    initialX={0}
+                    initialY={0}
+                    isCropHandle={true}
+                    onPositionChange={(x, y) => {
+                      const maxX = width - cropArea.width - 20;
+                      const maxY = height - cropArea.height - 200; // Espaço para controles
+                      setCropArea(prev => ({
+                        ...prev,
+                        x: Math.max(10, Math.min(maxX, prev.x + x)),
+                        y: Math.max(50, Math.min(maxY, prev.y + y))
+                      }));
+                    }}
+                    style={[
+                      styles.cropMoveArea,
+                      {
+                        left: cropArea.x + 20,
+                        top: cropArea.y + 20,
+                        width: cropArea.width - 40,
+                        height: cropArea.height - 40,
+                      }
+                    ]}
+                  >
+                    <View />
+                  </DraggableElement>
+                </View>
+              )}
             </View>
 
             {/* Botão Filtros */}
@@ -384,14 +948,30 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
              {showTextEditor && (
                <View style={styles.toolPanel}>
                  <Text style={styles.toolPanelTitle}>Adicionar Texto</Text>
-                 <View style={styles.textEditorOptions}>
-                   <TouchableOpacity onPress={addText} style={styles.textOption}>
-                     <Type size={20} color="white" />
-                     <Text style={styles.textOptionLabel}>Texto Simples</Text>
-                   </TouchableOpacity>
-                   <TouchableOpacity onPress={addText} style={styles.textOption}>
-                     <Text style={styles.textOptionLabel}>Aa</Text>
-                     <Text style={styles.textOptionLabel}>Texto Estilizado</Text>
+                 <View style={styles.textEditorContainer}>
+                   <TextInput
+                     style={styles.textInput}
+                     placeholder="Digite seu texto..."
+                     placeholderTextColor="#9CA3AF"
+                     value={currentText}
+                     onChangeText={setCurrentText}
+                     multiline
+                   />
+                   <View style={styles.colorPicker}>
+                     {['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'].map((color) => (
+                       <TouchableOpacity
+                         key={color}
+                         onPress={() => setTextColor(color)}
+                         style={[
+                           styles.colorOption,
+                           { backgroundColor: color },
+                           textColor === color && styles.selectedColorOption
+                         ]}
+                       />
+                     ))}
+                   </View>
+                   <TouchableOpacity onPress={addText} style={styles.addTextButton}>
+                     <Text style={styles.addTextButtonText}>Adicionar Texto</Text>
                    </TouchableOpacity>
                  </View>
                </View>
@@ -428,11 +1008,36 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
             </View>
 
             {/* Footer com envio */}
-            <View style={styles.editFooter}>
-              <Text style={styles.senderText}>Eu (você)</Text>
-              <TouchableOpacity onPress={sendPhoto} style={styles.sendButton}>
-                <Send size={24} color="white" />
-              </TouchableOpacity>
+            <View style={styles.editFooter} pointerEvents="box-none">
+              {isCropping ? (
+                // Botões de controle do corte
+                <View style={styles.cropControlsFooter} pointerEvents="box-none">
+                  <TouchableOpacity 
+                    onPress={cancelCrop} 
+                    style={styles.cropCancelButton}
+                    activeOpacity={0.7}
+                    pointerEvents="auto"
+                  >
+                    <Text style={styles.cropButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={applyCrop} 
+                    style={styles.cropApplyButton}
+                    activeOpacity={0.7}
+                    pointerEvents="auto"
+                  >
+                    <Text style={styles.cropButtonText}>OK</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                // Footer normal
+                <>
+                  <Text style={styles.senderText}>Eu (você)</Text>
+                  <TouchableOpacity onPress={sendPhoto} style={styles.sendButton}>
+                    <Send size={24} color="white" />
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         ) : (
@@ -709,6 +1314,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     zIndex: 2,
   },
+  cropModeIndicator: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    position: 'absolute',
+    left: '50%',
+    transform: [{ translateX: -50 }],
+  },
+  cropModeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   editHeaderControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -725,11 +1344,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 100,
     paddingBottom: 150,
+    backgroundColor: 'transparent',
+  },
+  imageWrapper: {
+    width: 300,
+    height: 400,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   capturedImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
+    width: 300,
+    height: 400,
+    resizeMode: 'cover',
+    borderRadius: 10,
   },
   filtersButton: {
     position: 'absolute',
@@ -772,6 +1400,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 100, // Z-index muito alto para garantir que sempre fique visível
+    elevation: 20, // Para Android
   },
   senderText: {
     color: 'white',
@@ -898,5 +1528,250 @@ const styles = StyleSheet.create({
    },
    stickerText: {
      fontSize: 20,
+   },
+   // Estilos para overlays de edição
+   overlayText: {
+     fontWeight: 'bold',
+     textShadowColor: 'rgba(0, 0, 0, 0.75)',
+     textShadowOffset: { width: 1, height: 1 },
+     textShadowRadius: 2,
+     minWidth: 40,
+     minHeight: 40,
+     textAlign: 'center',
+     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+     borderRadius: 8,
+     paddingHorizontal: 8,
+     paddingVertical: 4,
+   },
+   overlayEmoji: {
+     fontSize: 32,
+     minWidth: 50,
+     minHeight: 50,
+     textAlign: 'center',
+     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+     borderRadius: 25,
+     paddingHorizontal: 8,
+     paddingVertical: 8,
+     borderWidth: 2,
+     borderColor: 'rgba(255, 255, 255, 0.5)',
+   },
+   overlaySticker: {
+     fontSize: 32,
+     minWidth: 50,
+     minHeight: 50,
+     textAlign: 'center',
+     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+     borderRadius: 25,
+     paddingHorizontal: 8,
+     paddingVertical: 8,
+     borderWidth: 2,
+     borderColor: 'rgba(255, 255, 255, 0.5)',
+   },
+   draggableElement: {
+     minWidth: 50,
+     minHeight: 50,
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 2,
+     borderColor: 'rgba(255, 255, 255, 0.4)',
+     borderRadius: 8,
+     backgroundColor: 'rgba(0, 0, 0, 0.2)',
+   },
+   // Estilos para o novo editor de texto
+   textEditorContainer: {
+     gap: 15,
+   },
+   textInput: {
+     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+     color: 'white',
+     padding: 12,
+     borderRadius: 10,
+     fontSize: 16,
+     minHeight: 40,
+     maxHeight: 80,
+   },
+   colorPicker: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     gap: 8,
+   },
+   colorOption: {
+     width: 30,
+     height: 30,
+     borderRadius: 15,
+     borderWidth: 2,
+     borderColor: 'transparent',
+   },
+   selectedColorOption: {
+     borderColor: 'white',
+     borderWidth: 3,
+   },
+   addTextButton: {
+     backgroundColor: '#007AFF',
+     padding: 12,
+     borderRadius: 10,
+     alignItems: 'center',
+   },
+   addTextButtonText: {
+     color: 'white',
+     fontSize: 16,
+     fontWeight: '600',
+   },
+   // Estilo para overlay de filtro
+   filterOverlay: {
+     position: 'absolute',
+     top: 0,
+     left: 0,
+     right: 0,
+     bottom: 0,
+     borderRadius: 10,
+   },
+   // Estilos para corte livre - estilo WhatsApp
+   cropOverlay: {
+     position: 'absolute',
+     top: 0,
+     left: 0,
+     right: 0,
+     bottom: 0,
+     zIndex: 20,
+   },
+   cropMask: {
+     position: 'absolute',
+     top: 0,
+     left: 0,
+     right: 0,
+     bottom: 0,
+     flexDirection: 'column',
+   },
+   cropMaskArea: {
+     backgroundColor: 'rgba(0, 0, 0, 0.6)',
+   },
+   cropMaskRow: {
+     position: 'absolute',
+     left: 0,
+     right: 0,
+     flexDirection: 'row',
+   },
+   cropGrid: {
+     position: 'absolute',
+     zIndex: 21,
+   },
+   cropGridLine: {
+     position: 'absolute',
+     backgroundColor: 'rgba(255, 255, 255, 0.8)',
+     width: 1,
+   },
+   cropBorder: {
+     position: 'absolute',
+     top: 0,
+     left: 0,
+     right: 0,
+     bottom: 0,
+     borderWidth: 2,
+     borderColor: '#FFFFFF',
+     borderStyle: 'solid',
+   },
+   cropHandlesContainer: {
+     position: 'absolute',
+     zIndex: 25,
+   },
+   cropCornerHandle: {
+     position: 'absolute',
+     width: 80, // Aumentado ainda mais para facilitar o toque
+     height: 80, // Aumentado ainda mais para facilitar o toque
+     justifyContent: 'center',
+     alignItems: 'center',
+     zIndex: 30,
+     // Adicionar área de toque maior
+     padding: 15, // Aumentado o padding
+   },
+   cropTopLeft: {
+     top: -40, // Ajustado para o novo tamanho
+     left: -40,
+   },
+   cropTopRight: {
+     top: -40,
+     right: -40,
+   },
+   cropBottomLeft: {
+     bottom: -40,
+     left: -40,
+   },
+   cropBottomRight: {
+     bottom: -40,
+     right: -40,
+   },
+   cropCornerIndicator: {
+     width: 40, // Aumentado para ser mais visível
+     height: 40, // Aumentado para ser mais visível
+     backgroundColor: '#007AFF', // Mudado para azul para maior contraste
+     borderRadius: 6, // Aumentado
+     borderWidth: 4, // Aumentado
+     borderColor: '#FFFFFF', // Borda branca para contraste
+     elevation: 8, // Aumentado
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 3 },
+     shadowOpacity: 0.4,
+     shadowRadius: 6,
+     // Adicionar um ponto central para melhor visualização
+   },
+   cropMoveArea: {
+     position: 'absolute',
+     zIndex: 22,
+     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+     borderWidth: 1,
+     borderColor: 'rgba(255, 255, 255, 0.3)',
+     borderStyle: 'dashed',
+     minHeight: 60, // Altura mínima para facilitar o toque
+     minWidth: 60, // Largura mínima para facilitar o toque
+   },
+   cropControlsFooter: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     alignItems: 'center',
+     width: '100%',
+     paddingHorizontal: 30,
+     paddingVertical: 20, // Aumentado para mais espaço
+     backgroundColor: 'rgba(0, 0, 0, 0.8)', // Fundo mais visível
+     borderTopWidth: 1,
+     borderTopColor: 'rgba(255, 255, 255, 0.2)',
+     zIndex: 50, // Z-index alto para ficar acima de todos os elementos de corte
+     elevation: 10, // Para Android
+   },
+   cropCancelButton: {
+     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+     paddingHorizontal: 40, // Aumentado
+     paddingVertical: 18, // Aumentado
+     borderRadius: 35, // Aumentado
+     borderWidth: 2,
+     borderColor: 'rgba(255, 255, 255, 0.5)',
+     minWidth: 140, // Aumentado
+     minHeight: 56, // Altura mínima para toque
+     elevation: 15, // Elevation alto para Android
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 3 },
+     shadowOpacity: 0.3,
+     shadowRadius: 5,
+     zIndex: 51, // Z-index ainda maior
+   },
+   cropApplyButton: {
+     backgroundColor: '#007AFF',
+     paddingHorizontal: 40, // Aumentado
+     paddingVertical: 18, // Aumentado
+     borderRadius: 35, // Aumentado
+     minWidth: 140, // Aumentado
+     minHeight: 56, // Altura mínima para toque
+     elevation: 15, // Elevation alto para Android
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 3 },
+     shadowOpacity: 0.3,
+     shadowRadius: 5,
+     zIndex: 51, // Z-index ainda maior
+   },
+   cropButtonText: {
+     color: 'white',
+     fontSize: 20, // Aumentado
+     fontWeight: '700',
+     textAlign: 'center',
    },
  });
