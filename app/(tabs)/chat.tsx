@@ -379,14 +379,22 @@ export default function ChatScreen() {
     setShowCameraScreen(false);
   };
 
-  const handleCameraCapture = (photoUri: string) => {
-     setCapturedMedia({
-       uri: photoUri,
-       type: 'photo',
-     });
-     setShowCameraScreen(false);
-     setShowCameraEditor(true);
-   };
+  const handleCameraCapture = (photoUri: string, caption?: string) => {
+    // Criar mensagem diretamente com a foto e legenda
+    const mediaMessage: Message = {
+      id: Date.now().toString(),
+      text: caption || '📷 Foto enviada',
+      sender: currentUser?.id,
+      timestamp: new Date().toISOString(),
+      isOwn: true,
+      isPhoto: true,
+      mediaType: 'photo',
+      uri: photoUri
+    };
+
+    setMessages([...messages, mediaMessage]);
+    setShowCameraScreen(false);
+  };
 
    const sendMediaWithCaption = () => {
     if (!capturedMedia) return;
@@ -702,9 +710,6 @@ export default function ChatScreen() {
               <Text style={styles.chatHeaderStatus}>Online</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.headerButton} onPress={handleCameraPress}>
-            <Camera size={20} color="#F97316" />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={handleMoreOptionsPress}>
             <MoreVertical size={20} color="#F97316" />
           </TouchableOpacity>
@@ -822,6 +827,7 @@ export default function ChatScreen() {
              visible={showCameraScreen}
              onClose={closeCameraScreen}
              onPhotoTaken={handleCameraCapture}
+             onVideoTaken={handleCameraCapture}
            />
          )}
 
@@ -1245,6 +1251,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#374151',
+    marginBottom: 20,
   },
   mediaButton: {
     padding: 8,

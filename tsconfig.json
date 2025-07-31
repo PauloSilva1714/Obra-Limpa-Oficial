@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "esnext",
+    "moduleResolution": "bundler",
     "lib": [
       "es2020",
       "dom",
@@ -25,6 +26,7 @@
     "exactOptionalPropertyTypes": false,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": false,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": [
         "./*"

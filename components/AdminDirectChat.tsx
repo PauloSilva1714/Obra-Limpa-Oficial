@@ -575,6 +575,7 @@ export default function AdminDirectChat({
         visible={showCameraScreen}
         onClose={() => setShowCameraScreen(false)}
         onPhotoTaken={handlePhotoTaken}
+        onVideoRecorded={handlePhotoTaken}
       />
     </KeyboardAvoidingView>
   );
@@ -690,6 +691,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     borderTopWidth: 1,
     padding: 15,
+    marginBottom: 20,
   },
   inputRow: {
     flexDirection: 'row',
