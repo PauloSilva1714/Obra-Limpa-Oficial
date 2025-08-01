@@ -17,6 +17,7 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { X, RotateCcw, Image as ImageIcon, Zap, ZapOff, Video, Mic, Send, Type, Smile, Filter, RotateCw, Crop } from 'lucide-react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
@@ -55,7 +56,6 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
       onStartShouldSetPanResponder: (evt, gestureState) => {
         // Para handles de corte, sempre responder ao toque inicial
         if (isCropHandle) {
-          console.log('Handle tocado - isCropHandle:', isCropHandle);
           return true;
         }
         return false;
@@ -74,7 +74,6 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
         return Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3;
       },
       onPanResponderGrant: (evt, gestureState) => {
-        console.log('PanResponder Grant - isCropHandle:', isCropHandle);
         setIsDragging(true);
         pan.setOffset({
           x: currentPosition.x,
@@ -91,21 +90,17 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
         pan.flattenOffset();
         
         if (isCropHandle) {
-          // Para handles de corte, não limitar movimento e passar delta diretamente
-          setCurrentPosition(prev => ({
-            x: prev.x + gestureState.dx,
-            y: prev.y + gestureState.dy
-          }));
+          // Para handles de corte, passar apenas o delta e NÃO resetar posição
           onPositionChange(gestureState.dx, gestureState.dy);
+          // NÃO resetar pan para handles de crop - deixar eles onde estão
         } else {
           // Para outros elementos, manter limitação
           const newX = Math.max(0, Math.min(width - 50, currentPosition.x + gestureState.dx));
           const newY = Math.max(0, Math.min(height - 100, currentPosition.y + gestureState.dy));
           setCurrentPosition({ x: newX, y: newY });
           onPositionChange(newX, newY);
+          pan.setValue({ x: 0, y: 0 });
         }
-        
-        pan.setValue({ x: 0, y: 0 });
       },
     })
   ).current;
@@ -185,6 +180,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   });
   const [currentText, setCurrentText] = useState('');
   const [textColor, setTextColor] = useState('#FFFFFF');
+  const [croppedPreviewUri, setCroppedPreviewUri] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
@@ -203,6 +199,23 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     setCapturedPhoto(null);
     setCaption('');
     setIsEditing(false);
+    // Limpar prévia de crop e edições aplicadas
+    setCroppedPreviewUri(null);
+    setAppliedEdits({
+      filter: null,
+      emojis: [],
+      stickers: [],
+      texts: [],
+      rotation: 0,
+      crop: null
+    });
+    // Resetar área de corte para o próximo uso
+    setCropArea({ 
+      x: width * 0.1, 
+      y: height * 0.2, 
+      width: width * 0.8, 
+      height: height * 0.4 
+    });
     onClose();
   };
 
@@ -290,38 +303,116 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     }
   };
 
-  const sendPhoto = () => {
+  const sendPhoto = async () => {
     if (capturedPhoto) {
-      // Criar um objeto com a mídia e as edições aplicadas
-      const editedMedia = {
-        uri: capturedPhoto,
-        type: 'photo',
-        edits: appliedEdits
-      };
-      
-      onPhotoTaken(editedMedia, caption);
-      
-      // Reset dos estados
-      setCapturedPhoto(null);
-      setCaption('');
-      setIsEditing(false);
-      setShowFilters(false);
-      setSelectedFilter(null);
-      setShowTextEditor(false);
-      setShowEmojiPicker(false);
-      setShowStickers(false);
-      setIsHDMode(false);
-      setAppliedEdits({
-        filter: null,
-        emojis: [],
-        stickers: [],
-        texts: [],
-        rotation: 0,
-        crop: null
-      });
-      setCurrentText('');
-      setTextColor('#FFFFFF');
-      handleClose();
+      try {
+        let processedImageUri = capturedPhoto;
+        
+        console.log('=== DEBUG CROP ===');
+        console.log('appliedEdits.crop:', appliedEdits.crop);
+        console.log('Dimensões da tela - width:', width, 'height:', height);
+        
+        // Se há crop aplicado, processar a imagem
+        if (appliedEdits.crop) {
+          console.log('Processando crop...');
+          
+          // Obter dimensões da imagem original
+          const imageInfo = await ImageManipulator.manipulateAsync(
+            capturedPhoto,
+            [],
+            { format: ImageManipulator.SaveFormat.JPEG }
+          );
+          
+          const originalWidth = imageInfo.width;
+          const originalHeight = imageInfo.height;
+          
+          console.log('Dimensões da imagem original - width:', originalWidth, 'height:', originalHeight);
+          
+          // Converter coordenadas do crop diretamente da tela para a imagem
+          // Usar proporções simples baseadas nas dimensões da tela vs imagem
+          const scaleX = originalWidth / width;
+          const scaleY = originalHeight / height;
+          
+          console.log('Escalas diretas - scaleX:', scaleX, 'scaleY:', scaleY);
+          
+          // Aplicar as escalas diretamente às coordenadas do crop
+          const cropX = Math.round(appliedEdits.crop.x * scaleX);
+          const cropY = Math.round(appliedEdits.crop.y * scaleY);
+          const cropWidth = Math.round(appliedEdits.crop.width * scaleX);
+          const cropHeight = Math.round(appliedEdits.crop.height * scaleY);
+          
+          // Garantir que as coordenadas estão dentro dos limites da imagem
+          const finalCropX = Math.max(0, Math.min(cropX, originalWidth - 1));
+          const finalCropY = Math.max(0, Math.min(cropY, originalHeight - 1));
+          const finalCropWidth = Math.min(cropWidth, originalWidth - finalCropX);
+          const finalCropHeight = Math.min(cropHeight, originalHeight - finalCropY);
+          
+          console.log('Coordenadas do crop na imagem:');
+          console.log('cropX:', finalCropX, 'cropY:', finalCropY);
+          console.log('cropWidth:', finalCropWidth, 'cropHeight:', finalCropHeight);
+          
+          // Aplicar o crop
+          const croppedImage = await ImageManipulator.manipulateAsync(
+            capturedPhoto,
+            [
+              {
+                crop: {
+                  originX: finalCropX,
+                  originY: finalCropY,
+                  width: finalCropWidth,
+                  height: finalCropHeight,
+                },
+              },
+            ],
+            { 
+              compress: 0.9, // Manter alta qualidade
+              format: ImageManipulator.SaveFormat.JPEG 
+            }
+          );
+          
+          console.log('Imagem cortada - width:', croppedImage.width, 'height:', croppedImage.height);
+          processedImageUri = croppedImage.uri;
+        } else {
+          console.log('Nenhum crop aplicado');
+        }
+        
+        // Criar um objeto com a mídia processada
+        const editedMedia = {
+          uri: processedImageUri,
+          type: 'photo',
+          edits: {
+            ...appliedEdits,
+            crop: null // Remover crop dos metadados já que foi aplicado
+          }
+        };
+        
+        onPhotoTaken(editedMedia, caption);
+        
+        // Reset dos estados
+        setCapturedPhoto(null);
+        setCaption('');
+        setIsEditing(false);
+        setShowFilters(false);
+        setSelectedFilter(null);
+        setShowTextEditor(false);
+        setShowEmojiPicker(false);
+        setShowStickers(false);
+        setIsHDMode(false);
+        setAppliedEdits({
+          filter: null,
+          emojis: [],
+          stickers: [],
+          texts: [],
+          rotation: 0,
+          crop: null
+        });
+        setCurrentText('');
+        setTextColor('#FFFFFF');
+        handleClose();
+      } catch (error) {
+        console.error('Erro ao processar imagem:', error);
+        Alert.alert('Erro', 'Não foi possível processar a imagem');
+      }
     }
   };
 
@@ -365,12 +456,13 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       }));
       setIsCropping(false);
     } else {
-      // Entrar no modo de corte e resetar área com dimensões responsivas
+      // Usar dimensões da tela para posicionamento inicial do crop
+      // O cálculo correto será feito no momento do processamento com as dimensões reais da imagem
       setCropArea({ 
         x: width * 0.1, 
-        y: height * 0.15, 
+        y: height * 0.2, 
         width: width * 0.8, 
-        height: height * 0.5 
+        height: height * 0.4 
       });
       setIsCropping(true);
       setShowFilters(false);
@@ -382,22 +474,101 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
   const cancelCrop = () => {
     setIsCropping(false);
-    // Resetar área de corte para o padrão responsivo
+    // Limpar crop aplicado e prévia
+    setAppliedEdits(prev => ({
+      ...prev,
+      crop: null
+    }));
+    setCroppedPreviewUri(null);
+    // Resetar área de corte
     setCropArea({ 
       x: width * 0.1, 
-      y: height * 0.15, 
+      y: height * 0.2, 
       width: width * 0.8, 
-      height: height * 0.5 
+      height: height * 0.4 
     });
   };
 
-  const applyCrop = () => {
-    // Aplicar o corte
-    setAppliedEdits(prev => ({
-      ...prev,
-      crop: cropArea
-    }));
-    setIsCropping(false);
+  const applyCrop = async () => {
+    try {
+      console.log('=== DEBUG CROP ===');
+      console.log('appliedEdits.crop:', JSON.stringify(cropArea));
+      console.log('Dimensões da tela - width:', width, 'height:', height);
+      
+      // Aplicar o corte
+      setAppliedEdits(prev => ({
+        ...prev,
+        crop: cropArea
+      }));
+      
+      // Gerar prévia da imagem cortada
+      if (capturedPhoto) {
+        console.log('Processando crop...');
+        // Obter dimensões da imagem original
+        const imageInfo = await ImageManipulator.manipulateAsync(
+          capturedPhoto,
+          [],
+          { format: ImageManipulator.SaveFormat.JPEG }
+        );
+        
+        const originalWidth = imageInfo.width;
+        const originalHeight = imageInfo.height;
+        console.log('Dimensões da imagem original - width:', originalWidth, 'height:', originalHeight);
+        
+        // Converter coordenadas do crop da tela para a imagem
+        const scaleX = originalWidth / width;
+        const scaleY = originalHeight / height;
+        console.log('Escalas diretas - scaleX:', scaleX, 'scaleY:', scaleY);
+        
+        const cropX = Math.round(cropArea.x * scaleX);
+        const cropY = Math.round(cropArea.y * scaleY);
+        const cropWidth = Math.round(cropArea.width * scaleX);
+        const cropHeight = Math.round(cropArea.height * scaleY);
+        
+        console.log('Coordenadas do crop na imagem:');
+        console.log('cropX:', cropX, 'cropY:', cropY);
+        console.log('cropWidth:', cropWidth, 'cropHeight:', cropHeight);
+        
+        // Garantir que as coordenadas estão dentro dos limites da imagem
+        const finalCropX = Math.max(0, Math.min(cropX, originalWidth - 1));
+        const finalCropY = Math.max(0, Math.min(cropY, originalHeight - 1));
+        const finalCropWidth = Math.min(cropWidth, originalWidth - finalCropX);
+        const finalCropHeight = Math.min(cropHeight, originalHeight - finalCropY);
+        
+        // Gerar prévia cortada
+        const croppedPreview = await ImageManipulator.manipulateAsync(
+          capturedPhoto,
+          [
+            {
+              crop: {
+                originX: finalCropX,
+                originY: finalCropY,
+                width: finalCropWidth,
+                height: finalCropHeight,
+              },
+            },
+          ],
+          { 
+            format: ImageManipulator.SaveFormat.JPEG,
+            compress: 0.8
+          }
+        );
+        
+        console.log('Imagem cortada - width:', croppedPreview.width, 'height:', croppedPreview.height);
+        setCroppedPreviewUri(croppedPreview.uri);
+      }
+      
+      setIsCropping(false);
+    } catch (error) {
+      console.error('Erro ao gerar prévia do crop:', error);
+      // Em caso de erro, apenas aplicar o crop sem prévia
+      setAppliedEdits(prev => ({
+        ...prev,
+        crop: cropArea
+      }));
+      setCroppedPreviewUri(null); // Garantir que não há prévia em caso de erro
+      setIsCropping(false);
+    }
   };
 
   const getFilterStyle = (filterName: string) => {
@@ -637,25 +808,14 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
             {/* Imagem capturada com overlays de edição */}
             <View style={styles.imageContainer}>
-              <View style={[
-                styles.imageWrapper,
-                appliedEdits.crop && {
-                  width: appliedEdits.crop.width,
-                  height: appliedEdits.crop.height,
-                  overflow: 'hidden'
-                }
-              ]}>
+              <View style={styles.imageWrapper}>
                 <Image 
-                  source={{ uri: capturedPhoto }} 
+                  source={{ uri: appliedEdits.crop && croppedPreviewUri ? croppedPreviewUri : capturedPhoto }} 
                   style={[
                     styles.capturedImage,
                     {
                       transform: [
-                        { rotate: `${appliedEdits.rotation}deg` },
-                        ...(appliedEdits.crop ? [
-                          { translateX: -appliedEdits.crop.x },
-                          { translateY: -appliedEdits.crop.y }
-                        ] : [])
+                        { rotate: `${appliedEdits.rotation}deg` }
                       ]
                     }
                   ]} 
@@ -668,6 +828,13 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                       getFilterStyle(appliedEdits.filter)
                     ]} 
                   />
+                )}
+                
+                {/* Indicador visual quando crop está aplicado */}
+                {appliedEdits.crop && (
+                  <View style={styles.cropAppliedIndicator}>
+                    <Text style={styles.cropAppliedText}>✂️ Crop aplicado</Text>
+                  </View>
                 )}
               </View>
               
@@ -768,104 +935,111 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                     <View style={styles.cropBorder} />
                   </View>
                   
-                  {/* Handles dos cantos - maiores para mobile */}
-                  <View 
-                    style={[
-                      styles.cropHandlesContainer,
-                      {
-                        left: cropArea.x,
-                        top: cropArea.y,
-                        width: cropArea.width,
-                        height: cropArea.height,
-                      }
-                    ]}
-                    pointerEvents="box-none"
+                  {/* Handles dos cantos - posicionamento absoluto independente */}
+                  {/* Handle canto superior esquerdo */}
+                    <DraggableElement
+                      initialX={cropArea.x - 25}
+                      initialY={cropArea.y - 25}
+                      isCropHandle={true}
+                      onPositionChange={(deltaX, deltaY) => {
+                         setCropArea(prev => {
+                           const newX = Math.max(10, prev.x + deltaX);
+                           const newY = Math.max(50, prev.y + deltaY);
+                           const newWidth = Math.max(100, prev.width - deltaX);
+                           const newHeight = Math.max(100, prev.height - deltaY);
+                           return {
+                             x: newX,
+                             y: newY,
+                             width: newWidth,
+                             height: newHeight
+                           };
+                         });
+                       }}
+                     style={[styles.cropCornerHandle, {
+                       left: cropArea.x - 25,
+                       top: cropArea.y - 25,
+                     }]}
                   >
-                    {/* Handle canto superior esquerdo */}
-                    <DraggableElement
-                      initialX={0}
-                      initialY={0}
-                      isCropHandle={true}
-                      onPositionChange={(x, y) => {
-                        const newX = Math.max(0, cropArea.x + x);
-                        const newY = Math.max(0, cropArea.y + y);
-                        const newWidth = Math.max(100, cropArea.width - x);
-                        const newHeight = Math.max(100, cropArea.height - y);
-                        setCropArea({
-                          x: newX,
-                          y: newY,
-                          width: newWidth,
-                          height: newHeight
-                        });
-                      }}
-                      style={[styles.cropCornerHandle, styles.cropTopLeft]}
-                    >
-                      <View style={styles.cropCornerIndicator} />
-                    </DraggableElement>
-                    
-                    {/* Handle canto superior direito */}
-                    <DraggableElement
-                      initialX={0}
-                      initialY={0}
-                      isCropHandle={true}
-                      onPositionChange={(x, y) => {
-                        const newY = Math.max(0, cropArea.y + y);
-                        const newWidth = Math.max(100, cropArea.width + x);
-                        const newHeight = Math.max(100, cropArea.height - y);
-                        setCropArea(prev => ({
-                          ...prev,
-                          y: newY,
-                          width: newWidth,
-                          height: newHeight
-                        }));
-                      }}
-                      style={[styles.cropCornerHandle, styles.cropTopRight]}
-                    >
-                      <View style={styles.cropCornerIndicator} />
-                    </DraggableElement>
-                    
-                    {/* Handle canto inferior esquerdo */}
-                    <DraggableElement
-                      initialX={0}
-                      initialY={0}
-                      isCropHandle={true}
-                      onPositionChange={(x, y) => {
-                        const newX = Math.max(0, cropArea.x + x);
-                        const newWidth = Math.max(100, cropArea.width - x);
-                        const newHeight = Math.max(100, cropArea.height + y);
-                        setCropArea(prev => ({
-                          x: newX,
-                          width: newWidth,
-                          height: newHeight,
-                          y: prev.y
-                        }));
-                      }}
-                      style={[styles.cropCornerHandle, styles.cropBottomLeft]}
-                    >
-                      <View style={styles.cropCornerIndicator} />
-                    </DraggableElement>
-                    
-                    {/* Handle canto inferior direito */}
-                    <DraggableElement
-                      initialX={0}
-                      initialY={0}
-                      isCropHandle={true}
-                      onPositionChange={(x, y) => {
-                        const newWidth = Math.max(100, cropArea.width + x);
-                        const newHeight = Math.max(100, cropArea.height + y);
-                        setCropArea(prev => ({
-                          ...prev,
-                          width: newWidth,
-                          height: newHeight
-                        }));
-                      }}
-                      style={[styles.cropCornerHandle, styles.cropBottomRight]}
-                    >
-                      <View style={styles.cropCornerIndicator} />
-                    </DraggableElement>
-                  </View>
+                    <View style={styles.cropCornerIndicator} />
+                  </DraggableElement>
                   
-                  {/* Área central para mover */}
+                  {/* Handle canto superior direito */}
+                   <DraggableElement
+                     initialX={cropArea.x + cropArea.width - 25}
+                     initialY={cropArea.y - 25}
+                     isCropHandle={true}
+                     onPositionChange={(deltaX, deltaY) => {
+                       setCropArea(prev => {
+                         const newY = Math.max(50, prev.y + deltaY);
+                         const newWidth = Math.max(100, prev.width + deltaX);
+                         const newHeight = Math.max(100, prev.height - deltaY);
+                         return {
+                           ...prev,
+                           y: newY,
+                           width: newWidth,
+                           height: newHeight
+                         };
+                       });
+                     }}
+                     style={[styles.cropCornerHandle, {
+                       left: cropArea.x + cropArea.width - 25,
+                       top: cropArea.y - 25,
+                     }]}
+                   >
+                     <View style={styles.cropCornerIndicator} />
+                   </DraggableElement>
+                   
+                   {/* Handle canto inferior esquerdo */}
+                   <DraggableElement
+                     initialX={cropArea.x - 25}
+                     initialY={cropArea.y + cropArea.height - 25}
+                     isCropHandle={true}
+                     onPositionChange={(deltaX, deltaY) => {
+                       setCropArea(prev => {
+                         const newX = Math.max(10, prev.x + deltaX);
+                         const newWidth = Math.max(100, prev.width - deltaX);
+                         const newHeight = Math.max(100, prev.height + deltaY);
+                         return {
+                           x: newX,
+                           width: newWidth,
+                           height: newHeight,
+                           y: prev.y
+                         };
+                       });
+                     }}
+                     style={[styles.cropCornerHandle, {
+                       left: cropArea.x - 25,
+                       top: cropArea.y + cropArea.height - 25,
+                     }]}
+                   >
+                     <View style={styles.cropCornerIndicator} />
+                   </DraggableElement>
+                   
+                   {/* Handle canto inferior direito */}
+                   <DraggableElement
+                     initialX={cropArea.x + cropArea.width - 25}
+                     initialY={cropArea.y + cropArea.height - 25}
+                     isCropHandle={true}
+                     onPositionChange={(deltaX, deltaY) => {
+                       setCropArea(prev => {
+                         const newWidth = Math.max(100, prev.width + deltaX);
+                         const newHeight = Math.max(100, prev.height + deltaY);
+                         return {
+                           ...prev,
+                           width: newWidth,
+                           height: newHeight
+                         };
+                       });
+                     }}
+                     style={[styles.cropCornerHandle, {
+                       left: cropArea.x + cropArea.width - 25,
+                       top: cropArea.y + cropArea.height - 25,
+                     }]}
+                   >
+                     <View style={styles.cropCornerIndicator} />
+                   </DraggableElement>
+                  
+                  {/* Área central para mover - sem ícone */}
                   <DraggableElement
                     initialX={0}
                     initialY={0}
@@ -888,8 +1062,30 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                         height: cropArea.height - 40,
                       }
                     ]}
+                  />
+                  
+                  {/* Ícone de movimento na parte superior central */}
+                  <DraggableElement
+                    initialX={cropArea.x + (cropArea.width / 2) - 20}
+                    initialY={cropArea.y - 35}
+                    isCropHandle={true}
+                    onPositionChange={(x, y) => {
+                      const maxX = width - cropArea.width - 20;
+                      const maxY = height - cropArea.height - 200; // Espaço para controles
+                      setCropArea(prev => ({
+                        ...prev,
+                        x: Math.max(10, Math.min(maxX, prev.x + x)),
+                        y: Math.max(50, Math.min(maxY, prev.y + y))
+                      }));
+                    }}
+                    style={styles.cropMoveHandle}
                   >
-                    <View />
+                    <View style={styles.cropMoveIcon}>
+                      <View style={styles.cropMoveIconDot} />
+                      <View style={styles.cropMoveIconDot} />
+                      <View style={styles.cropMoveIconDot} />
+                      <View style={styles.cropMoveIconDot} />
+                    </View>
                   </DraggableElement>
                 </View>
               )}
@@ -1671,59 +1867,68 @@ const styles = StyleSheet.create({
      borderColor: '#FFFFFF',
      borderStyle: 'solid',
    },
-   cropHandlesContainer: {
-     position: 'absolute',
-     zIndex: 25,
-   },
    cropCornerHandle: {
      position: 'absolute',
-     width: 80, // Aumentado ainda mais para facilitar o toque
-     height: 80, // Aumentado ainda mais para facilitar o toque
+     width: 50, // Diminuído para ficar mais discreto
+     height: 50, // Diminuído para ficar mais discreto
      justifyContent: 'center',
      alignItems: 'center',
      zIndex: 30,
-     // Adicionar área de toque maior
-     padding: 15, // Aumentado o padding
-   },
-   cropTopLeft: {
-     top: -40, // Ajustado para o novo tamanho
-     left: -40,
-   },
-   cropTopRight: {
-     top: -40,
-     right: -40,
-   },
-   cropBottomLeft: {
-     bottom: -40,
-     left: -40,
-   },
-   cropBottomRight: {
-     bottom: -40,
-     right: -40,
+     padding: 10, // Área de toque menor
    },
    cropCornerIndicator: {
-     width: 40, // Aumentado para ser mais visível
-     height: 40, // Aumentado para ser mais visível
-     backgroundColor: '#007AFF', // Mudado para azul para maior contraste
-     borderRadius: 6, // Aumentado
-     borderWidth: 4, // Aumentado
+     width: 25, // Diminuído para ficar mais discreto
+     height: 25, // Diminuído para ficar mais discreto
+     backgroundColor: '#007AFF', // Azul para contraste
+     borderRadius: 4, // Diminuído
+     borderWidth: 2, // Diminuído
      borderColor: '#FFFFFF', // Borda branca para contraste
-     elevation: 8, // Aumentado
+     elevation: 6, // Diminuído
      shadowColor: '#000',
-     shadowOffset: { width: 0, height: 3 },
-     shadowOpacity: 0.4,
-     shadowRadius: 6,
-     // Adicionar um ponto central para melhor visualização
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.3,
+     shadowRadius: 4,
    },
    cropMoveArea: {
      position: 'absolute',
      zIndex: 22,
-     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-     borderWidth: 1,
-     borderColor: 'rgba(255, 255, 255, 0.3)',
-     borderStyle: 'dashed',
+     backgroundColor: 'transparent', // Totalmente transparente como no WhatsApp
      minHeight: 60, // Altura mínima para facilitar o toque
      minWidth: 60, // Largura mínima para facilitar o toque
+     // Remover bordas para ficar mais limpo
+   },
+   cropMoveHandle: {
+     position: 'absolute',
+     width: 40,
+     height: 30,
+     justifyContent: 'center',
+     alignItems: 'center',
+     zIndex: 25,
+     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+     borderRadius: 15,
+     borderWidth: 1,
+     borderColor: 'rgba(255, 255, 255, 0.5)',
+   },
+   cropMoveIcon: {
+     width: 16,
+     height: 12,
+     flexDirection: 'row',
+     flexWrap: 'wrap',
+     justifyContent: 'space-between',
+     alignItems: 'center',
+     opacity: 0.9,
+   },
+   cropMoveIconDot: {
+     width: 3,
+     height: 3,
+     backgroundColor: '#FFFFFF',
+     borderRadius: 1.5,
+     margin: 0.5,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 1 },
+     shadowOpacity: 0.5,
+     shadowRadius: 1,
+     elevation: 2,
    },
    cropControlsFooter: {
      flexDirection: 'row',
@@ -1773,5 +1978,27 @@ const styles = StyleSheet.create({
      fontSize: 20, // Aumentado
      fontWeight: '700',
      textAlign: 'center',
+   },
+   // Indicador de crop aplicado
+   cropAppliedIndicator: {
+     position: 'absolute',
+     top: 20,
+     right: 20,
+     backgroundColor: 'rgba(0, 122, 255, 0.9)',
+     paddingHorizontal: 12,
+     paddingVertical: 8,
+     borderRadius: 20,
+     borderWidth: 1,
+     borderColor: 'rgba(255, 255, 255, 0.3)',
+     elevation: 5,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.3,
+     shadowRadius: 4,
+   },
+   cropAppliedText: {
+     color: 'white',
+     fontSize: 12,
+     fontWeight: '600',
    },
  });
