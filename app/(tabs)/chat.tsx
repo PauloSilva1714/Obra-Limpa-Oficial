@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,90 @@ import { AdminService } from '@/services/AdminService';
 import TabBarToggleButton from '@/components/TabBarToggleButton';
 import * as ImagePicker from 'expo-image-picker';
 import CameraScreen from '@/components/CameraScreen';
+import { Video } from 'expo-av';
+
+// Componente VideoPlayer personalizado
+const VideoPlayer = ({ source, style, filter, getFilterStyle }: {
+  source: { uri: string };
+  style: any;
+  filter?: string;
+  getFilterStyle: (filter: string | null) => any;
+}) => {
+  const videoRef = useRef<Video>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+
+  const togglePlayPause = async () => {
+    if (videoRef.current) {
+      try {
+        if (isPlaying) {
+          await videoRef.current.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await videoRef.current.playAsync();
+          setIsPlaying(true);
+        }
+      } catch (error) {
+        console.error('Erro ao controlar vídeo:', error);
+      }
+    }
+  };
+
+  const handleVideoPress = () => {
+    setShowControls(!showControls);
+    setTimeout(() => {
+      if (showControls) {
+        setShowControls(false);
+      }
+    }, 3000);
+  };
+
+  return (
+    <TouchableOpacity 
+      activeOpacity={1}
+      onPress={handleVideoPress}
+      style={styles.videoTouchableWrapper}
+    >
+      <Video
+        ref={videoRef}
+        source={source}
+        style={style}
+        useNativeControls={false}
+        resizeMode="cover"
+        shouldPlay={isPlaying}
+        isLooping={false}
+        volume={1.0}
+        isMuted={false}
+        usePoster={false}
+      />
+      
+      {/* Controles customizados */}
+      {showControls && (
+        <View style={styles.videoControlsOverlay}>
+          <TouchableOpacity 
+            style={styles.playPauseButton}
+            onPress={togglePlayPause}
+          >
+            <Text style={styles.playPauseIcon}>
+              {isPlaying ? '⏸️' : '▶️'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
+      {/* Overlay do filtro para vídeo */}
+      {filter && filter !== 'Normal' && (
+        <View 
+          style={[
+            styles.filterOverlay,
+            getFilterStyle(filter),
+            { pointerEvents: 'none' }
+          ]} 
+        />
+      )}
+    </TouchableOpacity>
+  );
+};
 
 interface Admin {
   id: string;
@@ -498,13 +582,31 @@ export default function ChatScreen() {
   };
 
   const handleCameraCapture = (media: string | { uri: string; type: string; edits: any }, caption?: string) => {
-    let mediaMessage: Message;
+    console.log('=== DEBUG: handleCameraCapture chamada ===');
+    console.log('Media recebida:', media);
+    console.log('Tipo da media:', typeof media);
     
+    // Se é uma string, pode ser foto ou vídeo - vamos verificar pela extensão
     if (typeof media === 'string') {
-      // Formato antigo - apenas URI da foto
-      mediaMessage = {
+      const isVideoFile = media.toLowerCase().includes('.mp4') || media.toLowerCase().includes('.mov') || media.toLowerCase().includes('video');
+      console.log('É arquivo de vídeo?', isVideoFile);
+      
+      // Para vídeos vindos como string, abrir o editor primeiro
+      if (isVideoFile) {
+        console.log('Abrindo editor para vídeo...');
+        setCapturedMedia({
+          uri: media,
+          type: 'video'
+        });
+        setShowCameraEditor(true);
+        setShowCameraScreen(false);
+        return;
+      }
+      
+      // Para fotos, criar mensagem diretamente
+      const mediaMessage: Message = {
         id: Date.now().toString(),
-        text: caption || '📷 Foto enviada',
+        text: caption || '',
         sender: currentUser?.id,
         timestamp: new Date().toISOString(),
         isOwn: true,
@@ -512,6 +614,9 @@ export default function ChatScreen() {
         mediaType: 'photo',
         uri: media
       };
+      
+      setMessages([...messages, mediaMessage]);
+      setShowCameraScreen(false);
     } else {
       // Novo formato - mídia com edições
       const hasEdits = media.edits && (
@@ -521,23 +626,21 @@ export default function ChatScreen() {
         media.edits.stickers.length > 0
       );
       
-      const editInfo = hasEdits ? ' (editada)' : '';
-      
-      mediaMessage = {
+      const mediaMessage: Message = {
         id: Date.now().toString(),
-        text: caption || `📷 Foto enviada${editInfo}`,
+        text: caption || '',
         sender: currentUser?.id,
         timestamp: new Date().toISOString(),
         isOwn: true,
-        isPhoto: true,
-        mediaType: media.type,
+        isPhoto: true, // Mantemos true para indicar que é mídia
+        mediaType: media.type, // 'photo' ou 'video'
         uri: media.uri,
         edits: media.edits // Armazenar as edições para renderização posterior
       };
-    }
 
-    setMessages([...messages, mediaMessage]);
-    setShowCameraScreen(false);
+      setMessages([...messages, mediaMessage]);
+      setShowCameraScreen(false);
+    }
   };
 
    const sendMediaWithCaption = () => {
@@ -545,7 +648,7 @@ export default function ChatScreen() {
 
     const mediaMessage: Message = {
       id: Date.now().toString(),
-      text: mediaCaption || (capturedMedia.type === 'video' ? '🎥 Vídeo enviado' : '📷 Foto enviada'),
+      text: mediaCaption || '',
       sender: currentUser?.id,
       timestamp: new Date().toISOString(),
       isOwn: true,
@@ -790,27 +893,27 @@ export default function ChatScreen() {
         style={styles.chatItem}
         onPress={() => handleSelectAdmin({ id: otherParticipant.id, name: otherParticipant.name, email: '', role: '' })}
       >
-        <View style={styles.avatarContainer}>
-          <View style={[styles.avatar, { backgroundColor: '#F97316' }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+        <View style={[styles.avatar, { backgroundColor: '#F97316' }]}>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
         <View style={styles.chatInfo}>
-          <View style={styles.chatHeader}>
-            <Text style={styles.chatName}>{otherParticipant.name}</Text>
-            <Text style={styles.chatTime}>
-              {item.lastMessageTime ? formatTime(item.lastMessageTime) : ''}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.chatName} numberOfLines={1}>{otherParticipant.name}</Text>
+            <Text style={styles.timeText}>
+              {item.lastMessageTime ? formatTime(item.lastMessageTime) : 'Agora'}
             </Text>
           </View>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage || 'Nenhuma mensagem'}
-          </Text>
-        </View>
-        {item.unreadCount > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>{item.unreadCount}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {item.lastMessage || 'Nenhuma mensagem'}
+            </Text>
+            {item.unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>{item.unreadCount}</Text>
+              </View>
+            )}
           </View>
-        )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -883,42 +986,59 @@ export default function ChatScreen() {
                           <View style={[
                             styles.imageWrapper,
                             item.edits?.crop && {
-                              width: Math.min(item.edits.crop.width, 250),
-                              height: Math.min(item.edits.crop.height, 250),
+                              width: 280,
+                              height: 280,
                               overflow: 'hidden'
                             }
                           ]}>
-                            <Image
-                              source={{ uri: item.uri }}
-                              style={[
-                                styles.mediaImage,
-                                {
-                                  transform: [
-                                    { rotate: `${item.edits?.rotation || 0}deg` },
-                                    ...(item.edits?.crop ? [
-                                      { translateX: -item.edits.crop.x },
-                                      { translateY: -item.edits.crop.y }
-                                    ] : [])
-                                  ]
-                                }
-                              ]}
-                              resizeMode="cover"
-                            />
-                            {/* Overlay do filtro */}
-                            {item.edits?.filter && item.edits.filter !== 'Normal' && (
-                              <View 
+                            {item.mediaType === 'video' ? (
+                              <VideoPlayer
+                                source={{ uri: item.uri }}
                                 style={[
-                                  styles.filterOverlay,
-                                  getFilterStyle(item.edits.filter)
-                                ]} 
+                                  styles.mediaImage,
+                                  {
+                                    transform: [
+                                      { rotate: `${item.edits?.rotation || 0}deg` },
+                                      ...(item.edits?.crop ? [
+                                        { translateX: -item.edits.crop.x },
+                                        { translateY: -item.edits.crop.y }
+                                      ] : [])
+                                    ]
+                                  }
+                                ]}
+                                filter={item.edits?.filter}
+                                getFilterStyle={getFilterStyle}
                               />
+                            ) : (
+                              <>
+                                <Image
+                                  source={{ uri: item.uri }}
+                                  style={[
+                                    styles.mediaImage,
+                                    {
+                                      transform: [
+                                        { rotate: `${item.edits?.rotation || 0}deg` },
+                                        ...(item.edits?.crop ? [
+                                          { translateX: -item.edits.crop.x },
+                                          { translateY: -item.edits.crop.y }
+                                        ] : [])
+                                      ]
+                                    }
+                                  ]}
+                                  resizeMode="cover"
+                                />
+                                {/* Overlay do filtro para imagem */}
+                                {item.edits?.filter && item.edits.filter !== 'Normal' && (
+                                  <View 
+                                    style={[
+                                      styles.filterOverlay,
+                                      getFilterStyle(item.edits.filter)
+                                    ]} 
+                                  />
+                                )}
+                              </>
                             )}
                           </View>
-                          {item.mediaType === 'video' && (
-                            <View style={styles.videoOverlay}>
-                              <Text style={styles.videoIcon}>▶️</Text>
-                            </View>
-                          )}
                           {/* Renderizar edições como overlays */}
                           {renderEditOverlays(item.edits)}
                         </View>
@@ -1047,10 +1167,17 @@ export default function ChatScreen() {
             {/* Media Preview */}
             <View style={styles.cameraEditorPreview}>
               {capturedMedia.type === 'video' ? (
-                <View style={styles.videoPreviewContainer}>
-                  <Text style={styles.videoPreviewIcon}>🎥</Text>
-                  <Text style={styles.videoPreviewText}>Vídeo Capturado</Text>
-                </View>
+                <Video
+                  source={{ uri: capturedMedia.uri }}
+                  style={styles.cameraEditorImage}
+                  useNativeControls={true}
+                  resizeMode="contain"
+                  shouldPlay={false}
+                  isLooping={false}
+                  volume={1.0}
+                  isMuted={false}
+                  usePoster={false}
+                />
               ) : (
                 <Image
                   source={{ uri: capturedMedia.uri }}
@@ -1317,9 +1444,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1355,8 +1482,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   messageContainer: {
-    marginVertical: 4,
-    maxWidth: '80%',
+    marginVertical: 2,
+    maxWidth: '90%',
   },
   ownMessage: {
     alignSelf: 'flex-end',
@@ -1365,9 +1492,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   messageText: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
     fontSize: 14,
   },
   ownMessageText: {
@@ -1381,13 +1508,15 @@ const styles = StyleSheet.create({
   messageTime: {
     fontSize: 10,
     color: '#9CA3AF',
-    marginTop: 4,
+    marginTop: 2,
     textAlign: 'right',
   },
   mediaMessageContainer: {
     backgroundColor: '#374151',
     borderRadius: 12,
     overflow: 'hidden',
+    width: 280,
+    height: 280,
   },
   mediaContentContainer: {
     position: 'relative',
@@ -1397,31 +1526,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mediaImage: {
-    width: '100%',
-    height: 200,
+    width: 280,
+    height: 280,
   },
-  videoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  videoIcon: {
-    fontSize: 48,
-  },
+
   mediaIconContainer: {
-    padding: 20,
+    padding: 10,
     alignItems: 'center',
   },
   mediaIcon: {
-    fontSize: 48,
+    fontSize: 32,
   },
   mediaTextContainer: {
-    padding: 12,
+    padding: 8,
   },
   messageInputContainer: {
     flexDirection: 'row',
@@ -1560,19 +1677,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#FFFFFF',
   },
-  videoPreviewContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  videoPreviewIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  videoPreviewText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-  },
+
   toolbarButtonActive: {
     backgroundColor: '#F97316',
   },
@@ -1602,5 +1707,102 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: 10,
+  },
+  videoTouchableWrapper: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  videoControlsOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  playPauseButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playPauseIcon: {
+    fontSize: 24,
+    textAlign: 'center',
+  },
+  chatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#374151',
+    backgroundColor: '#1F2937',
+  },
+  adminItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#374151',
+    backgroundColor: '#1F2937',
+  },
+  chatInfo: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  chatName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+    flex: 1,
+  },
+  lastMessage: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    flex: 1,
+    marginTop: 2,
+  },
+  chatMeta: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: '100%',
+  },
+  timeText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginLeft: 8,
+  },
+  unreadBadge: {
+    backgroundColor: '#F97316',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  unreadText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  avatarContainer: {
+    marginRight: 12,
+  },
+  chatTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginLeft: 'auto',
   },
 });

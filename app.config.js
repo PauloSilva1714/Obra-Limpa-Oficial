@@ -39,6 +39,7 @@ module.exports = {
     'expo-font',
     'expo-web-browser',
     'expo-audio',
+    'expo-av',
     'expo-video',
     '@react-native-firebase/app',
     [

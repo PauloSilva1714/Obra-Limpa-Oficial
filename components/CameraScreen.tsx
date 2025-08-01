@@ -14,10 +14,11 @@ import {
   PanResponder,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { X, RotateCcw, Image as ImageIcon, Zap, ZapOff, Video, Mic, Send, Type, Smile, Filter, RotateCw, Crop } from 'lucide-react-native';
+import { X, RotateCcw, Image as ImageIcon, Zap, ZapOff, Video as VideoIcon, Mic, Send, Type, Smile, Filter } from 'lucide-react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { Audio, Video } from 'expo-av';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
@@ -145,14 +146,14 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [permission, requestPermission] = useCameraPermissions();
   const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
+  const [audioPermission, setAudioPermission] = useState<boolean>(false);
   const [mode, setMode] = useState<CameraMode>('photo');
   const [isRecording, setIsRecording] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isHDMode, setIsHDMode] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+
   const [showTextEditor, setShowTextEditor] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
@@ -164,14 +165,12 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     height: height * 0.5 
   });
   const [appliedEdits, setAppliedEdits] = useState<{
-    filter: string | null;
     emojis: Array<{id: string, emoji: string, x: number, y: number}>;
     stickers: Array<{id: string, sticker: string, x: number, y: number}>;
     texts: Array<{id: string, text: string, x: number, y: number, color: string, size: number}>;
     rotation: number;
     crop: {x: number, y: number, width: number, height: number} | null;
   }>({
-    filter: null,
     emojis: [],
     stickers: [],
     texts: [],
@@ -183,6 +182,17 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   const [croppedPreviewUri, setCroppedPreviewUri] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
+  const requestAudioPermission = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      setAudioPermission(status === 'granted');
+      return status === 'granted';
+    } catch (error) {
+      console.error('Erro ao solicitar permissão de áudio:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (visible && !permission?.granted) {
       requestPermission();
@@ -190,17 +200,28 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     if (visible && !mediaPermission?.granted) {
       requestMediaPermission();
     }
+    if (visible && !audioPermission) {
+      requestAudioPermission();
+    }
   }, [visible]);
 
   const handleClose = () => {
     if (isRecording) {
       stopRecording();
     }
+    
+    // Limpar todos os estados relacionados à foto e edição
     setCapturedPhoto(null);
     setCaption('');
     setIsEditing(false);
-    // Limpar prévia de crop e edições aplicadas
     setCroppedPreviewUri(null);
+    setIsCropping(false);
+    setShowTextEditor(false);
+    setShowEmojiPicker(false);
+    setShowStickers(false);
+    setCurrentText('');
+    
+    // Resetar edições aplicadas
     setAppliedEdits({
       filter: null,
       emojis: [],
@@ -209,6 +230,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       rotation: 0,
       crop: null
     });
+    
     // Resetar área de corte para o próximo uso
     setCropArea({ 
       x: width * 0.1, 
@@ -216,6 +238,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       width: width * 0.8, 
       height: height * 0.4 
     });
+    
     onClose();
   };
 
@@ -255,6 +278,19 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   const startRecording = async () => {
     if (!cameraRef.current || mode === 'photo') return;
 
+    // Verificar permissão de áudio antes de gravar
+    if (!audioPermission) {
+      const hasAudioPermission = await requestAudioPermission();
+      if (!hasAudioPermission) {
+        Alert.alert(
+          'Permissão de Áudio Necessária',
+          'Para gravar vídeos com áudio, é necessário permitir o acesso ao microfone.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+
     try {
       setIsRecording(true);
       const video = await cameraRef.current.recordAsync({
@@ -263,15 +299,20 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       });
 
       if (video?.uri) {
+        console.log('=== DEBUG: Vídeo gravado ===');
+        console.log('URI do vídeo:', video.uri);
+        
         // Salvar na galeria
         if (mediaPermission?.granted) {
           await MediaLibrary.saveToLibraryAsync(video.uri);
         }
         
-        if (onVideoTaken) {
-          onVideoTaken(video.uri);
-        }
-        handleClose();
+        // Em vez de enviar automaticamente, vamos capturar como foto para permitir edição
+        setCapturedPhoto(video.uri);
+        setIsEditing(true);
+        
+        // NÃO chamar onVideoTaken nem handleClose aqui
+        // O usuário poderá editar e enviar manualmente
       }
     } catch (error) {
       console.error('Erro ao gravar vídeo:', error);
@@ -308,7 +349,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       try {
         let processedImageUri = capturedPhoto;
         
-        console.log('=== DEBUG CROP ===');
+        console.log('=== DEBUG CROP MELHORADO (SEND) ===');
         console.log('appliedEdits.crop:', appliedEdits.crop);
         console.log('Dimensões da tela - width:', width, 'height:', height);
         
@@ -328,26 +369,56 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
           
           console.log('Dimensões da imagem original - width:', originalWidth, 'height:', originalHeight);
           
-          // Converter coordenadas do crop diretamente da tela para a imagem
-          // Usar proporções simples baseadas nas dimensões da tela vs imagem
-          const scaleX = originalWidth / width;
-          const scaleY = originalHeight / height;
+          // NOVO ALGORITMO: Calcular como a imagem é realmente exibida (mesmo do applyCrop)
+          const imageAspectRatio = originalWidth / originalHeight;
+          const containerAspectRatio = width / height;
           
-          console.log('Escalas diretas - scaleX:', scaleX, 'scaleY:', scaleY);
+          let visibleImageWidth, visibleImageHeight;
+          let imageOffsetX = 0, imageOffsetY = 0;
           
-          // Aplicar as escalas diretamente às coordenadas do crop
-          const cropX = Math.round(appliedEdits.crop.x * scaleX);
-          const cropY = Math.round(appliedEdits.crop.y * scaleY);
-          const cropWidth = Math.round(appliedEdits.crop.width * scaleX);
-          const cropHeight = Math.round(appliedEdits.crop.height * scaleY);
+          // Com resizeMode="cover", a imagem preenche todo o container
+          // mantendo sua proporção, cortando o que exceder
+          if (imageAspectRatio > containerAspectRatio) {
+            // Imagem é mais larga que o container
+            // A altura da imagem preenche o container, largura é cortada
+            visibleImageHeight = height;
+            visibleImageWidth = height * imageAspectRatio;
+            imageOffsetX = -(visibleImageWidth - width) / 2; // Offset negativo = parte cortada
+          } else {
+            // Imagem é mais alta que o container  
+            // A largura da imagem preenche o container, altura é cortada
+            visibleImageWidth = width;
+            visibleImageHeight = width / imageAspectRatio;
+            imageOffsetY = -(visibleImageHeight - height) / 2; // Offset negativo = parte cortada
+          }
+          
+          console.log('Imagem visível - width:', visibleImageWidth, 'height:', visibleImageHeight);
+          console.log('Offset da imagem - X:', imageOffsetX, 'Y:', imageOffsetY);
+          
+          // Calcular as escalas de conversão da tela para a imagem original
+          const scaleX = originalWidth / visibleImageWidth;
+          const scaleY = originalHeight / visibleImageHeight;
+          
+          console.log('Escalas de conversão - scaleX:', scaleX, 'scaleY:', scaleY);
+          
+          // Converter coordenadas do crop da tela para a imagem original
+          // Subtraímos o offset porque queremos a posição relativa à imagem visível
+          const cropXOnImage = (appliedEdits.crop.x - imageOffsetX) * scaleX;
+          const cropYOnImage = (appliedEdits.crop.y - imageOffsetY) * scaleY;
+          const cropWidthOnImage = appliedEdits.crop.width * scaleX;
+          const cropHeightOnImage = appliedEdits.crop.height * scaleY;
+          
+          console.log('Crop na imagem original:');
+          console.log('cropX:', cropXOnImage, 'cropY:', cropYOnImage);
+          console.log('cropWidth:', cropWidthOnImage, 'cropHeight:', cropHeightOnImage);
           
           // Garantir que as coordenadas estão dentro dos limites da imagem
-          const finalCropX = Math.max(0, Math.min(cropX, originalWidth - 1));
-          const finalCropY = Math.max(0, Math.min(cropY, originalHeight - 1));
-          const finalCropWidth = Math.min(cropWidth, originalWidth - finalCropX);
-          const finalCropHeight = Math.min(cropHeight, originalHeight - finalCropY);
+          const finalCropX = Math.max(0, Math.min(Math.round(cropXOnImage), originalWidth - 1));
+          const finalCropY = Math.max(0, Math.min(Math.round(cropYOnImage), originalHeight - 1));
+          const finalCropWidth = Math.min(Math.round(cropWidthOnImage), originalWidth - finalCropX);
+          const finalCropHeight = Math.min(Math.round(cropHeightOnImage), originalHeight - finalCropY);
           
-          console.log('Coordenadas do crop na imagem:');
+          console.log('Coordenadas finais do crop:');
           console.log('cropX:', finalCropX, 'cropY:', finalCropY);
           console.log('cropWidth:', finalCropWidth, 'cropHeight:', finalCropHeight);
           
@@ -376,17 +447,31 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
           console.log('Nenhum crop aplicado');
         }
         
+        // Detectar se é vídeo pela URI
+        const isVideoFile = capturedPhoto.toLowerCase().includes('.mp4') || 
+                           capturedPhoto.toLowerCase().includes('.mov') || 
+                           capturedPhoto.toLowerCase().includes('video');
+        
+        console.log('=== DEBUG: Enviando mídia ===');
+        console.log('É vídeo?', isVideoFile);
+        console.log('URI original:', capturedPhoto);
+        console.log('URI processada:', processedImageUri);
+        
         // Criar um objeto com a mídia processada
         const editedMedia = {
-          uri: processedImageUri,
-          type: 'photo',
-          edits: {
+          uri: isVideoFile ? capturedPhoto : processedImageUri, // Para vídeos, usar URI original
+          type: isVideoFile ? 'video' : 'photo',
+          edits: isVideoFile ? null : { // Vídeos não suportam edições por enquanto
             ...appliedEdits,
             crop: null // Remover crop dos metadados já que foi aplicado
           }
         };
         
-        onPhotoTaken(editedMedia, caption);
+        if (isVideoFile && onVideoTaken) {
+          onVideoTaken(editedMedia.uri);
+        } else {
+          onPhotoTaken(editedMedia, caption);
+        }
         
         // Reset dos estados
         setCapturedPhoto(null);
@@ -417,15 +502,37 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   };
 
   const backToCamera = () => {
+    // Limpar todos os estados relacionados à foto e edição (mesmo que handleClose)
     setCapturedPhoto(null);
     setCaption('');
     setIsEditing(false);
+    setCroppedPreviewUri(null);
+    setIsCropping(false);
     setShowFilters(false);
     setSelectedFilter(null);
     setShowTextEditor(false);
     setShowEmojiPicker(false);
     setShowStickers(false);
+    setCurrentText('');
     setIsHDMode(false);
+    
+    // Resetar edições aplicadas
+    setAppliedEdits({
+      filter: null,
+      emojis: [],
+      stickers: [],
+      texts: [],
+      rotation: 0,
+      crop: null
+    });
+    
+    // Resetar área de corte para o próximo uso
+    setCropArea({ 
+      x: width * 0.1, 
+      y: height * 0.2, 
+      width: width * 0.8, 
+      height: height * 0.4 
+    });
   };
 
   // Funções para os botões da tela de edição
@@ -433,12 +540,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     setIsHDMode(!isHDMode);
   };
 
-  const toggleFilters = () => {
-    setShowFilters(!showFilters);
-    setShowTextEditor(false);
-    setShowEmojiPicker(false);
-    setShowStickers(false);
-  };
+
 
   const rotateImage = () => {
     setAppliedEdits(prev => ({
@@ -491,8 +593,8 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
   const applyCrop = async () => {
     try {
-      console.log('=== DEBUG CROP ===');
-      console.log('appliedEdits.crop:', JSON.stringify(cropArea));
+      console.log('=== DEBUG CROP MELHORADO ===');
+      console.log('Área de crop na tela:', JSON.stringify(cropArea));
       console.log('Dimensões da tela - width:', width, 'height:', height);
       
       // Aplicar o corte
@@ -504,6 +606,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       // Gerar prévia da imagem cortada
       if (capturedPhoto) {
         console.log('Processando crop...');
+        
         // Obter dimensões da imagem original
         const imageInfo = await ImageManipulator.manipulateAsync(
           capturedPhoto,
@@ -515,25 +618,58 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         const originalHeight = imageInfo.height;
         console.log('Dimensões da imagem original - width:', originalWidth, 'height:', originalHeight);
         
-        // Converter coordenadas do crop da tela para a imagem
-        const scaleX = originalWidth / width;
-        const scaleY = originalHeight / height;
-        console.log('Escalas diretas - scaleX:', scaleX, 'scaleY:', scaleY);
+        // NOVO ALGORITMO: Calcular como a imagem é realmente exibida
+        const imageAspectRatio = originalWidth / originalHeight;
+        const containerAspectRatio = width / height;
         
-        const cropX = Math.round(cropArea.x * scaleX);
-        const cropY = Math.round(cropArea.y * scaleY);
-        const cropWidth = Math.round(cropArea.width * scaleX);
-        const cropHeight = Math.round(cropArea.height * scaleY);
+        let visibleImageWidth, visibleImageHeight;
+        let imageOffsetX = 0, imageOffsetY = 0;
         
-        console.log('Coordenadas do crop na imagem:');
-        console.log('cropX:', cropX, 'cropY:', cropY);
-        console.log('cropWidth:', cropWidth, 'cropHeight:', cropHeight);
+        // Com resizeMode="cover", a imagem preenche todo o container
+        // mantendo sua proporção, cortando o que exceder
+        if (imageAspectRatio > containerAspectRatio) {
+          // Imagem é mais larga que o container
+          // A altura da imagem preenche o container, largura é cortada
+          visibleImageHeight = height;
+          visibleImageWidth = height * imageAspectRatio;
+          imageOffsetX = -(visibleImageWidth - width) / 2; // Offset negativo = parte cortada
+        } else {
+          // Imagem é mais alta que o container  
+          // A largura da imagem preenche o container, altura é cortada
+          visibleImageWidth = width;
+          visibleImageHeight = width / imageAspectRatio;
+          imageOffsetY = -(visibleImageHeight - height) / 2; // Offset negativo = parte cortada
+        }
+        
+        console.log('Imagem visível - width:', visibleImageWidth, 'height:', visibleImageHeight);
+        console.log('Offset da imagem - X:', imageOffsetX, 'Y:', imageOffsetY);
+        
+        // Calcular as escalas de conversão da tela para a imagem original
+        const scaleX = originalWidth / visibleImageWidth;
+        const scaleY = originalHeight / visibleImageHeight;
+        
+        console.log('Escalas de conversão - scaleX:', scaleX, 'scaleY:', scaleY);
+        
+        // Converter coordenadas do crop da tela para a imagem original
+        // Subtraímos o offset porque queremos a posição relativa à imagem visível
+        const cropXOnImage = (cropArea.x - imageOffsetX) * scaleX;
+        const cropYOnImage = (cropArea.y - imageOffsetY) * scaleY;
+        const cropWidthOnImage = cropArea.width * scaleX;
+        const cropHeightOnImage = cropArea.height * scaleY;
+        
+        console.log('Crop na imagem original:');
+        console.log('cropX:', cropXOnImage, 'cropY:', cropYOnImage);
+        console.log('cropWidth:', cropWidthOnImage, 'cropHeight:', cropHeightOnImage);
         
         // Garantir que as coordenadas estão dentro dos limites da imagem
-        const finalCropX = Math.max(0, Math.min(cropX, originalWidth - 1));
-        const finalCropY = Math.max(0, Math.min(cropY, originalHeight - 1));
-        const finalCropWidth = Math.min(cropWidth, originalWidth - finalCropX);
-        const finalCropHeight = Math.min(cropHeight, originalHeight - finalCropY);
+        const finalCropX = Math.max(0, Math.min(Math.round(cropXOnImage), originalWidth - 1));
+        const finalCropY = Math.max(0, Math.min(Math.round(cropYOnImage), originalHeight - 1));
+        const finalCropWidth = Math.min(Math.round(cropWidthOnImage), originalWidth - finalCropX);
+        const finalCropHeight = Math.min(Math.round(cropHeightOnImage), originalHeight - finalCropY);
+        
+        console.log('Coordenadas finais do crop:');
+        console.log('finalCropX:', finalCropX, 'finalCropY:', finalCropY);
+        console.log('finalCropWidth:', finalCropWidth, 'finalCropHeight:', finalCropHeight);
         
         // Gerar prévia cortada
         const croppedPreview = await ImageManipulator.manipulateAsync(
@@ -566,48 +702,12 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         ...prev,
         crop: cropArea
       }));
-      setCroppedPreviewUri(null); // Garantir que não há prévia em caso de erro
+      setCroppedPreviewUri(null);
       setIsCropping(false);
     }
   };
 
-  const getFilterStyle = (filterName: string) => {
-    switch (filterName) {
-      case 'Vintage':
-        return { 
-          backgroundColor: 'rgba(244, 164, 96, 0.3)',
-          opacity: 0.9
-        };
-      case 'B&W':
-        return { 
-          backgroundColor: 'rgba(128, 128, 128, 0.5)',
-          opacity: 0.8
-        };
-      case 'Sepia':
-        return { 
-          backgroundColor: 'rgba(222, 184, 135, 0.4)',
-          opacity: 0.9
-        };
-      case 'Vivid':
-        return { 
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          opacity: 1
-        };
-      case 'Cool':
-        return { 
-          backgroundColor: 'rgba(135, 206, 235, 0.3)',
-          opacity: 0.9
-        };
-      default:
-        return {};
-    }
-  };
 
-  const selectFilter = (filterName: string) => {
-    const newFilter = selectedFilter === filterName ? null : filterName;
-    setSelectedFilter(newFilter);
-    setAppliedEdits(prev => ({ ...prev, filter: newFilter }));
-  };
 
   const toggleTextEditor = () => {
     setShowTextEditor(!showTextEditor);
@@ -782,18 +882,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                <TouchableOpacity onPress={toggleHDMode} style={[styles.headerButton, isHDMode && styles.activeButton]}>
                  <Text style={[styles.hdText, isHDMode && styles.activeText]}>HD</Text>
                </TouchableOpacity>
-               <TouchableOpacity onPress={rotateImage} style={styles.headerButton}>
-                 <RotateCw size={24} color="white" />
-               </TouchableOpacity>
-               <TouchableOpacity onPress={cropImage} style={[styles.headerButton, isCropping && styles.activeButton]}>
-                 <Crop size={24} color={isCropping ? "#007AFF" : "white"} />
-               </TouchableOpacity>
-               <TouchableOpacity onPress={toggleCameraFacing} style={styles.headerButton}>
-                 <RotateCcw size={24} color="white" />
-               </TouchableOpacity>
-               <TouchableOpacity onPress={toggleFilters} style={[styles.headerButton, showFilters && styles.activeButton]}>
-                 <Filter size={24} color={showFilters ? "#007AFF" : "white"} />
-               </TouchableOpacity>
                <TouchableOpacity onPress={toggleEmojiPicker} style={[styles.headerButton, showEmojiPicker && styles.activeButton]}>
                  <Smile size={24} color={showEmojiPicker ? "#007AFF" : "white"} />
                </TouchableOpacity>
@@ -806,36 +894,46 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
              </View>
             </View>
 
-            {/* Imagem capturada com overlays de edição */}
+            {/* Mídia capturada com overlays de edição */}
             <View style={styles.imageContainer}>
               <View style={styles.imageWrapper}>
-                <Image 
-                  source={{ uri: appliedEdits.crop && croppedPreviewUri ? croppedPreviewUri : capturedPhoto }} 
-                  style={[
-                    styles.capturedImage,
-                    {
-                      transform: [
-                        { rotate: `${appliedEdits.rotation}deg` }
-                      ]
-                    }
-                  ]} 
-                />
-                {/* Overlay do filtro */}
-                {appliedEdits.filter && appliedEdits.filter !== 'Normal' && (
-                  <View 
+                {/* Detectar se é vídeo e renderizar adequadamente */}
+                {capturedPhoto && (capturedPhoto.toLowerCase().includes('.mp4') || 
+                 capturedPhoto.toLowerCase().includes('.mov') || 
+                 capturedPhoto.toLowerCase().includes('video')) ? (
+                  // Renderizar vídeo
+                  <Video
+                    source={{ uri: capturedPhoto }}
                     style={[
-                      styles.filterOverlay,
-                      getFilterStyle(appliedEdits.filter)
+                      styles.capturedImage,
+                      {
+                        transform: [
+                          { rotate: `${appliedEdits.rotation}deg` }
+                        ]
+                      }
+                    ]}
+                    useNativeControls={true}
+                    resizeMode="cover"
+                    shouldPlay={false}
+                    isLooping={false}
+                  />
+                ) : (
+                  // Renderizar imagem
+                  <Image 
+                    source={{ uri: appliedEdits.crop && croppedPreviewUri ? croppedPreviewUri : capturedPhoto }} 
+                    style={[
+                      styles.capturedImage,
+                      {
+                        transform: [
+                          { rotate: `${appliedEdits.rotation}deg` }
+                        ]
+                      }
                     ]} 
                   />
                 )}
                 
-                {/* Indicador visual quando crop está aplicado */}
-                {appliedEdits.crop && (
-                  <View style={styles.cropAppliedIndicator}>
-                    <Text style={styles.cropAppliedText}>✂️ Crop aplicado</Text>
-                  </View>
-                )}
+
+
               </View>
               
               {/* Overlay para textos */}
@@ -1091,38 +1189,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
               )}
             </View>
 
-            {/* Botão Filtros */}
-             <TouchableOpacity onPress={toggleFilters} style={[styles.filtersButton, showFilters && styles.activeFiltersButton]}>
-               <Text style={[styles.filtersButtonText, showFilters && styles.activeFiltersText]}>
-                 {showFilters ? 'Fechar Filtros' : 'Filtros'}
-               </Text>
-             </TouchableOpacity>
-
             {/* Painéis de ferramentas */}
-             {showFilters && (
-               <View style={styles.toolPanel}>
-                 <Text style={styles.toolPanelTitle}>Filtros</Text>
-                 <View style={styles.filterGrid}>
-                   {['Normal', 'Vintage', 'B&W', 'Sepia', 'Vivid', 'Cool'].map((filter) => (
-                     <TouchableOpacity
-                       key={filter}
-                       onPress={() => selectFilter(filter)}
-                       style={[
-                         styles.filterOption,
-                         selectedFilter === filter && styles.selectedFilterOption
-                       ]}
-                     >
-                       <Text style={[
-                         styles.filterOptionText,
-                         selectedFilter === filter && styles.selectedFilterText
-                       ]}>
-                         {filter}
-                       </Text>
-                     </TouchableOpacity>
-                   ))}
-                 </View>
-               </View>
-             )}
 
              {showEmojiPicker && (
                <View style={styles.toolPanel}>
@@ -1238,13 +1305,15 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
           </View>
         ) : (
           // Tela da Câmera
-          <CameraView
-            ref={cameraRef}
-            style={styles.camera}
-            facing={facing}
-            flash={flash}
-            mode={mode === 'photo' ? 'picture' : 'video'}
-          >
+          <>
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing={facing}
+              flash={flash}
+              mode={mode === 'photo' ? 'picture' : 'video'}
+            />
+            
             {/* Header com botões de controle */}
             <View style={styles.header}>
               <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
@@ -1293,7 +1362,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                     <Mic size={24} color="white" />
                   )}
                   {mode === 'video' && !isRecording && (
-                    <Video size={24} color="white" />
+                    <VideoIcon size={24} color="white" />
                   )}
                 </View>
               </TouchableOpacity>
@@ -1324,7 +1393,8 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                 </Text>
               </TouchableOpacity>
             </View>
-          </CameraView>
+          </>
+        )}
         )}
       </View>
     </Modal>
@@ -1555,20 +1625,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
     borderRadius: 10,
   },
-  filtersButton: {
-    position: 'absolute',
-    bottom: 120,
-    left: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  filtersButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
-  },
+
   captionContainer: {
     position: 'absolute',
     bottom: 70,
@@ -1621,12 +1678,7 @@ const styles = StyleSheet.create({
    activeText: {
      color: '#007AFF',
    },
-   activeFiltersButton: {
-     backgroundColor: '#007AFF',
-   },
-   activeFiltersText: {
-     color: 'white',
-   },
+
    // Estilos para painéis de ferramentas
    toolPanel: {
      position: 'absolute',
@@ -1645,33 +1697,7 @@ const styles = StyleSheet.create({
      marginBottom: 10,
      textAlign: 'center',
    },
-   // Estilos para filtros
-   filterGrid: {
-     flexDirection: 'row',
-     flexWrap: 'wrap',
-     justifyContent: 'space-between',
-     gap: 8,
-   },
-   filterOption: {
-     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-     paddingHorizontal: 12,
-     paddingVertical: 8,
-     borderRadius: 15,
-     minWidth: 60,
-     alignItems: 'center',
-   },
-   selectedFilterOption: {
-     backgroundColor: '#007AFF',
-   },
-   filterOptionText: {
-     color: 'white',
-     fontSize: 12,
-     fontWeight: '500',
-   },
-   selectedFilterText: {
-     color: 'white',
-     fontWeight: 'bold',
-   },
+
    // Estilos para emojis
    emojiGrid: {
      flexDirection: 'row',
@@ -1813,15 +1839,7 @@ const styles = StyleSheet.create({
      fontSize: 16,
      fontWeight: '600',
    },
-   // Estilo para overlay de filtro
-   filterOverlay: {
-     position: 'absolute',
-     top: 0,
-     left: 0,
-     right: 0,
-     bottom: 0,
-     borderRadius: 10,
-   },
+
    // Estilos para corte livre - estilo WhatsApp
    cropOverlay: {
      position: 'absolute',
@@ -1979,26 +1997,5 @@ const styles = StyleSheet.create({
      fontWeight: '700',
      textAlign: 'center',
    },
-   // Indicador de crop aplicado
-   cropAppliedIndicator: {
-     position: 'absolute',
-     top: 20,
-     right: 20,
-     backgroundColor: 'rgba(0, 122, 255, 0.9)',
-     paddingHorizontal: 12,
-     paddingVertical: 8,
-     borderRadius: 20,
-     borderWidth: 1,
-     borderColor: 'rgba(255, 255, 255, 0.3)',
-     elevation: 5,
-     shadowColor: '#000',
-     shadowOffset: { width: 0, height: 2 },
-     shadowOpacity: 0.3,
-     shadowRadius: 4,
-   },
-   cropAppliedText: {
-     color: 'white',
-     fontSize: 12,
-     fontWeight: '600',
-   },
+
  });
