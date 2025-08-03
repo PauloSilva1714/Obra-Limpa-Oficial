@@ -60,6 +60,10 @@ export interface User {
   privacyPhoto?: boolean;
   photoURL?: string;
   siteName?: string;
+  // Campos de status online
+  isOnline?: boolean;
+  lastSeen?: string; // ISO string timestamp
+  lastActivity?: string; // ISO string timestamp
 }
 
 export interface Site {
@@ -364,6 +368,9 @@ export class AuthService {
 
   static async logout(): Promise<void> {
     try {
+      // Parar monitoramento de presença antes do logout
+      await AuthService.stopPresenceMonitoring();
+      
       // Fazer logout do Firebase Auth
       await signOut(auth);
       // Remover dados do AsyncStorage
@@ -2182,6 +2189,177 @@ export class AuthService {
     } catch (error) {
       console.error('[AuthService] Erro ao obter todos os usuários da obra:', error);
       return [];
+    }
+  }
+
+  /**
+   * Atualiza o status online do usuário
+   */
+  static async updateUserOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const updateData: any = {
+        isOnline,
+        lastActivity: new Date().toISOString()
+      };
+
+      if (!isOnline) {
+        updateData.lastSeen = new Date().toISOString();
+      }
+
+      await updateDoc(userRef, updateData);
+    } catch (error) {
+      console.error('[AuthService] Erro ao atualizar status online:', error);
+    }
+  }
+
+  /**
+   * Busca o status online de um usuário
+   */
+  static async getUserOnlineStatus(userId: string): Promise<{
+    isOnline: boolean;
+    lastSeen?: string;
+    lastActivity?: string;
+  }> {
+    try {
+      console.log('🔍 [AuthService] Buscando status online para userId:', userId);
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (!userDoc.exists()) {
+        console.log('❌ [AuthService] Usuário não encontrado:', userId);
+        return { isOnline: false };
+      }
+
+      const userData = userDoc.data();
+      console.log('🔍 [AuthService] Dados do usuário encontrados:', {
+        isOnline: userData.isOnline,
+        lastSeen: userData.lastSeen,
+        lastActivity: userData.lastActivity
+      });
+      
+      return {
+        isOnline: userData.isOnline || false,
+        lastSeen: userData.lastSeen,
+        lastActivity: userData.lastActivity
+      };
+    } catch (error) {
+      console.error('❌ [AuthService] Erro ao buscar status online:', error);
+      return { isOnline: false };
+    }
+  }
+
+  /**
+   * Formata o status online para exibição
+   */
+  static formatOnlineStatus(status: {
+    isOnline: boolean;
+    lastSeen?: string;
+    lastActivity?: string;
+  }): string {
+    if (status.isOnline) {
+      return 'Online';
+    }
+
+    if (!status.lastSeen && !status.lastActivity) {
+      return 'Offline';
+    }
+
+    const lastSeenDate = status.lastSeen ? new Date(status.lastSeen) : null;
+    const lastActivityDate = status.lastActivity ? new Date(status.lastActivity) : null;
+    
+    // Usar a data mais recente entre lastSeen e lastActivity
+    const mostRecentDate = lastSeenDate && lastActivityDate 
+      ? (lastSeenDate > lastActivityDate ? lastSeenDate : lastActivityDate)
+      : (lastSeenDate || lastActivityDate);
+
+    if (!mostRecentDate) {
+      return 'Offline';
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - mostRecentDate.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMinutes < 1) {
+      return 'Agora há pouco';
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes}min atrás`;
+    } else if (diffHours < 24) {
+      return `${diffHours}h atrás`;
+    } else if (diffDays === 1) {
+      return 'Ontem';
+    } else if (diffDays < 7) {
+      return `${diffDays} dias atrás`;
+    } else {
+      // Para períodos mais longos, mostrar a data
+      return mostRecentDate.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+  }
+
+  /**
+   * Inicia o monitoramento de presença do usuário atual
+   */
+  static async startPresenceMonitoring(): Promise<void> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) return;
+
+      // Marcar como online
+      await AuthService.updateUserOnlineStatus(currentUser.id, true);
+
+      // Atualizar atividade a cada 30 segundos
+      const activityInterval = setInterval(async () => {
+        try {
+          await AuthService.updateUserOnlineStatus(currentUser.id, true);
+        } catch (error) {
+          console.error('[AuthService] Erro ao atualizar atividade:', error);
+        }
+      }, 30000);
+
+      // Marcar como offline quando a página/app for fechado
+      const handleBeforeUnload = async () => {
+        try {
+          await AuthService.updateUserOnlineStatus(currentUser.id, false);
+        } catch (error) {
+          console.error('[AuthService] Erro ao marcar como offline:', error);
+        }
+      };
+
+      // Para web
+      if (typeof window !== 'undefined') {
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('pagehide', handleBeforeUnload);
+      }
+
+      // Limpar interval quando necessário (pode ser chamado externamente)
+      return () => {
+        clearInterval(activityInterval);
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('beforeunload', handleBeforeUnload);
+          window.removeEventListener('pagehide', handleBeforeUnload);
+        }
+      };
+    } catch (error) {
+      console.error('[AuthService] Erro ao iniciar monitoramento de presença:', error);
+    }
+  }
+
+  /**
+   * Para o monitoramento de presença do usuário atual
+   */
+  static async stopPresenceMonitoring(): Promise<void> {
+    try {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) return;
+
+      await AuthService.updateUserOnlineStatus(currentUser.id, false);
+    } catch (error) {
+      console.error('[AuthService] Erro ao parar monitoramento de presença:', error);
     }
   }
 }

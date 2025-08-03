@@ -211,16 +211,38 @@ export default function ChatScreen() {
     initializeChat();
   }, []);
 
+  // Carregar últimas mensagens quando a aba "novo" for selecionada
+  useEffect(() => {
+    const loadMessagesForNewChatTab = async () => {
+      if (activeTab === 'novo' && admins.length > 0 && currentUser) {
+        try {
+          const currentSite = await AuthService.getCurrentSite();
+          if (currentSite) {
+            await loadLastMessages(currentSite.id, admins);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar mensagens para aba novo:', error);
+        }
+      }
+    };
+
+    loadMessagesForNewChatTab();
+  }, [activeTab, admins.length, currentUser?.id]);
+
   const loadAdmins = async () => {
     try {
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
-        const siteAdmins = await AuthService.getAdminsBySite(currentSite.id);
-        setAdmins(siteAdmins);
-        setFilteredAdmins(siteAdmins);
+        const allAdmins = await AuthService.getAdminsBySite(currentSite.id);
+        
+        // Filtrar o usuário atual da lista
+        const filteredAdmins = currentUser ? allAdmins.filter(admin => admin.id !== currentUser.id) : allAdmins;
+        
+        setAdmins(filteredAdmins);
+        setFilteredAdmins(filteredAdmins);
         
         // Buscar última mensagem de cada administrador
-        await loadLastMessages(currentSite.id, siteAdmins);
+        await loadLastMessages(currentSite.id, filteredAdmins);
       }
     } catch (error) {
       console.error('Erro ao carregar administradores:', error);
@@ -229,16 +251,21 @@ export default function ChatScreen() {
 
   const loadLastMessages = async (siteId: string, adminsList: Admin[]) => {
     try {
+      // Usar o mesmo método que a aba Individual - buscar sessões de chat
+      const sessions = await AdminService.getChatSessions(siteId);
       const messagesMap: {[key: string]: {message: string, time: string}} = {};
       
       for (const admin of adminsList) {
         if (admin.id !== currentUser?.id) {
-          const messages = await AdminService.getDirectMessages(siteId, admin.id, { limitCount: 1 });
-          if (messages.length > 0) {
-            const lastMessage = messages[0];
+          // Procurar a sessão de chat correspondente a este admin
+          const session = sessions.find(s => 
+            s.participants.includes(admin.id) && s.participants.includes(currentUser?.id || '')
+          );
+          
+          if (session && session.lastMessage) {
             messagesMap[admin.id] = {
-              message: lastMessage.message,
-              time: lastMessage.createdAt
+              message: session.lastMessage,
+              time: session.lastMessageTime || new Date().toISOString()
             };
           }
         }
@@ -689,7 +716,16 @@ export default function ChatScreen() {
   };
 
   const formatTime = (dateString: string) => {
+    if (!dateString) return 'Agora';
+    
     const date = new Date(dateString);
+    
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) {
+      console.warn('Data inválida recebida:', dateString);
+      return 'Agora';
+    }
+    
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
@@ -742,15 +778,21 @@ export default function ChatScreen() {
         <View style={styles.adminInfo}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.adminName}>{item.name}</Text>
-            {lastMessage && (
+            {lastMessage ? (
               <Text style={styles.timeText}>
                 {formatTime(lastMessage.time)}
               </Text>
+            ) : (
+              <Text style={styles.timeText}>Agora</Text>
             )}
           </View>
-          {lastMessage && (
+          {lastMessage ? (
             <Text style={styles.lastMessage} numberOfLines={1}>
               {lastMessage.message}
+            </Text>
+          ) : (
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              Iniciar conversa
             </Text>
           )}
           {item.company && (
@@ -963,7 +1005,21 @@ export default function ChatScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'novo' && styles.activeTab]}
-          onPress={() => setActiveTab('novo')}
+          onPress={async () => {
+             setActiveTab('novo');
+             
+             // Recarregar as últimas mensagens quando a aba "novo" for selecionada
+             if (admins.length > 0 && currentUser) {
+               try {
+                 const currentSite = await AuthService.getCurrentSite();
+                 if (currentSite) {
+                   await loadLastMessages(currentSite.id, admins);
+                 }
+               } catch (error) {
+                 console.error('Erro ao recarregar mensagens:', error);
+               }
+             }
+           }}
         >
           <MessageCircle size={16} color={activeTab === 'novo' ? '#F97316' : '#F97316'} />
           <Text style={[styles.tabText, activeTab === 'novo' && styles.activeTabText]}>

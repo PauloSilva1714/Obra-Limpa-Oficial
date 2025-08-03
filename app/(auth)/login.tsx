@@ -183,6 +183,14 @@ export default function LoginScreen() {
 
       if (success) {
         showMessage('success', 'Login realizado com sucesso!');
+        
+        // Iniciar monitoramento de presença
+        try {
+          await AuthService.startPresenceMonitoring();
+        } catch (presenceError) {
+          console.error('Erro ao iniciar monitoramento de presença:', presenceError);
+        }
+        
         const user = await AuthService.getCurrentUser();
         if (user && user.role === 'worker') {
           const currentSite = await AuthService.getCurrentSite();

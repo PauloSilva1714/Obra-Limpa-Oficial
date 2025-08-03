@@ -53,6 +53,7 @@ export default function AdminDirectChat({
   const [otherUserPhotoURL, setOtherUserPhotoURL] = useState<string | null>(null);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [showCameraScreen, setShowCameraScreen] = useState(false);
+  const [otherUserStatus, setOtherUserStatus] = useState<string>('Carregando...');
   
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
@@ -147,6 +148,39 @@ export default function AdminDirectChat({
     AuthService.getUserById(otherUserId).then(user => {
       setOtherUserPhotoURL(user?.photoURL || null);
     });
+  }, [otherUserId]);
+
+  // useEffect para monitorar status online do outro usuário
+  useEffect(() => {
+    let statusInterval: NodeJS.Timeout;
+
+    const updateOtherUserStatus = async () => {
+      try {
+        console.log('🔍 [AdminDirectChat] Buscando status do usuário:', otherUserId);
+        const status = await AuthService.getUserOnlineStatus(otherUserId);
+        console.log('🔍 [AdminDirectChat] Status recebido:', status);
+        const formattedStatus = AuthService.formatOnlineStatus(status);
+        console.log('🔍 [AdminDirectChat] Status formatado:', formattedStatus);
+        setOtherUserStatus(formattedStatus);
+      } catch (error) {
+        console.error('❌ [AdminDirectChat] Erro ao buscar status do usuário:', error);
+        setOtherUserStatus('Offline');
+      }
+    };
+
+    // Buscar status inicial
+    console.log('🔍 [AdminDirectChat] Iniciando monitoramento de status para:', otherUserId);
+    updateOtherUserStatus();
+
+    // Atualizar status a cada 30 segundos
+    statusInterval = setInterval(updateOtherUserStatus, 30000);
+
+    return () => {
+      console.log('🔍 [AdminDirectChat] Parando monitoramento de status para:', otherUserId);
+      if (statusInterval) {
+        clearInterval(statusInterval);
+      }
+    };
   }, [otherUserId]);
 
   const handleSendMessage = async () => {
@@ -437,9 +471,14 @@ export default function AdminDirectChat({
               <Text style={[styles.headerTitle, { color: colors.text }]}>
                 {otherUserName}
               </Text>
-              <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-                Chat individual
-              </Text>
+              <View style={styles.statusContainer}>
+                {otherUserStatus === 'Online' && (
+                  <View style={styles.onlineIndicator} />
+                )}
+                <Text style={[styles.headerSubtitle, { color: colors.text }]}>
+                  {otherUserStatus}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -462,16 +501,7 @@ export default function AdminDirectChat({
       
       {/* Message Input */}
       <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
-        {/* Botão para mostrar/ocultar opções */}
-        <TouchableOpacity
-          onPress={() => setShowOptions(!showOptions)}
-          style={{ alignSelf: 'flex-end', marginBottom: 4 }}
-          accessibilityLabel={showOptions ? 'Esconder opções' : 'Mostrar opções'}
-        >
-          <Text style={{ fontSize: 22 }}>{showOptions ? '❌' : '😊'}</Text>
-        </TouchableOpacity>
-        
-        {/* Área de opções (emojis + barra de envio) */}
+        {/* Área de opções (emojis + indicador de chat) */}
         {showOptions && (
           <>
             {/* Emojis sugeridos */}
@@ -519,6 +549,15 @@ export default function AdminDirectChat({
             }}
           >
             <Paperclip size={18} color="white" />
+          </TouchableOpacity>
+          
+          {/* Botão de emoji movido para a linha de input */}
+          <TouchableOpacity
+            onPress={() => setShowOptions(!showOptions)}
+            style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+            accessibilityLabel={showOptions ? 'Esconder opções' : 'Mostrar opções'}
+          >
+            <Text style={{ fontSize: 18, color: 'white' }}>{showOptions ? '❌' : '😊'}</Text>
           </TouchableOpacity>
           
           <TextInput
@@ -836,5 +875,16 @@ const styles = StyleSheet.create({
     width: 200,
     height: 150,
     borderRadius: 8,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  onlineIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981', // Verde para online
   },
 });
