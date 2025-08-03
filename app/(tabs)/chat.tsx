@@ -10,8 +10,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
-import { Search, MessageCircle, User, Camera, MoreVertical, ArrowLeft, Paperclip } from 'lucide-react-native';
+import { Search, MessageCircle, User, Camera, MoreVertical, ArrowLeft, Paperclip, Send, Smile } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { AuthService } from '@/services/AuthService';
 import { AdminService } from '@/services/AdminService';
@@ -117,6 +118,7 @@ interface ChatSession {
   id: string;
   participants: string[];
   participantNames: string[];
+  participantPhotos?: string[];
   lastMessage?: string;
   lastMessageTime?: string;
   unreadCount: number;
@@ -166,6 +168,11 @@ export default function ChatScreen() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [lastMessages, setLastMessages] = useState<{[key: string]: {message: string, time: string}}>({});
+  
+  // Estados para chat em grupo
+  const [groupMessages, setGroupMessages] = useState<any[]>([]);
+  const [groupMessageText, setGroupMessageText] = useState('');
+  const [loadingGroupMessages, setLoadingGroupMessages] = useState(false);
   const [activeTab, setActiveTab] = useState<'individual' | 'grupo' | 'novo'>('individual');
   const [selectedChat, setSelectedChat] = useState<{ userId: string; userName: string } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -184,6 +191,10 @@ export default function ChatScreen() {
   const [drawingMode, setDrawingMode] = useState<string>('');
   const [cropMode, setCropMode] = useState<string>('');
   const [showCameraScreen, setShowCameraScreen] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+
+  // Array de emojis disponíveis
+  const EMOJIS = ['😊', '😂', '❤️', '👍', '🎉', '😎', '😢', '🔥', '💯', '❤️'];
 
   useEffect(() => {
     const initializeChat = async () => {
@@ -210,6 +221,20 @@ export default function ChatScreen() {
 
     initializeChat();
   }, []);
+
+  // Carregar mensagens de grupo quando a aba for selecionada
+  useEffect(() => {
+    if (activeTab === 'grupo') {
+      loadGroupMessages();
+      
+      // Atualizar mensagens a cada 5 segundos quando a aba grupo estiver ativa
+      const interval = setInterval(() => {
+        loadGroupMessages();
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   // Carregar últimas mensagens quando a aba "novo" for selecionada
   useEffect(() => {
@@ -282,10 +307,77 @@ export default function ChatScreen() {
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
         const sessions = await AdminService.getChatSessions(currentSite.id);
-        setChatSessions(sessions);
+        
+        // Buscar informações completas dos participantes para incluir fotos
+        const sessionsWithPhotos = await Promise.all(
+          sessions.map(async (session) => {
+            const participantPhotos: string[] = [];
+            
+            for (const participantId of session.participants) {
+              try {
+                const user = await AuthService.getUserById(participantId);
+                participantPhotos.push(user?.photoURL || '');
+              } catch (error) {
+                console.error('Erro ao buscar usuário:', participantId, error);
+                participantPhotos.push('');
+              }
+            }
+            
+            return {
+              ...session,
+              participantPhotos
+            };
+          })
+        );
+        
+        setChatSessions(sessionsWithPhotos);
       }
     } catch (error) {
       console.error('Erro ao carregar sessões de chat:', error);
+    }
+  };
+
+  // Funções para chat em grupo
+  const loadGroupMessages = async () => {
+    try {
+      setLoadingGroupMessages(true);
+      const currentSite = await AuthService.getCurrentSite();
+      if (currentSite) {
+        const messages = await AdminService.getMessages(currentSite.id);
+        // Ordenar mensagens por data (mais antigas primeiro)
+        const sortedMessages = messages.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+          return dateA.getTime() - dateB.getTime();
+        });
+        setGroupMessages(sortedMessages);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar mensagens do grupo:', error);
+    } finally {
+      setLoadingGroupMessages(false);
+    }
+  };
+
+  const sendGroupMessage = async () => {
+    if (!groupMessageText.trim()) return;
+
+    try {
+      const currentSite = await AuthService.getCurrentSite();
+      if (currentSite) {
+        await AdminService.sendMessage(
+          currentSite.id,
+          groupMessageText.trim(),
+          'general',
+          'medium'
+        );
+        setGroupMessageText('');
+        // Recarregar mensagens após enviar
+        await loadGroupMessages();
+      }
+    } catch (error) {
+      console.error('Erro ao enviar mensagem do grupo:', error);
+      Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
     }
   };
 
@@ -741,13 +833,14 @@ export default function ChatScreen() {
   };
 
   const getOtherParticipant = (session: ChatSession) => {
-    if (!currentUser) return { id: '', name: '' };
+    if (!currentUser) return { id: '', name: '', photoURL: '' };
 
     const currentUserIndex = session.participants.findIndex(id => id === currentUser.id);
     if (currentUserIndex === -1) {
       return {
         id: session.participants[0] || '',
         name: session.participantNames[0] || 'Usuário desconhecido',
+        photoURL: session.participantPhotos?.[0] || '',
       };
     }
 
@@ -755,6 +848,7 @@ export default function ChatScreen() {
     return {
       id: session.participants[otherIndex] || '',
       name: session.participantNames[otherIndex] || 'Usuário desconhecido',
+      photoURL: session.participantPhotos?.[otherIndex] || '',
     };
   };
 
@@ -803,6 +897,26 @@ export default function ChatScreen() {
     );
   };
 
+  const renderGroupMessage = ({ item }: { item: any }) => {
+    const isOwnMessage = item.senderId === currentUser?.id;
+    const messageTime = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+
+    return (
+      <View style={[styles.messageContainer, isOwnMessage ? styles.ownMessage : styles.otherMessage]}>
+        {!isOwnMessage && (
+          <Text style={styles.senderName}>{item.senderName}</Text>
+        )}
+        <Text style={styles.messageText}>{item.message}</Text>
+        <Text style={styles.messageTime}>
+          {messageTime.toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}
+        </Text>
+      </View>
+    );
+  };
+
   const renderChatSession = ({ item }: { item: ChatSession }) => {
     const otherParticipant = getOtherParticipant(item);
     const initials = getInitials(otherParticipant.name);
@@ -812,8 +926,14 @@ export default function ChatScreen() {
         style={styles.chatItem}
         onPress={() => handleSelectAdmin({ id: otherParticipant.id, name: otherParticipant.name, email: '', role: '' })}
       >
-        <View style={[styles.avatar, { backgroundColor: '#F97316' }]}>
-          <Text style={styles.avatarText}>{initials}</Text>
+        <View style={styles.avatarContainer}>
+          {otherParticipant.photoURL ? (
+            <Image source={{ uri: otherParticipant.photoURL }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: '#F97316' }]}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+          )}
         </View>
         <View style={styles.chatInfo}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1049,12 +1169,87 @@ export default function ChatScreen() {
         )}
 
         {activeTab === 'grupo' && (
-          <View style={styles.emptyContainer}>
-            <MessageCircle size={48} color="#9CA3AF" />
-            <Text style={styles.emptyTitle}>Chat em Grupo</Text>
-            <Text style={styles.emptySubtitle}>
-              Funcionalidade de chat em grupo em desenvolvimento
-            </Text>
+          <View style={styles.groupChatContainer}>
+            {loadingGroupMessages ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#F97316" />
+                <Text style={styles.loadingText}>Carregando mensagens...</Text>
+              </View>
+            ) : (
+              <>
+                <FlatList
+                  data={groupMessages}
+                  renderItem={renderGroupMessage}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={false}
+                  style={styles.messagesList}
+                  contentContainerStyle={styles.messagesContent}
+                  ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                      <MessageCircle size={48} color="#9CA3AF" />
+                      <Text style={styles.emptyTitle}>Nenhuma mensagem ainda</Text>
+                      <Text style={styles.emptySubtitle}>
+                        Seja o primeiro a enviar uma mensagem para o grupo!
+                      </Text>
+                    </View>
+                  }
+                />
+                
+                {/* Input de mensagem */}
+                <View style={styles.inputContainer}>
+                  <View style={styles.inputRow}>
+                    <TouchableOpacity style={styles.mediaButton} onPress={openCameraDirectly}>
+                      <Camera size={18} color="white" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.mediaButton} onPress={selectMediaComplete}>
+                      <Paperclip size={18} color="white" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.mediaButton} onPress={() => setShowOptions(!showOptions)}>
+                      <Text style={{ fontSize: 18, color: 'white' }}>😊</Text>
+                    </TouchableOpacity>
+                    
+                    <TextInput
+                      style={styles.messageInput}
+                      placeholder="Digite sua mensagem..."
+                      placeholderTextColor="#9CA3AF"
+                      value={groupMessageText}
+                      onChangeText={setGroupMessageText}
+                      multiline
+                      maxLength={500}
+                    />
+                    <TouchableOpacity
+                      style={[styles.sendButton, !groupMessageText.trim() && styles.sendButtonDisabled]}
+                      onPress={sendGroupMessage}
+                      disabled={!groupMessageText.trim()}
+                    >
+                      <Send size={20} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Lista de emojis */}
+                  {showOptions && (
+                    <View style={styles.emojiContainer}>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {EMOJIS.map((emoji, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            style={styles.emojiButton}
+                            onPress={() => {
+                              setGroupMessageText(prev => prev + emoji);
+                              setShowOptions(false);
+                            }}
+                          >
+                            <Text style={styles.emojiText}>{emoji}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+              </>
+            )}
           </View>
         )}
 
@@ -1293,40 +1488,47 @@ const styles = StyleSheet.create({
   mediaTextContainer: {
     padding: 8,
   },
-  messageInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  inputContainer: {
     borderTopWidth: 1,
     borderTopColor: '#374151',
+    padding: 15,
     marginBottom: 20,
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+  },
   mediaButton: {
-    padding: 8,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: '#374151',
-    justifyContent: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F97316',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
   },
   messageInput: {
     flex: 1,
-    backgroundColor: '#374151',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#374151',
+    backgroundColor: '#1F2937',
     color: '#FFFFFF',
-    fontSize: 14,
-    maxHeight: 100,
-  },
-  sendButton: {
-    backgroundColor: '#F97316',
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginLeft: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    maxHeight: 100,
+    fontSize: 14,
   },
+
   sendButtonDisabled: {
     backgroundColor: '#6B7280',
   },
@@ -1418,14 +1620,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 12,
   },
-  sendButton: {
-    backgroundColor: '#F97316',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   sendButtonIcon: {
     fontSize: 24,
     color: '#FFFFFF',
@@ -1553,6 +1748,61 @@ const styles = StyleSheet.create({
   avatarContainer: {
     marginRight: 12,
   },
+  // Estilos para chat em grupo
+  groupChatContainer: {
+    flex: 1,
+    backgroundColor: '#1F2937',
+  },
+  messagesList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  messagesContent: {
+    paddingVertical: 16,
+  },
+  messageContainer: {
+    maxWidth: '80%',
+    marginVertical: 4,
+    padding: 12,
+    borderRadius: 12,
+  },
+  ownMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#F97316',
+  },
+  otherMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#374151',
+  },
+  senderName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+  messageText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    lineHeight: 20,
+  },
+  messageTime: {
+    fontSize: 11,
+    color: '#D1D5DB',
+    marginTop: 4,
+    alignSelf: 'flex-end',
+  },
+
+  sendButton: {
+    backgroundColor: '#F97316',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#6B7280',
+  },
   chatTime: {
     fontSize: 12,
     color: '#9CA3AF',
@@ -1573,5 +1823,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     fontStyle: 'italic',
+  },
+  emojiContainer: {
+    backgroundColor: '#374151',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#4B5563',
+  },
+  emojiButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    backgroundColor: '#4B5563',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emojiText: {
+    fontSize: 24,
   },
 });
