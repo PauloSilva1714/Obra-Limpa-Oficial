@@ -90,7 +90,8 @@ export interface AdminDirectMessage {
   recipientId: string;
   recipientName: string;
   recipientEmail: string;
-  message: string;
+  content: string; // CORRIGIDO: usar 'content' em vez de 'message'
+  type: 'text' | 'image' | 'file'; // ADICIONADO: tipo da mensagem
   createdAt: string | Timestamp | FieldValue;
   updatedAt?: string;
   readBy: string[];
@@ -1056,71 +1057,144 @@ export class AdminService {
   static async sendDirectMessage(
     siteId: string,
     recipientId: string,
-    message: string,
+    content: string,
+    type: 'text' | 'image' | 'file' = 'text',
     clientId?: string,
     attachments?: string[]
   ): Promise<AdminDirectMessage> {
     try {
+      console.log('📤 [sendDirectMessage] Iniciando envio:', {
+        siteId,
+        recipientId,
+        content: content.substring(0, 50) + '...',
+        type,
+        clientId,
+        attachments: attachments?.length || 0
+      });
 
       const currentUser = await AuthService.getCurrentUser();
+      console.log('👤 [sendDirectMessage] Usuário atual:', {
+        id: currentUser?.id,
+        role: currentUser?.role,
+        sites: currentUser?.sites
+      });
 
       if (!currentUser || currentUser.role !== 'admin') {
-        throw new Error('Apenas administradores podem enviar mensagens');
+        const error = 'Apenas administradores podem enviar mensagens';
+        console.error('❌ [sendDirectMessage]', error);
+        throw new Error(error);
       }
 
       if (!currentUser.sites?.includes(siteId)) {
-        throw new Error('Você não tem acesso a esta obra');
+        const error = 'Você não tem acesso a esta obra';
+        console.error('❌ [sendDirectMessage]', error, {
+          userSites: currentUser.sites,
+          requestedSite: siteId
+        });
+        throw new Error(error);
       }
 
       // Verificar se o destinatário existe
+      console.log('🔍 [sendDirectMessage] Buscando destinatário:', recipientId);
       const recipient = await AuthService.getUserById(recipientId);
+      console.log('👥 [sendDirectMessage] Destinatário encontrado:', {
+        id: recipient?.id,
+        role: recipient?.role,
+        sites: recipient?.sites
+      });
 
       if (!recipient) {
-        throw new Error('Destinatário não encontrado');
+        const error = 'Destinatário não encontrado';
+        console.error('❌ [sendDirectMessage]', error);
+        throw new Error(error);
       }
 
       if (recipient.role !== 'admin') {
-        throw new Error('Destinatário não é um administrador');
+        const error = 'Destinatário não é um administrador';
+        console.error('❌ [sendDirectMessage]', error);
+        throw new Error(error);
       }
 
+      // Verificar se há pelo menos um site em comum entre remetente e destinatário
+      const commonSites = currentUser.sites?.filter(site => recipient.sites?.includes(site)) || [];
+      console.log('🔍 [sendDirectMessage] Sites em comum:', {
+        currentUserSites: currentUser.sites,
+        recipientSites: recipient.sites,
+        commonSites: commonSites
+      });
+
+      if (commonSites.length === 0) {
+        const error = 'Destinatário não compartilha nenhuma obra em comum';
+        console.error('❌ [sendDirectMessage]', error);
+        throw new Error(error);
+      }
+
+      // Se o destinatário não tem acesso ao site atual, usar o primeiro site em comum
+      let finalSiteId = siteId;
       if (!recipient.sites?.includes(siteId)) {
-        throw new Error('Destinatário não tem acesso à obra');
+        finalSiteId = commonSites[0];
+        console.log('⚠️ [sendDirectMessage] Destinatário não tem acesso ao site atual, usando site comum:', {
+          siteOriginal: siteId,
+          siteComum: finalSiteId
+        });
       }
 
       const messageData: Omit<AdminDirectMessage, 'id'> & { clientId?: string } = {
-        siteId,
+        siteId: finalSiteId,
         senderId: currentUser.id,
         senderName: currentUser.name,
         senderEmail: currentUser.email,
         recipientId,
         recipientName: recipient.name,
         recipientEmail: recipient.email,
-        message,
-        createdAt: new Date().toISOString(), // CORRIGIDO: usar timestamp ISO
+        content, // CORRIGIDO: usar 'content' em vez de 'message'
+        type, // ADICIONADO: tipo da mensagem
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(), // ADICIONADO: campo updatedAt
         readBy: [currentUser.id], // O remetente já leu
         attachments: attachments || [],
         ...(clientId ? { clientId } : {}),
       };
+
+      console.log('💾 [sendDirectMessage] Salvando no Firestore:', {
+        collection: 'adminDirectMessages',
+        data: {
+          ...messageData,
+          content: messageData.content.substring(0, 50) + '...'
+        }
+      });
 
       const docRef = await addDoc(
         collection(db, 'adminDirectMessages'),
         messageData
       );
 
+      console.log('✅ [sendDirectMessage] Documento criado:', docRef.id);
+
       // Atualizar ou criar sessão
+      console.log('🔄 [sendDirectMessage] Atualizando sessão de chat...');
       await this.updateChatSession(
-        siteId,
+        finalSiteId,
         currentUser.id,
         recipientId,
-        message
+        content
       );
 
-      return {
+      const result = {
         id: docRef.id,
         ...messageData,
       };
-    } catch (error) {
-      console.error('❌ Erro ao enviar mensagem individual:', error);
+
+      console.log('✅ [sendDirectMessage] Mensagem enviada com sucesso:', result.id);
+      return result;
+    } catch (error: any) {
+      console.error('❌ [sendDirectMessage] Erro ao enviar mensagem individual:', {
+        error: error.message,
+        code: error.code,
+        stack: error.stack,
+        siteId,
+        recipientId
+      });
       throw error;
     }
   }
@@ -1135,48 +1209,161 @@ export class AdminService {
   ): Promise<AdminDirectMessage[]> {
     const limitCount = options?.limitCount ?? 50;
     try {
+      console.log('🔍 [getDirectMessages] Iniciando busca:', { siteId, otherUserId, limitCount });
+      
       const currentUser = await AuthService.getCurrentUser();
+      console.log('🔍 [getDirectMessages] Usuário atual:', { 
+        id: currentUser?.id, 
+        role: currentUser?.role, 
+        sites: currentUser?.sites 
+      });
+      
       if (!currentUser || currentUser.role !== 'admin') {
+        console.log('❌ [getDirectMessages] Usuário não é admin ou não autenticado');
         return [];
       }
 
       if (!currentUser.sites?.includes(siteId)) {
+        console.log('❌ [getDirectMessages] Usuário não tem acesso ao site:', siteId);
         return [];
       }
 
-      // Buscar mensagens onde o usuário atual é remetente ou destinatário
-      const q = query(
-        collection(db, 'adminDirectMessages'),
-        where('siteId', '==', siteId),
-        where('senderId', 'in', [currentUser.id, otherUserId]),
-        where('recipientId', 'in', [currentUser.id, otherUserId]),
-        orderBy('createdAt', 'desc'),
-        limit(limitCount)
+      // Buscar informações do outro usuário para encontrar sites compartilhados
+      const otherUser = await AuthService.getUserById(otherUserId);
+      if (!otherUser) {
+        console.log('❌ [getDirectMessages] Outro usuário não encontrado');
+        return [];
+      }
+
+      // Encontrar sites compartilhados
+      const sharedSites = currentUser.sites?.filter(site => otherUser.sites?.includes(site)) || [];
+      console.log('🔍 [getDirectMessages] Sites compartilhados:', {
+        currentUserSites: currentUser.sites,
+        otherUserSites: otherUser.sites,
+        sharedSites: sharedSites
+      });
+
+      if (sharedSites.length === 0) {
+        console.log('❌ [getDirectMessages] Nenhum site compartilhado encontrado');
+        return [];
+      }
+
+      // Buscar mensagens em todos os sites compartilhados
+      const allQueries: Promise<any>[] = [];
+      
+      for (const sharedSiteId of sharedSites) {
+        // Query 1: Mensagens enviadas pelo usuário atual para o outro usuário
+        const q1 = query(
+          collection(db, 'adminDirectMessages'),
+          where('siteId', '==', sharedSiteId),
+          where('senderId', '==', currentUser.id),
+          where('recipientId', '==', otherUserId),
+          orderBy('createdAt', 'desc'),
+          limit(limitCount)
+        );
+
+        // Query 2: Mensagens enviadas pelo outro usuário para o usuário atual
+        const q2 = query(
+          collection(db, 'adminDirectMessages'),
+          where('siteId', '==', sharedSiteId),
+          where('senderId', '==', otherUserId),
+          where('recipientId', '==', currentUser.id),
+          orderBy('createdAt', 'desc'),
+          limit(limitCount)
+        );
+
+        allQueries.push(getDocs(q1), getDocs(q2));
+      }
+
+      console.log('🔍 [getDirectMessages] Executando', allQueries.length, 'queries em', sharedSites.length, 'sites');
+      const queryResults = await Promise.all(allQueries);
+
+      let totalMessages = 0;
+      queryResults.forEach(snapshot => {
+        totalMessages += snapshot.size;
+      });
+
+      console.log('🔍 [getDirectMessages] Resultados das queries:', {
+        totalQueries: allQueries.length,
+        totalMessages: totalMessages
+      });
+
+      // Processar mensagens de todos os resultados
+      const allMessages: AdminDirectMessage[] = [];
+      
+      queryResults.forEach((querySnapshot) => {
+        querySnapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          
+          // Corrigir mensagens antigas que não têm o campo 'content'
+          let processedData = { ...data };
+          if (!processedData.content && processedData.message) {
+            // Migrar campo 'message' para 'content'
+            processedData.content = processedData.message;
+            console.log('🔄 [getDirectMessages] Migrando campo message para content:', doc.id);
+          } else if (!processedData.content && !processedData.message) {
+            // Mensagem sem conteúdo
+            processedData.content = '[Mensagem sem conteúdo]';
+            console.log('⚠️ [getDirectMessages] Mensagem sem conteúdo encontrada:', doc.id);
+          }
+          
+          // Garantir que o tipo existe
+          if (!processedData.type) {
+            processedData.type = 'text';
+          }
+          
+          allMessages.push({
+            id: doc.id,
+            ...processedData,
+          } as AdminDirectMessage);
+        });
+      });
+
+      console.log('🔍 [getDirectMessages] Mensagens processadas:', {
+        totalMessages: allMessages.length
+      });
+
+      // Remover duplicatas (caso existam mensagens duplicadas entre sites)
+      const uniqueMessages = allMessages.filter((message, index, self) => 
+        index === self.findIndex(m => m.id === message.id)
       );
 
-      const querySnapshot = await getDocs(q);
-      const messages = querySnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          } as AdminDirectMessage)
-      );
+      // Ordenar todas as mensagens por data
+      uniqueMessages.sort((a, b) => {
+        const getTime = (createdAt: any) => {
+          if (!createdAt) return 0;
+          if (typeof createdAt === 'string') return new Date(createdAt).getTime();
+          if (createdAt.toDate) return createdAt.toDate().getTime();
+          return 0;
+        };
+        return getTime(a.createdAt) - getTime(b.createdAt);
+      });
+
+      // Aplicar limite se necessário
+      const finalMessages = uniqueMessages.slice(0, limitCount);
+
+      console.log('🔍 [getDirectMessages] Total de mensagens após ordenação e limite:', {
+        uniqueMessages: uniqueMessages.length,
+        finalMessages: finalMessages.length
+      });
 
       // Marcar mensagens como lidas
-      const unreadMessages = messages.filter(
+      const unreadMessages = finalMessages.filter(
         (msg) =>
           msg.recipientId === currentUser.id &&
           !msg.readBy.includes(currentUser.id)
       );
 
+      console.log('🔍 [getDirectMessages] Mensagens não lidas para marcar:', unreadMessages.length);
+
       for (const msg of unreadMessages) {
         await this.markDirectMessageAsRead(msg.id);
       }
 
-      return messages.reverse(); // Ordenar por data crescente
+      console.log('✅ [getDirectMessages] Busca concluída com sucesso:', finalMessages.length, 'mensagens');
+      return finalMessages;
     } catch (error) {
-      console.error('Erro ao buscar mensagens individuais:', error);
+      console.error('❌ [getDirectMessages] Erro ao buscar mensagens individuais:', error);
       return [];
     }
   }
@@ -1349,30 +1536,108 @@ export class AdminService {
         return () => {};
       }
 
-      // Usar uma consulta mais simples para evitar problemas com o Firestore
-      const q = query(
-        collection(db, 'adminDirectMessages'),
-        where('siteId', '==', siteId),
-        orderBy('createdAt', 'asc')
-      );
+      // Buscar informações do outro usuário para encontrar sites compartilhados
+      const otherUser = await AuthService.getUserById(otherUserId);
+      if (!otherUser) {
+        console.log('❌ [subscribeToDirectMessages] Outro usuário não encontrado');
+        return () => {};
+      }
 
-      return onSnapshot(q, (snapshot) => {
-        // Filtrar mensagens localmente para evitar consultas complexas
-        const messages = snapshot.docs
-          .map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              ...data,
-              clientId: data.clientId || undefined, // força o campo a existir
-            } as AdminDirectMessage;
-          })
-          .filter(msg =>
-            (msg.senderId === currentUser.id && msg.recipientId === otherUserId) ||
-            (msg.senderId === otherUserId && msg.recipientId === currentUser.id)
-          );
-        callback(messages);
+      // Encontrar sites compartilhados
+      const sharedSites = currentUser.sites?.filter(site => otherUser.sites?.includes(site)) || [];
+      console.log('🔍 [subscribeToDirectMessages] Sites compartilhados:', {
+        currentUserSites: currentUser.sites,
+        otherUserSites: otherUser.sites,
+        sharedSites: sharedSites
       });
+
+      if (sharedSites.length === 0) {
+        console.log('❌ [subscribeToDirectMessages] Nenhum site compartilhado encontrado');
+        return () => {};
+      }
+
+      // Criar múltiplos listeners para todos os sites compartilhados
+      const unsubscribeFunctions: (() => void)[] = [];
+      const allMessages = new Map<string, AdminDirectMessage>();
+
+      const updateCallback = () => {
+        const sortedMessages = Array.from(allMessages.values()).sort((a, b) => {
+          const getTime = (createdAt: any) => {
+            if (!createdAt) return 0;
+            if (typeof createdAt === 'string') return new Date(createdAt).getTime();
+            if (createdAt.toDate) return createdAt.toDate().getTime();
+            return 0;
+          };
+          return getTime(a.createdAt) - getTime(b.createdAt);
+        });
+        callback(sortedMessages);
+      };
+
+      // Criar listener para cada site compartilhado
+      for (const sharedSiteId of sharedSites) {
+        const q = query(
+          collection(db, 'adminDirectMessages'),
+          where('siteId', '==', sharedSiteId),
+          orderBy('createdAt', 'asc')
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          // Filtrar mensagens localmente para evitar consultas complexas
+          const siteMessages = snapshot.docs
+            .map(doc => {
+              const data = doc.data();
+              
+              // Corrigir mensagens antigas que não têm o campo 'content'
+              let processedData = { ...data };
+              if (!processedData.content && processedData.message) {
+                // Migrar campo 'message' para 'content'
+                processedData.content = processedData.message;
+                console.log('🔄 [subscribeToDirectMessages] Migrando campo message para content:', doc.id);
+              } else if (!processedData.content && !processedData.message) {
+                // Mensagem sem conteúdo
+                processedData.content = '[Mensagem sem conteúdo]';
+                console.log('⚠️ [subscribeToDirectMessages] Mensagem sem conteúdo encontrada:', doc.id);
+              }
+              
+              // Garantir que o tipo existe
+              if (!processedData.type) {
+                processedData.type = 'text';
+              }
+              
+              return {
+                id: doc.id,
+                ...processedData,
+                clientId: processedData.clientId || undefined,
+              } as AdminDirectMessage;
+            })
+            .filter(msg =>
+              (msg.senderId === currentUser.id && msg.recipientId === otherUserId) ||
+              (msg.senderId === otherUserId && msg.recipientId === currentUser.id)
+            );
+
+          // Atualizar o mapa de mensagens
+          siteMessages.forEach(msg => {
+            allMessages.set(msg.id, msg);
+          });
+
+          // Remover mensagens que não existem mais neste site
+          const currentSiteMessageIds = new Set(siteMessages.map(msg => msg.id));
+          for (const [messageId, message] of allMessages.entries()) {
+            if (message.siteId === sharedSiteId && !currentSiteMessageIds.has(messageId)) {
+              allMessages.delete(messageId);
+            }
+          }
+
+          updateCallback();
+        });
+
+        unsubscribeFunctions.push(unsubscribe);
+      }
+
+      // Retornar função que cancela todos os listeners
+      return () => {
+        unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
+      };
     } catch (error) {
       console.error('❌ Erro ao inscrever-se para mensagens individuais:', error);
       return () => {};

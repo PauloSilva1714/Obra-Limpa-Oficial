@@ -9,12 +9,11 @@ import {
   Modal,
   StatusBar,
   Image,
-  TextInput,
   Animated,
   PanResponder,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { X, RotateCcw, Image as ImageIcon, Zap, ZapOff, Video as VideoIcon, Mic, Send, Type, Smile, Filter } from 'lucide-react-native';
+import { X, Zap, ZapOff, Video as VideoIcon, Mic, Send, Crop, Image as ImageIcon, RotateCcw } from 'lucide-react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -154,9 +153,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   const [isEditing, setIsEditing] = useState(false);
   const [isHDMode, setIsHDMode] = useState(false);
 
-  const [showTextEditor, setShowTextEditor] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showStickers, setShowStickers] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
   const [cropArea, setCropArea] = useState({ 
     x: width * 0.1, 
@@ -165,20 +161,12 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     height: height * 0.5 
   });
   const [appliedEdits, setAppliedEdits] = useState<{
-    emojis: Array<{id: string, emoji: string, x: number, y: number}>;
-    stickers: Array<{id: string, sticker: string, x: number, y: number}>;
-    texts: Array<{id: string, text: string, x: number, y: number, color: string, size: number}>;
     rotation: number;
     crop: {x: number, y: number, width: number, height: number} | null;
   }>({
-    emojis: [],
-    stickers: [],
-    texts: [],
     rotation: 0,
     crop: null
   });
-  const [currentText, setCurrentText] = useState('');
-  const [textColor, setTextColor] = useState('#FFFFFF');
   const [croppedPreviewUri, setCroppedPreviewUri] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
@@ -216,17 +204,9 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     setIsEditing(false);
     setCroppedPreviewUri(null);
     setIsCropping(false);
-    setShowTextEditor(false);
-    setShowEmojiPicker(false);
-    setShowStickers(false);
-    setCurrentText('');
     
     // Resetar edições aplicadas
     setAppliedEdits({
-      filter: null,
-      emojis: [],
-      stickers: [],
-      texts: [],
       rotation: 0,
       crop: null
     });
@@ -477,22 +457,11 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         setCapturedPhoto(null);
         setCaption('');
         setIsEditing(false);
-        setShowFilters(false);
-        setSelectedFilter(null);
-        setShowTextEditor(false);
-        setShowEmojiPicker(false);
-        setShowStickers(false);
         setIsHDMode(false);
         setAppliedEdits({
-          filter: null,
-          emojis: [],
-          stickers: [],
-          texts: [],
           rotation: 0,
           crop: null
         });
-        setCurrentText('');
-        setTextColor('#FFFFFF');
         handleClose();
       } catch (error) {
         console.error('Erro ao processar imagem:', error);
@@ -508,20 +477,10 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     setIsEditing(false);
     setCroppedPreviewUri(null);
     setIsCropping(false);
-    setShowFilters(false);
-    setSelectedFilter(null);
-    setShowTextEditor(false);
-    setShowEmojiPicker(false);
-    setShowStickers(false);
-    setCurrentText('');
     setIsHDMode(false);
     
     // Resetar edições aplicadas
     setAppliedEdits({
-      filter: null,
-      emojis: [],
-      stickers: [],
-      texts: [],
       rotation: 0,
       crop: null
     });
@@ -567,10 +526,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         height: height * 0.4 
       });
       setIsCropping(true);
-      setShowFilters(false);
-      setShowTextEditor(false);
-      setShowEmojiPicker(false);
-      setShowStickers(false);
     }
   };
 
@@ -709,98 +664,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
 
 
-  const toggleTextEditor = () => {
-    setShowTextEditor(!showTextEditor);
-    setShowFilters(false);
-    setShowEmojiPicker(false);
-    setShowStickers(false);
-  };
 
-  const addText = () => {
-    if (currentText.trim()) {
-      const newText = {
-        id: Date.now().toString(),
-        text: currentText,
-        x: width / 2 - 50, // Posição central
-        y: height / 2 - 100,
-        color: textColor,
-        size: 24
-      };
-      setAppliedEdits(prev => ({
-        ...prev,
-        texts: [...prev.texts, newText]
-      }));
-      setCurrentText('');
-      setShowTextEditor(false);
-    }
-  };
-
-  const updateTextPosition = (textId: string, x: number, y: number) => {
-    setAppliedEdits(prev => ({
-      ...prev,
-      texts: prev.texts.map(text => 
-        text.id === textId ? { ...text, x, y } : text
-      )
-    }));
-  };
-
-  const toggleEmojiPicker = () => {
-    setShowEmojiPicker(!showEmojiPicker);
-    setShowFilters(false);
-    setShowTextEditor(false);
-    setShowStickers(false);
-  };
-
-  const addEmoji = (emoji: string) => {
-    const newEmoji = {
-      id: Date.now().toString(),
-      emoji: emoji,
-      x: width / 2 - 20, // Posição central
-      y: height / 2 - 100
-    };
-    setAppliedEdits(prev => ({
-      ...prev,
-      emojis: [...prev.emojis, newEmoji]
-    }));
-  };
-
-  const updateEmojiPosition = (emojiId: string, x: number, y: number) => {
-    setAppliedEdits(prev => ({
-      ...prev,
-      emojis: prev.emojis.map(emoji => 
-        emoji.id === emojiId ? { ...emoji, x, y } : emoji
-      )
-    }));
-  };
-
-  const toggleStickers = () => {
-    setShowStickers(!showStickers);
-    setShowFilters(false);
-    setShowTextEditor(false);
-    setShowEmojiPicker(false);
-  };
-
-  const addSticker = (sticker: string) => {
-    const newSticker = {
-      id: Date.now().toString(),
-      sticker: sticker,
-      x: width / 2 - 25, // Posição central
-      y: height / 2 - 100
-    };
-    setAppliedEdits(prev => ({
-      ...prev,
-      stickers: [...prev.stickers, newSticker]
-    }));
-  };
-
-  const updateStickerPosition = (stickerId: string, x: number, y: number) => {
-    setAppliedEdits(prev => ({
-      ...prev,
-      stickers: prev.stickers.map(sticker => 
-        sticker.id === stickerId ? { ...sticker, x, y } : sticker
-      )
-    }));
-  };
 
   const openGallery = async () => {
     try {
@@ -882,14 +746,8 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                <TouchableOpacity onPress={toggleHDMode} style={[styles.headerButton, isHDMode && styles.activeButton]}>
                  <Text style={[styles.hdText, isHDMode && styles.activeText]}>HD</Text>
                </TouchableOpacity>
-               <TouchableOpacity onPress={toggleEmojiPicker} style={[styles.headerButton, showEmojiPicker && styles.activeButton]}>
-                 <Smile size={24} color={showEmojiPicker ? "#007AFF" : "white"} />
-               </TouchableOpacity>
-               <TouchableOpacity onPress={toggleTextEditor} style={[styles.headerButton, showTextEditor && styles.activeButton]}>
-                 <Type size={24} color={showTextEditor ? "#007AFF" : "white"} />
-               </TouchableOpacity>
-               <TouchableOpacity onPress={toggleStickers} style={[styles.headerButton, showStickers && styles.activeButton]}>
-                 <ImageIcon size={24} color={showStickers ? "#007AFF" : "white"} />
+               <TouchableOpacity onPress={cropImage} style={[styles.headerButton, isCropping && styles.activeButton]}>
+                 <Crop size={24} color={isCropping ? "#007AFF" : "white"} />
                </TouchableOpacity>
              </View>
             </View>
@@ -936,58 +794,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
               </View>
               
-              {/* Overlay para textos */}
-              {appliedEdits.texts.map((textItem) => (
-                <DraggableElement
-                  key={textItem.id}
-                  initialX={textItem.x}
-                  initialY={textItem.y}
-                  onPositionChange={(x, y) => updateTextPosition(textItem.id, x, y)}
-                  style={styles.draggableElement}
-                >
-                  <Text
-                    style={[
-                      styles.overlayText,
-                      {
-                        color: textItem.color,
-                        fontSize: textItem.size,
-                      }
-                    ]}
-                  >
-                    {textItem.text}
-                  </Text>
-                </DraggableElement>
-              ))}
-              
-              {/* Overlay para emojis */}
-              {appliedEdits.emojis.map((emojiItem) => (
-                <DraggableElement
-                  key={emojiItem.id}
-                  initialX={emojiItem.x}
-                  initialY={emojiItem.y}
-                  onPositionChange={(x, y) => updateEmojiPosition(emojiItem.id, x, y)}
-                  style={styles.draggableElement}
-                >
-                  <Text style={styles.overlayEmoji}>
-                    {emojiItem.emoji}
-                  </Text>
-                </DraggableElement>
-              ))}
-              
-              {/* Overlay para stickers */}
-              {appliedEdits.stickers.map((stickerItem) => (
-                <DraggableElement
-                  key={stickerItem.id}
-                  initialX={stickerItem.x}
-                  initialY={stickerItem.y}
-                  onPositionChange={(x, y) => updateStickerPosition(stickerItem.id, x, y)}
-                  style={styles.draggableElement}
-                >
-                  <Text style={styles.overlaySticker}>
-                    {stickerItem.sticker}
-                  </Text>
-                </DraggableElement>
-              ))}
+
               
               {/* Interface de corte livre - estilo WhatsApp */}
               {isCropping && (
@@ -1189,86 +996,9 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
               )}
             </View>
 
-            {/* Painéis de ferramentas */}
 
-             {showEmojiPicker && (
-               <View style={styles.toolPanel}>
-                 <Text style={styles.toolPanelTitle}>Emojis</Text>
-                 <View style={styles.emojiGrid}>
-                   {['😀', '😂', '😍', '🥰', '😎', '🤔', '😮', '🎉', '❤️', '👍', '🔥', '✨'].map((emoji) => (
-                     <TouchableOpacity
-                       key={emoji}
-                       onPress={() => addEmoji(emoji)}
-                       style={styles.emojiOption}
-                     >
-                       <Text style={styles.emojiText}>{emoji}</Text>
-                     </TouchableOpacity>
-                   ))}
-                 </View>
-               </View>
-             )}
 
-             {showTextEditor && (
-               <View style={styles.toolPanel}>
-                 <Text style={styles.toolPanelTitle}>Adicionar Texto</Text>
-                 <View style={styles.textEditorContainer}>
-                   <TextInput
-                     style={styles.textInput}
-                     placeholder="Digite seu texto..."
-                     placeholderTextColor="#9CA3AF"
-                     value={currentText}
-                     onChangeText={setCurrentText}
-                     multiline
-                   />
-                   <View style={styles.colorPicker}>
-                     {['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'].map((color) => (
-                       <TouchableOpacity
-                         key={color}
-                         onPress={() => setTextColor(color)}
-                         style={[
-                           styles.colorOption,
-                           { backgroundColor: color },
-                           textColor === color && styles.selectedColorOption
-                         ]}
-                       />
-                     ))}
-                   </View>
-                   <TouchableOpacity onPress={addText} style={styles.addTextButton}>
-                     <Text style={styles.addTextButtonText}>Adicionar Texto</Text>
-                   </TouchableOpacity>
-                 </View>
-               </View>
-             )}
 
-             {showStickers && (
-               <View style={styles.toolPanel}>
-                 <Text style={styles.toolPanelTitle}>Stickers</Text>
-                 <View style={styles.stickerGrid}>
-                   {['🌟', '💫', '⭐', '🎈', '🎊', '🎁', '🏆', '🎯', '🎪', '🎭', '🎨', '🎵'].map((sticker) => (
-                     <TouchableOpacity
-                       key={sticker}
-                       onPress={() => addSticker(sticker)}
-                       style={styles.stickerOption}
-                     >
-                       <Text style={styles.stickerText}>{sticker}</Text>
-                     </TouchableOpacity>
-                   ))}
-                 </View>
-               </View>
-             )}
-
-             {/* Input de legenda */}
-            <View style={styles.captionContainer}>
-              <ImageIcon size={20} color="#9CA3AF" />
-              <TextInput
-                style={styles.captionInput}
-                placeholder="Adicione uma legenda..."
-                placeholderTextColor="#9CA3AF"
-                value={caption}
-                onChangeText={setCaption}
-                multiline
-              />
-            </View>
 
             {/* Footer com envio */}
             <View style={styles.editFooter} pointerEvents="box-none">
@@ -1626,25 +1356,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
-  captionContainer: {
-    position: 'absolute',
-    bottom: 70,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  captionInput: {
-    flex: 1,
-    color: 'white',
-    fontSize: 16,
-    maxHeight: 80,
-  },
+
   editFooter: {
     position: 'absolute',
     bottom: 20,
@@ -1679,166 +1391,7 @@ const styles = StyleSheet.create({
      color: '#007AFF',
    },
 
-   // Estilos para painéis de ferramentas
-   toolPanel: {
-     position: 'absolute',
-     bottom: 160,
-     left: 20,
-     right: 20,
-     backgroundColor: 'rgba(0, 0, 0, 0.9)',
-     borderRadius: 15,
-     padding: 15,
-     maxHeight: 200,
-   },
-   toolPanelTitle: {
-     color: 'white',
-     fontSize: 16,
-     fontWeight: 'bold',
-     marginBottom: 10,
-     textAlign: 'center',
-   },
 
-   // Estilos para emojis
-   emojiGrid: {
-     flexDirection: 'row',
-     flexWrap: 'wrap',
-     justifyContent: 'space-between',
-     gap: 8,
-   },
-   emojiOption: {
-     width: 40,
-     height: 40,
-     justifyContent: 'center',
-     alignItems: 'center',
-     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-     borderRadius: 20,
-   },
-   emojiText: {
-     fontSize: 20,
-   },
-   // Estilos para editor de texto
-   textEditorOptions: {
-     gap: 10,
-   },
-   textOption: {
-     flexDirection: 'row',
-     alignItems: 'center',
-     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-     padding: 12,
-     borderRadius: 10,
-     gap: 10,
-   },
-   textOptionLabel: {
-     color: 'white',
-     fontSize: 14,
-     fontWeight: '500',
-   },
-   // Estilos para stickers
-   stickerGrid: {
-     flexDirection: 'row',
-     flexWrap: 'wrap',
-     justifyContent: 'space-between',
-     gap: 8,
-   },
-   stickerOption: {
-     width: 40,
-     height: 40,
-     justifyContent: 'center',
-     alignItems: 'center',
-     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-     borderRadius: 20,
-   },
-   stickerText: {
-     fontSize: 20,
-   },
-   // Estilos para overlays de edição
-   overlayText: {
-     fontWeight: 'bold',
-     textShadowColor: 'rgba(0, 0, 0, 0.75)',
-     textShadowOffset: { width: 1, height: 1 },
-     textShadowRadius: 2,
-     minWidth: 40,
-     minHeight: 40,
-     textAlign: 'center',
-     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-     borderRadius: 8,
-     paddingHorizontal: 8,
-     paddingVertical: 4,
-   },
-   overlayEmoji: {
-     fontSize: 32,
-     minWidth: 50,
-     minHeight: 50,
-     textAlign: 'center',
-     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-     borderRadius: 25,
-     paddingHorizontal: 8,
-     paddingVertical: 8,
-     borderWidth: 2,
-     borderColor: 'rgba(255, 255, 255, 0.5)',
-   },
-   overlaySticker: {
-     fontSize: 32,
-     minWidth: 50,
-     minHeight: 50,
-     textAlign: 'center',
-     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-     borderRadius: 25,
-     paddingHorizontal: 8,
-     paddingVertical: 8,
-     borderWidth: 2,
-     borderColor: 'rgba(255, 255, 255, 0.5)',
-   },
-   draggableElement: {
-     minWidth: 50,
-     minHeight: 50,
-     justifyContent: 'center',
-     alignItems: 'center',
-     borderWidth: 2,
-     borderColor: 'rgba(255, 255, 255, 0.4)',
-     borderRadius: 8,
-     backgroundColor: 'rgba(0, 0, 0, 0.2)',
-   },
-   // Estilos para o novo editor de texto
-   textEditorContainer: {
-     gap: 15,
-   },
-   textInput: {
-     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-     color: 'white',
-     padding: 12,
-     borderRadius: 10,
-     fontSize: 16,
-     minHeight: 40,
-     maxHeight: 80,
-   },
-   colorPicker: {
-     flexDirection: 'row',
-     justifyContent: 'space-between',
-     gap: 8,
-   },
-   colorOption: {
-     width: 30,
-     height: 30,
-     borderRadius: 15,
-     borderWidth: 2,
-     borderColor: 'transparent',
-   },
-   selectedColorOption: {
-     borderColor: 'white',
-     borderWidth: 3,
-   },
-   addTextButton: {
-     backgroundColor: '#007AFF',
-     padding: 12,
-     borderRadius: 10,
-     alignItems: 'center',
-   },
-   addTextButtonText: {
-     color: 'white',
-     fontSize: 16,
-     fontWeight: '600',
-   },
 
    // Estilos para corte livre - estilo WhatsApp
    cropOverlay: {

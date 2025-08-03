@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { AuthService } from '@/services/AuthService';
 import { AdminService } from '@/services/AdminService';
 import TabBarToggleButton from '@/components/TabBarToggleButton';
+import AdminDirectChat from '@/components/AdminDirectChat';
 import * as ImagePicker from 'expo-image-picker';
 import CameraScreen from '@/components/CameraScreen';
 import { Video } from 'expo-av';
@@ -164,6 +165,7 @@ export default function ChatScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [lastMessages, setLastMessages] = useState<{[key: string]: {message: string, time: string}}>({});
   const [activeTab, setActiveTab] = useState<'individual' | 'grupo' | 'novo'>('individual');
   const [selectedChat, setSelectedChat] = useState<{ userId: string; userName: string } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -216,9 +218,35 @@ export default function ChatScreen() {
         const siteAdmins = await AuthService.getAdminsBySite(currentSite.id);
         setAdmins(siteAdmins);
         setFilteredAdmins(siteAdmins);
+        
+        // Buscar última mensagem de cada administrador
+        await loadLastMessages(currentSite.id, siteAdmins);
       }
     } catch (error) {
       console.error('Erro ao carregar administradores:', error);
+    }
+  };
+
+  const loadLastMessages = async (siteId: string, adminsList: Admin[]) => {
+    try {
+      const messagesMap: {[key: string]: {message: string, time: string}} = {};
+      
+      for (const admin of adminsList) {
+        if (admin.id !== currentUser?.id) {
+          const messages = await AdminService.getDirectMessages(siteId, admin.id, { limitCount: 1 });
+          if (messages.length > 0) {
+            const lastMessage = messages[0];
+            messagesMap[admin.id] = {
+              message: lastMessage.message,
+              time: lastMessage.createdAt
+            };
+          }
+        }
+      }
+      
+      setLastMessages(messagesMap);
+    } catch (error) {
+      console.error('Erro ao carregar últimas mensagens:', error);
     }
   };
 
@@ -531,39 +559,7 @@ export default function ChatScreen() {
   };
 
   const handleMoreOptionsPress = () => {
-    Alert.alert(
-      'Opções',
-      'Escolha uma opção:',
-      [
-        {
-          text: '📷 Câmera',
-          onPress: () => setShowCameraScreen(true),
-        },
-        {
-          text: '🖼️ Galeria',
-          onPress: () => {
-            Alert.alert(
-              'Galeria',
-              'Escolha uma opção:',
-              [
-                {
-                  text: '🖼️ Selecionar Mídia',
-                  onPress: () => selectMediaComplete(),
-                },
-                {
-                  text: 'Cancelar',
-                  style: 'cancel',
-                },
-              ]
-            );
-          },
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    // Modal removido - função não faz nada
   };
 
   const closeCameraEditor = () => {
@@ -621,9 +617,7 @@ export default function ChatScreen() {
       // Novo formato - mídia com edições
       const hasEdits = media.edits && (
         media.edits.filter || 
-        media.edits.texts.length > 0 || 
-        media.edits.emojis.length > 0 || 
-        media.edits.stickers.length > 0
+        media.edits.crop
       );
       
       const mediaMessage: Message = {
@@ -662,155 +656,23 @@ export default function ChatScreen() {
   };
 
   const applyFilter = (filterType: string) => {
-    Alert.alert(
-      'Filtros',
-      'Escolha um filtro:',
-      [
-        {
-          text: 'Normal',
-          onPress: () => {
-            setAppliedFilter('Normal');
-            Alert.alert('Filtro Aplicado', 'Filtro Normal aplicado!');
-          },
-        },
-        {
-          text: 'Vintage',
-          onPress: () => {
-            setAppliedFilter('Vintage');
-            Alert.alert('Filtro Aplicado', 'Filtro Vintage aplicado!');
-          },
-        },
-        {
-          text: 'Preto e Branco',
-          onPress: () => {
-            setAppliedFilter('P&B');
-            Alert.alert('Filtro Aplicado', 'Filtro P&B aplicado!');
-          },
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    // Função removida - não faz nada
   };
 
   const addText = () => {
-    Alert.prompt(
-      'Adicionar Texto',
-      'Digite o texto que deseja adicionar:',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Adicionar',
-          onPress: (text) => {
-            if (text) {
-              setAppliedText(text);
-              Alert.alert('Texto Adicionado', `Texto "${text}" adicionado à mídia!`);
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
+    // Função removida - não faz nada
   };
 
   const addSticker = () => {
-    Alert.alert(
-      'Adicionar Sticker',
-      'Escolha um sticker:',
-      [
-        {
-          text: '😊',
-          onPress: () => {
-            setAppliedSticker('😊');
-            Alert.alert('Sticker Adicionado', 'Sticker 😊 adicionado!');
-          },
-        },
-        {
-          text: '👍',
-          onPress: () => {
-            setAppliedSticker('👍');
-            Alert.alert('Sticker Adicionado', 'Sticker 👍 adicionado!');
-          },
-        },
-        {
-          text: '❤️',
-          onPress: () => {
-            setAppliedSticker('❤️');
-            Alert.alert('Sticker Adicionado', 'Sticker ❤️ adicionado!');
-          },
-        },
-        {
-          text: '🎉',
-          onPress: () => {
-            setAppliedSticker('🎉');
-            Alert.alert('Sticker Adicionado', 'Sticker 🎉 adicionado!');
-          },
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    // Função removida - não faz nada
   };
 
   const drawOnMedia = () => {
-    Alert.alert(
-      'Desenhar',
-      'Escolha uma cor para desenhar:',
-      [
-        {
-          text: '🖍️ Vermelho',
-          onPress: () => {
-            setDrawingMode('Vermelho');
-            Alert.alert('Desenho Ativado', 'Modo desenho vermelho ativado!');
-          },
-        },
-        {
-          text: '🖍️ Azul',
-          onPress: () => {
-            setDrawingMode('Azul');
-            Alert.alert('Desenho Ativado', 'Modo desenho azul ativado!');
-          },
-        },
-        {
-          text: '🖍️ Verde',
-          onPress: () => {
-            setDrawingMode('Verde');
-            Alert.alert('Desenho Ativado', 'Modo desenho verde ativado!');
-          },
-        },
-        {
-          text: '🖍️ Amarelo',
-          onPress: () => {
-            setDrawingMode('Amarelo');
-            Alert.alert('Desenho Ativado', 'Modo desenho amarelo ativado!');
-          },
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    // Função removida - não faz nada
   };
 
   const cropMedia = () => {
-    Alert.alert(
-      'Cortar Mídia',
-      'Crop será feito no editor! Use as ferramentas de edição.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {},
-        },
-      ]
-    );
+    // Função removida - não faz nada
   };
 
   const handleBackToChatList = () => {
@@ -860,29 +722,44 @@ export default function ChatScreen() {
     };
   };
 
-  const renderAdminItem = ({ item }: { item: Admin }) => (
-    <TouchableOpacity
-      style={styles.adminItem}
-      onPress={() => handleSelectAdmin(item)}
-    >
-      <View style={styles.avatarContainer}>
-        {item.photoURL ? (
-          <Image source={{ uri: item.photoURL }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, { backgroundColor: '#F97316' }]}>
-            <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+  const renderAdminItem = ({ item }: { item: Admin }) => {
+    const lastMessage = lastMessages[item.id];
+    
+    return (
+      <TouchableOpacity
+        style={styles.adminItem}
+        onPress={() => handleSelectAdmin(item)}
+      >
+        <View style={styles.avatarContainer}>
+          {item.photoURL ? (
+            <Image source={{ uri: item.photoURL }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: '#F97316' }]}>
+              <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.adminInfo}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.adminName}>{item.name}</Text>
+            {lastMessage && (
+              <Text style={styles.timeText}>
+                {formatTime(lastMessage.time)}
+              </Text>
+            )}
           </View>
-        )}
-      </View>
-      <View style={styles.adminInfo}>
-        <Text style={styles.adminName}>{item.name}</Text>
-        <Text style={styles.adminRole}>{item.role}</Text>
-        {item.company && (
-          <Text style={styles.adminCompany}>{item.company}</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+          {lastMessage && (
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {lastMessage.message}
+            </Text>
+          )}
+          {item.company && (
+            <Text style={styles.adminCompany}>{item.company}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderChatSession = ({ item }: { item: ChatSession }) => {
     const otherParticipant = getOtherParticipant(item);
@@ -933,291 +810,111 @@ export default function ChatScreen() {
     return null;
   }
 
-  // Se um chat foi selecionado, mostrar a tela de chat individual
+  // Se um chat foi selecionado, mostrar a tela de chat individual usando AdminDirectChat
   if (selectedChat) {
-    // Encontrar o admin selecionado para obter a foto
-    const selectedAdmin = admins.find(admin => admin.id === selectedChat.userId);
+    return (
+      <AdminDirectChat
+        siteId={currentUser?.siteId || ''}
+        otherUserId={selectedChat.userId}
+        otherUserName={selectedChat.userName}
+        onBack={handleBackToChatList}
+        style={styles.container}
+      />
+    );
+  }
 
+  // Manter o resto do código de câmera para não quebrar funcionalidades existentes
+  if (showCameraEditor && capturedMedia) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.chatHeader}>
-          <TouchableOpacity onPress={handleBackToChatList} style={styles.backButton}>
-            <ArrowLeft size={24} color="#F97316" />
-          </TouchableOpacity>
-          <View style={styles.chatHeaderInfo}>
-            {selectedAdmin?.photoURL ? (
-              <Image source={{ uri: selectedAdmin.photoURL }} style={styles.chatAvatar} />
+        <View style={styles.cameraEditorOverlay}>
+          {/* Top Toolbar */}
+          <View style={styles.cameraEditorToolbar}>
+            <TouchableOpacity style={styles.toolbarButton} onPress={closeCameraEditor}>
+              <Text style={styles.toolbarIcon}>✕</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.toolbarButton}>
+              <Text style={styles.toolbarIcon}>HD ✓</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolbarButton, cropMode && styles.toolbarButtonActive]}
+              onPress={cropMedia}
+            >
+              <Text style={styles.toolbarIcon}>⏹️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolbarButton, appliedSticker && styles.toolbarButtonActive]}
+              onPress={addSticker}
+            >
+              <Text style={styles.toolbarIcon}>😊</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolbarButton, appliedText && styles.toolbarButtonActive]}
+              onPress={addText}
+            >
+              <Text style={styles.toolbarIcon}>T</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolbarButton, drawingMode && styles.toolbarButtonActive]}
+              onPress={drawOnMedia}
+            >
+              <Text style={styles.toolbarIcon}>✏️</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Media Preview */}
+          <View style={styles.cameraEditorPreview}>
+            {capturedMedia.type === 'video' ? (
+              <Video
+                source={{ uri: capturedMedia.uri }}
+                style={styles.cameraEditorImage}
+                useNativeControls={true}
+                resizeMode="contain"
+                shouldPlay={false}
+                isLooping={false}
+                volume={1.0}
+                isMuted={false}
+                usePoster={false}
+              />
             ) : (
-              <View style={[styles.avatar, { backgroundColor: '#F97316' }]}>
-                <Text style={styles.avatarText}>{getInitials(selectedChat.userName)}</Text>
-              </View>
+              <Image
+                source={{ uri: capturedMedia.uri }}
+                style={styles.cameraEditorImage}
+                resizeMode="contain"
+              />
             )}
-            <View>
-              <Text style={styles.chatHeaderName}>{selectedChat.userName}</Text>
-              <Text style={styles.chatHeaderStatus}>Online</Text>
-            </View>
           </View>
-          <TouchableOpacity style={styles.headerButton} onPress={handleMoreOptionsPress}>
-            <MoreVertical size={20} color="#F97316" />
-          </TouchableOpacity>
-        </View>
 
-        {/* Chat Messages */}
-        <View style={styles.chatMessagesContainer}>
-          {messages.length === 0 ? (
-            <View style={styles.emptyChatContainer}>
-              <Text style={styles.emptyChatText}>
-                Inicie uma conversa com {selectedChat.userName}
+          {/* Bottom Controls */}
+          <View style={styles.cameraEditorBottom}>
+            <TouchableOpacity
+              style={[styles.filterButton, appliedFilter && styles.filterButtonActive]}
+              onPress={applyFilter}
+            >
+              <Text style={styles.filterText}>
+                {appliedFilter ? `Filtros (${appliedFilter})` : 'Filtros'}
               </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={messages}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={[
-                  styles.messageContainer,
-                  item.isOwn ? styles.ownMessage : styles.otherMessage
-                ]}>
-                  {item.isPhoto ? (
-                    <View style={styles.mediaMessageContainer}>
-                      {item.uri ? (
-                        <View style={styles.mediaContentContainer}>
-                          <View style={[
-                            styles.imageWrapper,
-                            item.edits?.crop && {
-                              width: 280,
-                              height: 280,
-                              overflow: 'hidden'
-                            }
-                          ]}>
-                            {item.mediaType === 'video' ? (
-                              <VideoPlayer
-                                source={{ uri: item.uri }}
-                                style={[
-                                  styles.mediaImage,
-                                  {
-                                    transform: [
-                                      { rotate: `${item.edits?.rotation || 0}deg` },
-                                      ...(item.edits?.crop ? [
-                                        { translateX: -item.edits.crop.x },
-                                        { translateY: -item.edits.crop.y }
-                                      ] : [])
-                                    ]
-                                  }
-                                ]}
-                                filter={item.edits?.filter}
-                                getFilterStyle={getFilterStyle}
-                              />
-                            ) : (
-                              <>
-                                <Image
-                                  source={{ uri: item.uri }}
-                                  style={[
-                                    styles.mediaImage,
-                                    {
-                                      transform: [
-                                        { rotate: `${item.edits?.rotation || 0}deg` },
-                                        ...(item.edits?.crop ? [
-                                          { translateX: -item.edits.crop.x },
-                                          { translateY: -item.edits.crop.y }
-                                        ] : [])
-                                      ]
-                                    }
-                                  ]}
-                                  resizeMode="cover"
-                                />
-                                {/* Overlay do filtro para imagem */}
-                                {item.edits?.filter && item.edits.filter !== 'Normal' && (
-                                  <View 
-                                    style={[
-                                      styles.filterOverlay,
-                                      getFilterStyle(item.edits.filter)
-                                    ]} 
-                                  />
-                                )}
-                              </>
-                            )}
-                          </View>
-                          {/* Renderizar edições como overlays */}
-                          {renderEditOverlays(item.edits)}
-                        </View>
-                      ) : (
-                        <View style={styles.mediaIconContainer}>
-                          {item.mediaType === 'photo' ? (
-                            <Text style={styles.mediaIcon}>📷</Text>
-                          ) : item.mediaType === 'video' ? (
-                            <Text style={styles.mediaIcon}>🎥</Text>
-                          ) : (
-                            <Text style={styles.mediaIcon}>🖼️</Text>
-                          )}
-                        </View>
-                      )}
-                      <View style={styles.mediaTextContainer}>
-                        <Text style={[
-                          styles.messageText,
-                          item.isOwn ? styles.ownMessageText : styles.otherMessageText
-                        ]}>
-                          {item.text}
-                        </Text>
-                        <Text style={styles.messageTime}>
-                          {formatTime(item.timestamp)}
-                        </Text>
-                      </View>
-                    </View>
-                  ) : (
-                    <>
-                      <Text style={[
-                        styles.messageText,
-                        item.isOwn ? styles.ownMessageText : styles.otherMessageText
-                      ]}>
-                        {item.text}
-                      </Text>
-                      <Text style={styles.messageTime}>
-                        {formatTime(item.timestamp)}
-                      </Text>
-                    </>
-                  )}
-                </View>
-              )}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
+            </TouchableOpacity>
 
-        {/* Message Input */}
-        <View style={styles.messageInputContainer}>
-          <TouchableOpacity
-            style={styles.mediaButton}
-            onPress={handleCameraPress}
-          >
-            <Camera size={20} color="#F97316" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.mediaButton}
-            onPress={handleMoreOptionsPress}
-          >
-            <Paperclip size={20} color="#F97316" />
-          </TouchableOpacity>
-          <TextInput
-            style={styles.messageInput}
-            placeholder="Digite sua mensagem..."
-            placeholderTextColor="#9CA3AF"
-            value={messageText}
-            onChangeText={setMessageText}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, !messageText.trim() && styles.sendButtonDisabled]}
-            onPress={sendMessage}
-            disabled={!messageText.trim()}
-          >
-            <Text style={styles.sendButtonText}>Enviar</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* CameraScreen Component */}
-         {showCameraScreen && (
-           <CameraScreen
-             visible={showCameraScreen}
-             onClose={closeCameraScreen}
-             onPhotoTaken={handleCameraCapture}
-             onVideoTaken={handleCameraCapture}
-           />
-         )}
-
-        {/* Editor da Câmera (como WhatsApp) */}
-        {console.log('=== DEBUG: Renderizando editor, showCameraEditor =', showCameraEditor, 'capturedMedia =', capturedMedia)}
-        {showCameraEditor && capturedMedia && (
-          <View style={styles.cameraEditorOverlay}>
-            {/* Top Toolbar */}
-            <View style={styles.cameraEditorToolbar}>
-              <TouchableOpacity style={styles.toolbarButton} onPress={closeCameraEditor}>
-                <Text style={styles.toolbarIcon}>✕</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.toolbarButton}>
-                <Text style={styles.toolbarIcon}>HD ✓</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toolbarButton, cropMode && styles.toolbarButtonActive]}
-                onPress={cropMedia}
-              >
-                <Text style={styles.toolbarIcon}>⏹️</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toolbarButton, appliedSticker && styles.toolbarButtonActive]}
-                onPress={addSticker}
-              >
-                <Text style={styles.toolbarIcon}>😊</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toolbarButton, appliedText && styles.toolbarButtonActive]}
-                onPress={addText}
-              >
-                <Text style={styles.toolbarIcon}>T</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toolbarButton, drawingMode && styles.toolbarButtonActive]}
-                onPress={drawOnMedia}
-              >
-                <Text style={styles.toolbarIcon}>✏️</Text>
-              </TouchableOpacity>
+            <View style={styles.captionContainer}>
+              <TextInput
+                style={styles.captionInput}
+                placeholder="Adicione uma legenda..."
+                placeholderTextColor="#9CA3AF"
+                value={mediaCaption}
+                onChangeText={setMediaCaption}
+                multiline
+              />
             </View>
 
-            {/* Media Preview */}
-            <View style={styles.cameraEditorPreview}>
-              {capturedMedia.type === 'video' ? (
-                <Video
-                  source={{ uri: capturedMedia.uri }}
-                  style={styles.cameraEditorImage}
-                  useNativeControls={true}
-                  resizeMode="contain"
-                  shouldPlay={false}
-                  isLooping={false}
-                  volume={1.0}
-                  isMuted={false}
-                  usePoster={false}
-                />
-              ) : (
-                <Image
-                  source={{ uri: capturedMedia.uri }}
-                  style={styles.cameraEditorImage}
-                  resizeMode="contain"
-                />
-              )}
-            </View>
-
-            {/* Bottom Controls */}
-            <View style={styles.cameraEditorBottom}>
-              <TouchableOpacity
-                style={[styles.filterButton, appliedFilter && styles.filterButtonActive]}
-                onPress={() => applyFilter()}
-              >
-                <Text style={styles.filterText}>
-                  {appliedFilter ? `Filtros (${appliedFilter})` : 'Filtros'}
-                </Text>
+            <View style={styles.sendInfoContainer}>
+              <Text style={styles.sendInfoText}>Eu (você)</Text>
+              <TouchableOpacity style={styles.sendButton} onPress={sendMediaWithCaption}>
+                <Text style={styles.sendButtonIcon}>➤</Text>
               </TouchableOpacity>
-
-              <View style={styles.captionContainer}>
-                <TextInput
-                  style={styles.captionInput}
-                  placeholder="Adicione uma legenda..."
-                  placeholderTextColor="#9CA3AF"
-                  value={mediaCaption}
-                  onChangeText={setMediaCaption}
-                  multiline
-                />
-              </View>
-
-              <View style={styles.sendInfoContainer}>
-                <Text style={styles.sendInfoText}>Eu (você)</Text>
-                <TouchableOpacity style={styles.sendButton} onPress={sendMediaWithCaption}>
-                  <Text style={styles.sendButtonIcon}>➤</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
-        )}
+        </View>
       </SafeAreaView>
     );
   }
@@ -1804,5 +1501,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     marginLeft: 'auto',
+  },
+  adminInfo: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  adminName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  adminCompany: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
   },
 });

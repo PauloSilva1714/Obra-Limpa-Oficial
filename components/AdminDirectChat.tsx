@@ -19,7 +19,7 @@ import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { uploadImageAsync } from '../services/PhotoService';
 import MediaPicker from './MediaPicker';
-import CameraScreen from './CameraScreen'; // Importando o CameraScreen
+import CameraScreen from './CameraScreen';
 import * as ImagePicker from 'expo-image-picker';
 import { Timestamp, FieldValue, query, collection, where, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -74,26 +74,40 @@ export default function AdminDirectChat({
     });
   }
 
-  // useEffect do listener (corrigido: não depende de pendingMessages)
+  // useEffect do listener
   useEffect(() => {
     let isMounted = true;
     const initializeComponent = async () => {
       try {
+        console.log('🔍 [AdminDirectChat] Inicializando componente:', { siteId, otherUserId, otherUserName });
         setLoading(true);
+        
+        console.log('🔍 [AdminDirectChat] Buscando mensagens iniciais...');
         const messagesData = await AdminService.getDirectMessages(siteId, otherUserId, {});
-        if (isMounted) setMessages(sortMessages(messagesData));
+        console.log('🔍 [AdminDirectChat] Mensagens encontradas:', messagesData.length, messagesData);
+        
+        if (isMounted) {
+          const sortedMessages = sortMessages(messagesData);
+          console.log('🔍 [AdminDirectChat] Mensagens ordenadas:', sortedMessages.length);
+          setMessages(sortedMessages);
+        }
+        
         if (unsubscribeMessages.current) unsubscribeMessages.current();
+        
+        console.log('🔍 [AdminDirectChat] Configurando subscrição em tempo real...');
         const unsubscribe = await AdminService.subscribeToDirectMessages(
           siteId,
           otherUserId,
-          // Dentro do callback do subscribeToDirectMessages
           (newMessages) => {
+            console.log('🔍 [AdminDirectChat] Mensagens recebidas via subscrição:', newMessages.length);
+            
             if (isMounted) {
               setPendingMessages((pending) => {
                 // Usar clientId para identificar mensagens confirmadas
                 const confirmedClientIds = newMessages.map(msg => msg.clientId).filter(Boolean);
                 const updatedPending = pending.filter(pmsg => !confirmedClientIds.includes(pmsg.clientId));
                 const updatedMessages = sortMessages([...newMessages, ...updatedPending]);
+                console.log('🔍 [AdminDirectChat] Mensagens finais após processamento:', updatedMessages.length);
                 setMessages(updatedMessages);
                 return updatedPending;
               });
@@ -104,8 +118,9 @@ export default function AdminDirectChat({
           }
         );
         unsubscribeMessages.current = unsubscribe;
+        console.log('🔍 [AdminDirectChat] Subscrição configurada com sucesso');
       } catch (error) {
-        console.error('Erro ao inicializar chat individual:', error);
+        console.error('❌ [AdminDirectChat] Erro ao inicializar chat individual:', error);
       } finally {
         setLoading(false);
       }
@@ -150,16 +165,18 @@ export default function AdminDirectChat({
         recipientId: otherUserId,
         recipientName: otherUserName,
         recipientEmail: '',
-        message: newMessage,
+        content: newMessage,
+        type: 'text',
         createdAt: new Date().toISOString(),
         readBy: [currentUser?.id || ''],
         attachments: [],
-        clientId, // novo campo
+        clientId,
       };
+      
       setPendingMessages((prev) => [...prev, optimisticMsg]);
-      setMessages((prev) => sortMessages([...prev, optimisticMsg])); // Garante exibição imediata
+      setMessages((prev) => sortMessages([...prev, optimisticMsg]));
       setNewMessage('');
-      await AdminService.sendDirectMessage(siteId, otherUserId, optimisticMsg.message, clientId);
+      await AdminService.sendDirectMessage(siteId, otherUserId, optimisticMsg.content, 'text', clientId);
     } catch (error: any) {
       Alert.alert('Erro', 'Não foi possível enviar a mensagem: ' + (error?.message || ''));
     } finally {
@@ -190,7 +207,8 @@ export default function AdminDirectChat({
         recipientId: otherUserId,
         recipientName: otherUserName,
         recipientEmail: '',
-        message: messageText,
+        content: messageText,
+        type: 'image',
         createdAt: new Date().toISOString(),
         readBy: [currentUser?.id || ''],
         attachments: [uploadedUrl],
@@ -204,6 +222,7 @@ export default function AdminDirectChat({
         siteId, 
         otherUserId, 
         messageText, 
+        'image',
         clientId, 
         [uploadedUrl]
       );
@@ -227,7 +246,6 @@ export default function AdminDirectChat({
 
   // Função para abrir câmera nativa diretamente
   const openNativeCamera = async () => {
-    // Abrir CameraScreen com interface completa
     setShowCameraScreen(true);
   };
 
@@ -365,11 +383,9 @@ export default function AdminDirectChat({
           )}
           
           {/* Texto da mensagem */}
-          {item.message && (
-            <Text style={[styles.messageText, { color: isOwnMessage ? 'white' : colors.text }]}> 
-              {item.message}
-            </Text>
-          )}
+          <Text style={[styles.messageText, { color: isOwnMessage ? 'white' : colors.text }]}>
+            {item.content || '[Mensagem sem conteúdo]'}
+          </Text>
         </View>
       </View>
     );
