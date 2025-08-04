@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import {
   Send,
@@ -20,6 +21,7 @@ import {
   Trash2,
   AlertCircle,
   Info,
+  Camera,
 } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -29,6 +31,9 @@ import {
 } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { Timestamp, FieldValue } from 'firebase/firestore';
+import CameraScreen from './CameraScreen';
+import { uploadImageAsync } from '../services/PhotoService';
+import { createUniqueId } from '../utils/idUtils';
 
 interface AdminChatProps {
   siteId: string;
@@ -55,6 +60,8 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false);
+  const [showCameraScreen, setShowCameraScreen] = useState(false);
+  const [pendingMessages, setPendingMessages] = useState<AdminMessage[]>([]);
 
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
@@ -178,6 +185,73 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     } finally {
       setSending(false);
     }
+  };
+
+  // Função para enviar mídia
+  const handleSendMedia = async (mediaUri: string, mediaType: 'image' | 'video', caption?: string) => {
+    try {
+      setSending(true);
+
+      // Upload da mídia para o Firebase Storage
+      const uploadedUrl = await uploadImageAsync(mediaUri, currentUser?.id || '');
+
+      // Criar mensagem com anexo
+      const clientId = createUniqueId();
+      const tempId = 'temp-' + clientId;
+
+      const messageText = caption || (mediaType === 'image' ? '📷 Foto' : '🎥 Vídeo');
+
+      const optimisticMsg: AdminMessage = {
+        id: tempId,
+        siteId,
+        senderId: currentUser?.id || '',
+        senderName: currentUser?.name || 'Você',
+        senderEmail: currentUser?.email || '',
+        content: messageText,
+        type: 'image',
+        priority: 'medium',
+        createdAt: new Date().toISOString(),
+        readBy: [currentUser?.id || ''],
+        attachments: [uploadedUrl],
+        clientId,
+      };
+
+      setPendingMessages((prev) => [...prev, optimisticMsg]);
+      setMessages((prev) => sortMessages([...prev, optimisticMsg]));
+
+      await AdminService.sendMessage(
+        siteId,
+        messageText,
+        'image',
+        'medium',
+        clientId,
+        [uploadedUrl]
+      );
+
+    } catch (error: any) {
+      Alert.alert('Erro', 'Não foi possível enviar a mídia: ' + (error?.message || ''));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Função para lidar com foto tirada pela câmera nativa
+  const handlePhotoTaken = async (photoUri: string) => {
+    try {
+      await handleSendMedia(photoUri, 'image');
+    } catch (error) {
+      console.error('Erro ao enviar foto da câmera:', error);
+      Alert.alert('Erro', 'Não foi possível enviar a foto');
+    }
+  };
+
+  // Função para abrir câmera nativa diretamente
+  const openNativeCamera = async () => {
+    setShowCameraScreen(true);
+  };
+
+  const closeCameraScreen = () => {
+    setShowCameraScreen(false);
   };
 
   const handleDeleteMessage = (messageId: string) => {
@@ -326,13 +400,28 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
           </View>
         </View>
 
+        {/* Renderizar anexos de mídia */}
+        {item.attachments && item.attachments.length > 0 && (
+          <View style={styles.attachmentsContainer}>
+            {item.attachments.map((attachment, index) => (
+              <TouchableOpacity key={index} style={styles.attachmentContainer}>
+                <Image
+                  source={{ uri: attachment }}
+                  style={styles.attachmentImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         <Text
           style={[
             styles.messageText,
             { color: isOwnMessage ? 'white' : colors.text },
           ]}
         >
-          {item.message}
+          {item.content}
         </Text>
 
         {isUnread && !isOwnMessage && (
@@ -552,6 +641,17 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                   </Text>
                 </View>
                 <View style={styles.inputRow}>
+                  {/* Botões de mídia - sempre visíveis */}
+                  <TouchableOpacity
+                    style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+                    onPress={() => {
+                      console.log('Camera button pressed - opening native camera directly');
+                      openNativeCamera();
+                    }}
+                  >
+                    <Camera size={18} color="white" />
+                  </TouchableOpacity>
+
                   <TextInput
                     style={[
                       styles.messageInput,
@@ -650,6 +750,14 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
           </View>
         </View>
       </Modal>
+
+      {/* Camera Screen */}
+      <CameraScreen
+        visible={showCameraScreen}
+        onClose={() => setShowCameraScreen(false)}
+        onPhotoTaken={handlePhotoTaken}
+        onVideoRecorded={handlePhotoTaken}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -929,5 +1037,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  mediaButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachmentsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+    gap: 8,
+  },
+  attachmentContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  attachmentImage: {
+    width: '100%',
+    height: '100%',
   },
 });

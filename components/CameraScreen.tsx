@@ -17,7 +17,7 @@ import { X, Zap, ZapOff, Video as VideoIcon, Mic, Send, Crop, Image as ImageIcon
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { Audio, Video } from 'expo-av';
+import { Audio, Video, ResizeMode } from 'expo-av';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
@@ -33,11 +33,11 @@ interface DraggableElementProps {
   isCropHandle?: boolean; // Nova prop para identificar handles de corte
 }
 
-const DraggableElement: React.FC<DraggableElementProps> = ({ 
-  children, 
-  initialX, 
-  initialY, 
-  onPositionChange, 
+const DraggableElement: React.FC<DraggableElementProps> = ({
+  children,
+  initialX,
+  initialY,
+  onPositionChange,
   style,
   isCropHandle = false
 }) => {
@@ -88,7 +88,7 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
       onPanResponderRelease: (evt, gestureState) => {
         setIsDragging(false);
         pan.flattenOffset();
-        
+
         if (isCropHandle) {
           // Para handles de corte, passar apenas o delta e NÃO resetar posição
           onPositionChange(gestureState.dx, gestureState.dy);
@@ -117,11 +117,11 @@ const DraggableElement: React.FC<DraggableElementProps> = ({
           zIndex: isDragging ? 1000 : 100,
           opacity: isDragging ? 0.9 : 1,
           // Adicionar escala quando arrastando para feedback visual
-          ...(isDragging && isCropHandle ? { 
+          ...(isDragging && isCropHandle ? {
             transform: [
               ...pan.getTranslateTransform(),
               { scale: 1.2 } // Aumentar ligeiramente quando arrastando
-            ] 
+            ]
           } : {}),
         },
       ]}
@@ -154,11 +154,11 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   const [isHDMode, setIsHDMode] = useState(false);
 
   const [isCropping, setIsCropping] = useState(false);
-  const [cropArea, setCropArea] = useState({ 
-    x: width * 0.1, 
-    y: height * 0.15, 
-    width: width * 0.8, 
-    height: height * 0.5 
+  const [cropArea, setCropArea] = useState({
+    x: width * 0.1,
+    y: height * 0.15,
+    width: width * 0.8,
+    height: height * 0.5
   });
   const [appliedEdits, setAppliedEdits] = useState<{
     rotation: number;
@@ -197,28 +197,28 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     if (isRecording) {
       stopRecording();
     }
-    
+
     // Limpar todos os estados relacionados à foto e edição
     setCapturedPhoto(null);
     setCaption('');
     setIsEditing(false);
     setCroppedPreviewUri(null);
     setIsCropping(false);
-    
+
     // Resetar edições aplicadas
     setAppliedEdits({
       rotation: 0,
       crop: null
     });
-    
+
     // Resetar área de corte para o próximo uso
-    setCropArea({ 
-      x: width * 0.1, 
-      y: height * 0.2, 
-      width: width * 0.8, 
-      height: height * 0.4 
+    setCropArea({
+      x: width * 0.1,
+      y: height * 0.2,
+      width: width * 0.8,
+      height: height * 0.4
     });
-    
+
     onClose();
   };
 
@@ -244,7 +244,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         if (mediaPermission?.granted) {
           await MediaLibrary.saveToLibraryAsync(photo.uri);
         }
-        
+
         // Mostrar tela de edição ao invés de fechar
         setCapturedPhoto(photo.uri);
         setIsEditing(true);
@@ -281,16 +281,16 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       if (video?.uri) {
         console.log('=== DEBUG: Vídeo gravado ===');
         console.log('URI do vídeo:', video.uri);
-        
+
         // Salvar na galeria
         if (mediaPermission?.granted) {
           await MediaLibrary.saveToLibraryAsync(video.uri);
         }
-        
+
         // Em vez de enviar automaticamente, vamos capturar como foto para permitir edição
         setCapturedPhoto(video.uri);
         setIsEditing(true);
-        
+
         // NÃO chamar onVideoTaken nem handleClose aqui
         // O usuário poderá editar e enviar manualmente
       }
@@ -328,34 +328,34 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     if (capturedPhoto) {
       try {
         let processedImageUri = capturedPhoto;
-        
+
         console.log('=== DEBUG CROP MELHORADO (SEND) ===');
         console.log('appliedEdits.crop:', appliedEdits.crop);
         console.log('Dimensões da tela - width:', width, 'height:', height);
-        
+
         // Se há crop aplicado, processar a imagem
         if (appliedEdits.crop) {
           console.log('Processando crop...');
-          
+
           // Obter dimensões da imagem original
           const imageInfo = await ImageManipulator.manipulateAsync(
             capturedPhoto,
             [],
             { format: ImageManipulator.SaveFormat.JPEG }
           );
-          
+
           const originalWidth = imageInfo.width;
           const originalHeight = imageInfo.height;
-          
+
           console.log('Dimensões da imagem original - width:', originalWidth, 'height:', originalHeight);
-          
+
           // NOVO ALGORITMO: Calcular como a imagem é realmente exibida (mesmo do applyCrop)
           const imageAspectRatio = originalWidth / originalHeight;
           const containerAspectRatio = width / height;
-          
+
           let visibleImageWidth, visibleImageHeight;
           let imageOffsetX = 0, imageOffsetY = 0;
-          
+
           // Com resizeMode="cover", a imagem preenche todo o container
           // mantendo sua proporção, cortando o que exceder
           if (imageAspectRatio > containerAspectRatio) {
@@ -365,43 +365,43 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
             visibleImageWidth = height * imageAspectRatio;
             imageOffsetX = -(visibleImageWidth - width) / 2; // Offset negativo = parte cortada
           } else {
-            // Imagem é mais alta que o container  
+            // Imagem é mais alta que o container
             // A largura da imagem preenche o container, altura é cortada
             visibleImageWidth = width;
             visibleImageHeight = width / imageAspectRatio;
             imageOffsetY = -(visibleImageHeight - height) / 2; // Offset negativo = parte cortada
           }
-          
+
           console.log('Imagem visível - width:', visibleImageWidth, 'height:', visibleImageHeight);
           console.log('Offset da imagem - X:', imageOffsetX, 'Y:', imageOffsetY);
-          
+
           // Calcular as escalas de conversão da tela para a imagem original
           const scaleX = originalWidth / visibleImageWidth;
           const scaleY = originalHeight / visibleImageHeight;
-          
+
           console.log('Escalas de conversão - scaleX:', scaleX, 'scaleY:', scaleY);
-          
+
           // Converter coordenadas do crop da tela para a imagem original
           // Subtraímos o offset porque queremos a posição relativa à imagem visível
           const cropXOnImage = (appliedEdits.crop.x - imageOffsetX) * scaleX;
           const cropYOnImage = (appliedEdits.crop.y - imageOffsetY) * scaleY;
           const cropWidthOnImage = appliedEdits.crop.width * scaleX;
           const cropHeightOnImage = appliedEdits.crop.height * scaleY;
-          
+
           console.log('Crop na imagem original:');
           console.log('cropX:', cropXOnImage, 'cropY:', cropYOnImage);
           console.log('cropWidth:', cropWidthOnImage, 'cropHeight:', cropHeightOnImage);
-          
+
           // Garantir que as coordenadas estão dentro dos limites da imagem
           const finalCropX = Math.max(0, Math.min(Math.round(cropXOnImage), originalWidth - 1));
           const finalCropY = Math.max(0, Math.min(Math.round(cropYOnImage), originalHeight - 1));
           const finalCropWidth = Math.min(Math.round(cropWidthOnImage), originalWidth - finalCropX);
           const finalCropHeight = Math.min(Math.round(cropHeightOnImage), originalHeight - finalCropY);
-          
+
           console.log('Coordenadas finais do crop:');
           console.log('cropX:', finalCropX, 'cropY:', finalCropY);
           console.log('cropWidth:', finalCropWidth, 'cropHeight:', finalCropHeight);
-          
+
           // Aplicar o crop
           const croppedImage = await ImageManipulator.manipulateAsync(
             capturedPhoto,
@@ -415,28 +415,28 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                 },
               },
             ],
-            { 
+            {
               compress: 0.9, // Manter alta qualidade
-              format: ImageManipulator.SaveFormat.JPEG 
+              format: ImageManipulator.SaveFormat.JPEG
             }
           );
-          
+
           console.log('Imagem cortada - width:', croppedImage.width, 'height:', croppedImage.height);
           processedImageUri = croppedImage.uri;
         } else {
           console.log('Nenhum crop aplicado');
         }
-        
+
         // Detectar se é vídeo pela URI
-        const isVideoFile = capturedPhoto.toLowerCase().includes('.mp4') || 
-                           capturedPhoto.toLowerCase().includes('.mov') || 
+        const isVideoFile = capturedPhoto.toLowerCase().includes('.mp4') ||
+                           capturedPhoto.toLowerCase().includes('.mov') ||
                            capturedPhoto.toLowerCase().includes('video');
-        
+
         console.log('=== DEBUG: Enviando mídia ===');
         console.log('É vídeo?', isVideoFile);
         console.log('URI original:', capturedPhoto);
         console.log('URI processada:', processedImageUri);
-        
+
         // Criar um objeto com a mídia processada
         const editedMedia = {
           uri: isVideoFile ? capturedPhoto : processedImageUri, // Para vídeos, usar URI original
@@ -446,13 +446,13 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
             crop: null // Remover crop dos metadados já que foi aplicado
           }
         };
-        
+
         if (isVideoFile && onVideoTaken) {
           onVideoTaken(editedMedia.uri);
         } else {
           onPhotoTaken(editedMedia, caption);
         }
-        
+
         // Reset dos estados
         setCapturedPhoto(null);
         setCaption('');
@@ -478,19 +478,19 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     setCroppedPreviewUri(null);
     setIsCropping(false);
     setIsHDMode(false);
-    
+
     // Resetar edições aplicadas
     setAppliedEdits({
       rotation: 0,
       crop: null
     });
-    
+
     // Resetar área de corte para o próximo uso
-    setCropArea({ 
-      x: width * 0.1, 
-      y: height * 0.2, 
-      width: width * 0.8, 
-      height: height * 0.4 
+    setCropArea({
+      x: width * 0.1,
+      y: height * 0.2,
+      width: width * 0.8,
+      height: height * 0.4
     });
   };
 
@@ -519,11 +519,11 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     } else {
       // Usar dimensões da tela para posicionamento inicial do crop
       // O cálculo correto será feito no momento do processamento com as dimensões reais da imagem
-      setCropArea({ 
-        x: width * 0.1, 
-        y: height * 0.2, 
-        width: width * 0.8, 
-        height: height * 0.4 
+      setCropArea({
+        x: width * 0.1,
+        y: height * 0.2,
+        width: width * 0.8,
+        height: height * 0.4
       });
       setIsCropping(true);
     }
@@ -538,11 +538,11 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
     }));
     setCroppedPreviewUri(null);
     // Resetar área de corte
-    setCropArea({ 
-      x: width * 0.1, 
-      y: height * 0.2, 
-      width: width * 0.8, 
-      height: height * 0.4 
+    setCropArea({
+      x: width * 0.1,
+      y: height * 0.2,
+      width: width * 0.8,
+      height: height * 0.4
     });
   };
 
@@ -551,35 +551,35 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       console.log('=== DEBUG CROP MELHORADO ===');
       console.log('Área de crop na tela:', JSON.stringify(cropArea));
       console.log('Dimensões da tela - width:', width, 'height:', height);
-      
+
       // Aplicar o corte
       setAppliedEdits(prev => ({
         ...prev,
         crop: cropArea
       }));
-      
+
       // Gerar prévia da imagem cortada
       if (capturedPhoto) {
         console.log('Processando crop...');
-        
+
         // Obter dimensões da imagem original
         const imageInfo = await ImageManipulator.manipulateAsync(
           capturedPhoto,
           [],
           { format: ImageManipulator.SaveFormat.JPEG }
         );
-        
+
         const originalWidth = imageInfo.width;
         const originalHeight = imageInfo.height;
         console.log('Dimensões da imagem original - width:', originalWidth, 'height:', originalHeight);
-        
+
         // NOVO ALGORITMO: Calcular como a imagem é realmente exibida
         const imageAspectRatio = originalWidth / originalHeight;
         const containerAspectRatio = width / height;
-        
+
         let visibleImageWidth, visibleImageHeight;
         let imageOffsetX = 0, imageOffsetY = 0;
-        
+
         // Com resizeMode="cover", a imagem preenche todo o container
         // mantendo sua proporção, cortando o que exceder
         if (imageAspectRatio > containerAspectRatio) {
@@ -589,43 +589,43 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
           visibleImageWidth = height * imageAspectRatio;
           imageOffsetX = -(visibleImageWidth - width) / 2; // Offset negativo = parte cortada
         } else {
-          // Imagem é mais alta que o container  
+          // Imagem é mais alta que o container
           // A largura da imagem preenche o container, altura é cortada
           visibleImageWidth = width;
           visibleImageHeight = width / imageAspectRatio;
           imageOffsetY = -(visibleImageHeight - height) / 2; // Offset negativo = parte cortada
         }
-        
+
         console.log('Imagem visível - width:', visibleImageWidth, 'height:', visibleImageHeight);
         console.log('Offset da imagem - X:', imageOffsetX, 'Y:', imageOffsetY);
-        
+
         // Calcular as escalas de conversão da tela para a imagem original
         const scaleX = originalWidth / visibleImageWidth;
         const scaleY = originalHeight / visibleImageHeight;
-        
+
         console.log('Escalas de conversão - scaleX:', scaleX, 'scaleY:', scaleY);
-        
+
         // Converter coordenadas do crop da tela para a imagem original
         // Subtraímos o offset porque queremos a posição relativa à imagem visível
         const cropXOnImage = (cropArea.x - imageOffsetX) * scaleX;
         const cropYOnImage = (cropArea.y - imageOffsetY) * scaleY;
         const cropWidthOnImage = cropArea.width * scaleX;
         const cropHeightOnImage = cropArea.height * scaleY;
-        
+
         console.log('Crop na imagem original:');
         console.log('cropX:', cropXOnImage, 'cropY:', cropYOnImage);
         console.log('cropWidth:', cropWidthOnImage, 'cropHeight:', cropHeightOnImage);
-        
+
         // Garantir que as coordenadas estão dentro dos limites da imagem
         const finalCropX = Math.max(0, Math.min(Math.round(cropXOnImage), originalWidth - 1));
         const finalCropY = Math.max(0, Math.min(Math.round(cropYOnImage), originalHeight - 1));
         const finalCropWidth = Math.min(Math.round(cropWidthOnImage), originalWidth - finalCropX);
         const finalCropHeight = Math.min(Math.round(cropHeightOnImage), originalHeight - finalCropY);
-        
+
         console.log('Coordenadas finais do crop:');
         console.log('finalCropX:', finalCropX, 'finalCropY:', finalCropY);
         console.log('finalCropWidth:', finalCropWidth, 'finalCropHeight:', finalCropHeight);
-        
+
         // Gerar prévia cortada
         const croppedPreview = await ImageManipulator.manipulateAsync(
           capturedPhoto,
@@ -639,16 +639,16 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
               },
             },
           ],
-          { 
+          {
             format: ImageManipulator.SaveFormat.JPEG,
             compress: 0.8
           }
         );
-        
+
         console.log('Imagem cortada - width:', croppedPreview.width, 'height:', croppedPreview.height);
         setCroppedPreviewUri(croppedPreview.uri);
       }
-      
+
       setIsCropping(false);
     } catch (error) {
       console.error('Erro ao gerar prévia do crop:', error);
@@ -734,14 +734,14 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
               <TouchableOpacity onPress={backToCamera} style={styles.headerButton}>
                 <X size={24} color="white" />
               </TouchableOpacity>
-              
+
               {/* Indicador do modo de corte */}
               {isCropping && (
                 <View style={styles.cropModeIndicator}>
                   <Text style={styles.cropModeText}>Modo Corte</Text>
                 </View>
               )}
-              
+
               <View style={styles.editHeaderControls}>
                <TouchableOpacity onPress={toggleHDMode} style={[styles.headerButton, isHDMode && styles.activeButton]}>
                  <Text style={[styles.hdText, isHDMode && styles.activeText]}>HD</Text>
@@ -756,8 +756,8 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
             <View style={styles.imageContainer}>
               <View style={styles.imageWrapper}>
                 {/* Detectar se é vídeo e renderizar adequadamente */}
-                {capturedPhoto && (capturedPhoto.toLowerCase().includes('.mp4') || 
-                 capturedPhoto.toLowerCase().includes('.mov') || 
+                {capturedPhoto && (capturedPhoto.toLowerCase().includes('.mp4') ||
+                 capturedPhoto.toLowerCase().includes('.mov') ||
                  capturedPhoto.toLowerCase().includes('video')) ? (
                   // Renderizar vídeo
                   <Video
@@ -771,14 +771,14 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                       }
                     ]}
                     useNativeControls={true}
-                    resizeMode="cover"
+                    resizeMode={ResizeMode.CONTAIN}
                     shouldPlay={false}
                     isLooping={false}
                   />
                 ) : (
                   // Renderizar imagem
-                  <Image 
-                    source={{ uri: appliedEdits.crop && croppedPreviewUri ? croppedPreviewUri : capturedPhoto }} 
+                  <Image
+                    source={{ uri: appliedEdits.crop && croppedPreviewUri ? croppedPreviewUri : capturedPhoto }}
                     style={[
                       styles.capturedImage,
                       {
@@ -786,16 +786,16 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                           { rotate: `${appliedEdits.rotation}deg` }
                         ]
                       }
-                    ]} 
+                    ]}
                   />
                 )}
-                
+
 
 
               </View>
-              
 
-              
+
+
               {/* Interface de corte livre - estilo WhatsApp */}
               {isCropping && (
                 <View style={styles.cropOverlay} pointerEvents="box-none">
@@ -803,20 +803,20 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                   <View style={styles.cropMask} pointerEvents="none">
                     {/* Área superior */}
                     <View style={[styles.cropMaskArea, { height: cropArea.y }]} />
-                    
+
                     {/* Linha do meio com laterais escuras */}
                     <View style={[styles.cropMaskRow, { height: cropArea.height, top: cropArea.y }]}>
                       <View style={[styles.cropMaskArea, { width: cropArea.x }]} />
                       <View style={{ width: cropArea.width, height: cropArea.height }} />
                       <View style={[styles.cropMaskArea, { flex: 1 }]} />
                     </View>
-                    
+
                     {/* Área inferior */}
                     <View style={[styles.cropMaskArea, { flex: 1 }]} />
                   </View>
-                  
+
                   {/* Grid de linhas estilo WhatsApp */}
-                  <View 
+                  <View
                     style={[
                       styles.cropGrid,
                       {
@@ -831,15 +831,15 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                     {/* Linhas verticais */}
                     <View style={[styles.cropGridLine, { left: cropArea.width / 3, height: cropArea.height }]} />
                     <View style={[styles.cropGridLine, { left: (cropArea.width * 2) / 3, height: cropArea.height }]} />
-                    
+
                     {/* Linhas horizontais */}
                     <View style={[styles.cropGridLine, { top: cropArea.height / 3, width: cropArea.width, height: 1 }]} />
                     <View style={[styles.cropGridLine, { top: (cropArea.height * 2) / 3, width: cropArea.width, height: 1 }]} />
-                    
+
                     {/* Bordas da área de corte */}
                     <View style={styles.cropBorder} />
                   </View>
-                  
+
                   {/* Handles dos cantos - posicionamento absoluto independente */}
                   {/* Handle canto superior esquerdo */}
                     <DraggableElement
@@ -867,7 +867,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                   >
                     <View style={styles.cropCornerIndicator} />
                   </DraggableElement>
-                  
+
                   {/* Handle canto superior direito */}
                    <DraggableElement
                      initialX={cropArea.x + cropArea.width - 25}
@@ -893,7 +893,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                    >
                      <View style={styles.cropCornerIndicator} />
                    </DraggableElement>
-                   
+
                    {/* Handle canto inferior esquerdo */}
                    <DraggableElement
                      initialX={cropArea.x - 25}
@@ -919,7 +919,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                    >
                      <View style={styles.cropCornerIndicator} />
                    </DraggableElement>
-                   
+
                    {/* Handle canto inferior direito */}
                    <DraggableElement
                      initialX={cropArea.x + cropArea.width - 25}
@@ -943,7 +943,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                    >
                      <View style={styles.cropCornerIndicator} />
                    </DraggableElement>
-                  
+
                   {/* Área central para mover - sem ícone */}
                   <DraggableElement
                     initialX={0}
@@ -968,7 +968,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                       }
                     ]}
                   />
-                  
+
                   {/* Ícone de movimento na parte superior central */}
                   <DraggableElement
                     initialX={cropArea.x + (cropArea.width / 2) - 20}
@@ -1005,19 +1005,17 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
               {isCropping ? (
                 // Botões de controle do corte
                 <View style={styles.cropControlsFooter} pointerEvents="box-none">
-                  <TouchableOpacity 
-                    onPress={cancelCrop} 
+                  <TouchableOpacity
+                    onPress={cancelCrop}
                     style={styles.cropCancelButton}
                     activeOpacity={0.7}
-                    pointerEvents="auto"
                   >
                     <Text style={styles.cropButtonText}>Cancelar</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    onPress={applyCrop} 
+                  <TouchableOpacity
+                    onPress={applyCrop}
                     style={styles.cropApplyButton}
                     activeOpacity={0.7}
-                    pointerEvents="auto"
                   >
                     <Text style={styles.cropButtonText}>OK</Text>
                   </TouchableOpacity>
@@ -1043,13 +1041,13 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
               flash={flash}
               mode={mode === 'photo' ? 'picture' : 'video'}
             />
-            
+
             {/* Header com botões de controle */}
             <View style={styles.header}>
               <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
                 <X size={24} color="white" />
               </TouchableOpacity>
-              
+
               <View style={styles.headerControls}>
                 <TouchableOpacity onPress={toggleFlash} style={styles.headerButton}>
                   {flash === 'on' ? (
@@ -1110,13 +1108,13 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                   Vídeo
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity onPress={setModePhoto} style={styles.modeButton}>
                 <Text style={[styles.label, mode === 'photo' && styles.activeLabel]}>
                   Foto
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity onPress={setModeVoiceVideo} style={styles.modeButton}>
                 <Text style={[styles.label, mode === 'voice-video' && styles.activeLabel]}>
                   Recado de vídeo
@@ -1124,7 +1122,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
               </TouchableOpacity>
             </View>
           </>
-        )}
         )}
       </View>
     </Modal>

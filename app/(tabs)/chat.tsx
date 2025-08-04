@@ -21,6 +21,7 @@ import AdminDirectChat from '@/components/AdminDirectChat';
 import * as ImagePicker from 'expo-image-picker';
 import CameraScreen from '@/components/CameraScreen';
 import { Video } from 'expo-av';
+import { Timestamp, FieldValue } from 'firebase/firestore';
 
 // Componente VideoPlayer personalizado
 const VideoPlayer = ({ source, style, filter, getFilterStyle }: {
@@ -330,14 +331,25 @@ export default function ChatScreen() {
       setLoadingGroupMessages(true);
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
+        console.log('=== DEBUG: Carregando mensagens para o site:', currentSite.id);
         const messages = await AdminService.getMessages(currentSite.id);
-        // Ordenar mensagens por data (mais antigas primeiro)
+        console.log('=== DEBUG: Mensagens recebidas do AdminService:', messages.length);
+        console.log('=== DEBUG: Primeira mensagem:', messages[0]);
+
+        // Ordenar mensagens por data (mais recentes primeiro)
         const sortedMessages = messages.sort((a, b) => {
           const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
           const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-          return dateA.getTime() - dateB.getTime();
+          return dateA.getTime() - dateB.getTime(); // Mudança: voltar para ordem cronológica
         });
+
+        console.log('=== DEBUG: Mensagens ordenadas:', sortedMessages.length);
+        console.log('=== DEBUG: Primeira mensagem ordenada:', sortedMessages[0]);
+
         setGroupMessages(sortedMessages);
+        console.log('=== DEBUG: Estado groupMessages atualizado com:', sortedMessages.length, 'mensagens');
+      } else {
+        console.log('=== DEBUG: Site não encontrado');
       }
     } catch (error) {
       console.error('Erro ao carregar mensagens do grupo:', error);
@@ -349,18 +361,27 @@ export default function ChatScreen() {
   const sendGroupMessage = async () => {
     if (!groupMessageText.trim()) return;
 
+    console.log('=== DEBUG: Enviando mensagem do grupo:', groupMessageText.trim());
+
     try {
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
-        await AdminService.sendMessage(
+        console.log('=== DEBUG: Site encontrado para envio:', currentSite.id);
+
+        const result = await AdminService.sendMessage(
           currentSite.id,
           groupMessageText.trim(),
           'general',
           'medium'
         );
+
+        console.log('=== DEBUG: Mensagem enviada com sucesso:', result);
         setGroupMessageText('');
         // Recarregar mensagens após enviar
         await loadGroupMessages();
+        console.log('=== DEBUG: Mensagens recarregadas após envio');
+      } else {
+        console.log('=== DEBUG: Site não encontrado para envio');
       }
     } catch (error) {
       console.error('Erro ao enviar mensagem do grupo:', error);
@@ -708,6 +729,37 @@ export default function ChatScreen() {
     }
   };
 
+  // Função para formatar data/hora relativa (igual ao chat individual)
+  const formatDate = (createdAt: string | Timestamp | FieldValue | undefined) => {
+    if (!createdAt) return 'Enviando...';
+    let date: Date;
+    if (typeof createdAt === 'string') {
+      date = new Date(createdAt);
+    } else if (createdAt instanceof Timestamp) {
+      date = createdAt.toDate();
+    } else {
+      return 'Enviando...';
+    }
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffInHours = diffMs / (1000 * 60 * 60);
+    if (diffInMinutes < 1) {
+      return 'Agora';
+    } else if (diffInHours < 1) {
+      return `${diffInMinutes}min atrás`;
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h atrás`;
+    } else {
+      return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+  };
+
   const getOtherParticipant = (session: ChatSession) => {
     if (!currentUser) return { id: '', name: '', photoURL: '' };
 
@@ -775,19 +827,24 @@ export default function ChatScreen() {
 
   const renderGroupMessage = ({ item }: { item: any }) => {
     const isOwnMessage = item.senderId === currentUser?.id;
-    const messageTime = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+
+    console.log('=== DEBUG: Renderizando mensagem do grupo:', {
+      id: item.id,
+      content: item.content,
+      senderId: item.senderId,
+      senderName: item.senderName,
+      isOwnMessage,
+      createdAt: item.createdAt
+    });
 
     return (
       <View style={[styles.messageContainer, isOwnMessage ? styles.ownMessage : styles.otherMessage]}>
         {!isOwnMessage && (
           <Text style={styles.senderName}>{item.senderName}</Text>
         )}
-        <Text style={styles.messageText}>{item.message}</Text>
+        <Text style={styles.messageText}>{item.content}</Text>
         <Text style={styles.messageTime}>
-          {messageTime.toLocaleTimeString('pt-BR', {
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
+          {formatDate(item.createdAt)}
         </Text>
       </View>
     );

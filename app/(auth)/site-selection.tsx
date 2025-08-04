@@ -17,14 +17,24 @@ export default function SiteSelectionScreen() {
   useEffect(() => {
     const loadSites = async () => {
       try {
+        console.log('=== DEBUG: SiteSelection - Iniciando carregamento de obras ===');
         setLoading(true);
+
+        console.log('=== DEBUG: SiteSelection - Chamando SiteService.getUserSites() ===');
         const userSites = await SiteService.getUserSites();
+        console.log('=== DEBUG: SiteSelection - Obras retornadas:', userSites.length);
+        console.log('=== DEBUG: SiteSelection - Detalhes das obras:', userSites);
+
         setSites(userSites);
 
+        console.log('=== DEBUG: SiteSelection - Buscando dados do usuário ===');
         const userData = await AuthService.getCurrentUser();
+        console.log('=== DEBUG: SiteSelection - Dados do usuário:', userData);
         setUser(userData);
+
+        console.log('=== DEBUG: SiteSelection - Carregamento concluído ===');
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
+        console.error('=== DEBUG: SiteSelection - Erro ao carregar dados:', error);
         Alert.alert('Erro', 'Erro ao carregar obras disponíveis.');
       } finally {
         setLoading(false);
@@ -37,9 +47,9 @@ export default function SiteSelectionScreen() {
   const handleSiteSelection = async (site: SiteWithStats) => {
     try {
       await AuthService.setCurrentSite(site);
-      
+
       const currentSite = await AuthService.getCurrentSite();
-      
+
       if (currentSite) {
         router.replace('/(tabs)');
       } else {
@@ -62,20 +72,20 @@ export default function SiteSelectionScreen() {
   };
 
   const renderSiteItem = ({ item }: { item: SiteWithStats }) => {
-    const completionPercentage = item.tasksCount > 0 
-      ? Math.round((item.completedTasks / item.tasksCount) * 100) 
+    const completionPercentage = item.tasksCount > 0
+      ? Math.round((item.completedTasks / item.tasksCount) * 100)
       : 0;
 
     return (
-      <TouchableOpacity 
-        style={[styles.siteCard, isSmallScreen && styles.siteCardSmall]} 
+      <TouchableOpacity
+        style={[styles.siteCard, isSmallScreen && styles.siteCardSmall]}
         onPress={() => handleSiteSelection(item)}
       >
-        <View style={[styles.siteHeader, isSmallScreen && styles.siteHeaderSmall]}>  
+        <View style={[styles.siteHeader, isSmallScreen && styles.siteHeaderSmall]}>
           <View style={styles.siteIconContainer}>
             <Building2 size={24} color="#F97316" />
           </View>
-          <View style={[styles.siteInfo, { flex: 1 }]}> 
+          <View style={[styles.siteInfo, { flex: 1 }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
               <Text style={styles.siteName} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
               <CheckCircle size={16} color="#10B981" style={{ marginLeft: 8, marginRight: 2 }} />
@@ -111,11 +121,11 @@ export default function SiteSelectionScreen() {
         </View> */}
         {/* <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
-                styles.progressFill, 
+                styles.progressFill,
                 { width: `${completionPercentage}%` }
-              ]} 
+              ]}
             />
           </View>
         </View> */}
@@ -145,7 +155,7 @@ export default function SiteSelectionScreen() {
 
       <View style={styles.content}>
         <Text style={styles.subtitle}>Selecione uma obra para continuar</Text>
-        
+
         <FlatList
           data={sites}
           renderItem={renderSiteItem}

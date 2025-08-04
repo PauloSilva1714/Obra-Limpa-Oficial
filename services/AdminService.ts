@@ -29,8 +29,8 @@ export interface AdminMessage {
   senderId: string;
   senderName: string;
   senderEmail: string;
-  message: string;
-  type: 'general' | 'task' | 'alert' | 'announcement';
+  content: string; // Mudado de 'message' para 'content' para consistência
+  type: 'general' | 'task' | 'alert' | 'announcement' | 'image'; // Adicionado 'image'
   priority: 'low' | 'medium' | 'high' | 'urgent';
   createdAt: string | Timestamp | FieldValue;
   updatedAt?: string;
@@ -38,6 +38,7 @@ export interface AdminMessage {
   attachments?: string[];
   recipientId?: string;
   isPrivate?: boolean;
+  clientId?: string; // Adicionado para suporte a mensagens otimistas
 }
 
 export interface AdminNotification {
@@ -120,7 +121,9 @@ export class AdminService {
     siteId: string,
     message: string,
     type: AdminMessage['type'] = 'general',
-    priority: AdminMessage['priority'] = 'medium'
+    priority: AdminMessage['priority'] = 'medium',
+    clientId?: string,
+    attachments?: string[]
   ): Promise<AdminMessage> {
     try {
       if (!siteId) {
@@ -136,19 +139,27 @@ export class AdminService {
         throw new Error('Você não tem acesso a esta obra');
       }
 
+      console.log('=== DEBUG: Enviando mensagem para o site:', siteId);
+      console.log('=== DEBUG: Conteúdo da mensagem:', message);
+      console.log('=== DEBUG: Usuário remetente:', currentUser.id, currentUser.name);
+
       const messageData: Omit<AdminMessage, 'id'> = {
         siteId,
         senderId: currentUser.id,
         senderName: currentUser.name,
         senderEmail: currentUser.email,
-        message,
+        content: message, // CORRIGIDO: usar 'content' em vez de 'message'
         type,
         priority,
         createdAt: serverTimestamp(), // CORRIGIDO
         readBy: [currentUser.id], // O remetente já leu
+        attachments: attachments || [],
       };
 
+      console.log('=== DEBUG: Dados da mensagem a serem salvos:', messageData);
+
       const docRef = await addDoc(collection(db, 'adminMessages'), messageData);
+      console.log('=== DEBUG: Mensagem salva com ID:', docRef.id);
 
       // Enviar notificações para outros administradores
       await this.notifyOtherAdmins(
@@ -159,10 +170,13 @@ export class AdminService {
         message
       );
 
-      return {
+      const result = {
         id: docRef.id,
         ...messageData,
       };
+
+      console.log('=== DEBUG: Mensagem enviada com sucesso:', result);
+      return result;
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       throw error;
@@ -202,6 +216,9 @@ export class AdminService {
         return [];
       }
 
+      console.log('=== DEBUG: Buscando mensagens para siteId:', siteId);
+      console.log('=== DEBUG: Usuário atual:', currentUser.id, currentUser.name);
+
       const q = query(
         collection(db, 'adminMessages'),
         where('siteId', '==', siteId),
@@ -210,15 +227,33 @@ export class AdminService {
       );
 
       const querySnapshot = await getDocs(q);
+      console.log('=== DEBUG: QuerySnapshot size:', querySnapshot.size);
 
       const messages = querySnapshot.docs.map(
-        (doc) =>
-          ({
+        (doc) => {
+          const data = doc.data();
+          console.log('=== DEBUG: Documento encontrado:', {
             id: doc.id,
-            ...doc.data(),
-          } as AdminMessage)
+            siteId: data.siteId,
+            senderId: data.senderId,
+            senderName: data.senderName,
+            content: data.content,
+            message: data.message, // Campo antigo
+            createdAt: data.createdAt
+          });
+
+          // Lidar com mensagens antigas que usam 'message' em vez de 'content'
+          const messageContent = data.content || data.message || '';
+
+          return {
+            id: doc.id,
+            ...data,
+            content: messageContent, // Garantir que sempre use 'content'
+          } as AdminMessage;
+        }
       );
 
+      console.log('=== DEBUG: Total de mensagens retornadas:', messages.length);
       return messages;
     } catch (error) {
       console.error(
@@ -459,18 +494,26 @@ export class AdminService {
       const currentUser = await AuthService.getCurrentUser();
       const senderName = currentUser?.name || 'Administrador';
 
-      const notifications = otherAdmins.map((admin) => ({
-        siteId,
-        recipientId: admin.id,
-        senderId,
-        senderName,
-        type,
-        title,
-        message,
-        read: false,
-        createdAt: new Date().toISOString(),
-        actionUrl,
-      }));
+      const notifications = otherAdmins.map((admin) => {
+        const notification: any = {
+          siteId,
+          recipientId: admin.id,
+          senderId,
+          senderName,
+          type,
+          title,
+          message,
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+
+        // Só incluir actionUrl se ele não for undefined
+        if (actionUrl !== undefined) {
+          notification.actionUrl = actionUrl;
+        }
+
+        return notification;
+      });
 
       // Adicionar notificações em lote
       const batch = notifications.map((notification) =>
@@ -770,7 +813,7 @@ export class AdminService {
         messages: messages.map((msg) => ({
           id: msg.id,
           senderName: msg.senderName,
-          message: msg.message,
+          message: msg.content,
           createdAt: msg.createdAt,
           type: msg.type,
           priority: msg.priority,
@@ -1210,14 +1253,14 @@ export class AdminService {
     const limitCount = options?.limitCount ?? 50;
     try {
       console.log('🔍 [getDirectMessages] Iniciando busca:', { siteId, otherUserId, limitCount });
-      
+
       const currentUser = await AuthService.getCurrentUser();
-      console.log('🔍 [getDirectMessages] Usuário atual:', { 
-        id: currentUser?.id, 
-        role: currentUser?.role, 
-        sites: currentUser?.sites 
+      console.log('🔍 [getDirectMessages] Usuário atual:', {
+        id: currentUser?.id,
+        role: currentUser?.role,
+        sites: currentUser?.sites
       });
-      
+
       if (!currentUser || currentUser.role !== 'admin') {
         console.log('❌ [getDirectMessages] Usuário não é admin ou não autenticado');
         return [];
@@ -1250,7 +1293,7 @@ export class AdminService {
 
       // Buscar mensagens em todos os sites compartilhados
       const allQueries: Promise<any>[] = [];
-      
+
       for (const sharedSiteId of sharedSites) {
         // Query 1: Mensagens enviadas pelo usuário atual para o outro usuário
         const q1 = query(
@@ -1290,11 +1333,11 @@ export class AdminService {
 
       // Processar mensagens de todos os resultados
       const allMessages: AdminDirectMessage[] = [];
-      
+
       queryResults.forEach((querySnapshot) => {
         querySnapshot.docs.forEach((doc) => {
           const data = doc.data();
-          
+
           // Corrigir mensagens antigas que não têm o campo 'content'
           let processedData = { ...data };
           if (!processedData.content && processedData.message) {
@@ -1306,12 +1349,12 @@ export class AdminService {
             processedData.content = '[Mensagem sem conteúdo]';
             console.log('⚠️ [getDirectMessages] Mensagem sem conteúdo encontrada:', doc.id);
           }
-          
+
           // Garantir que o tipo existe
           if (!processedData.type) {
             processedData.type = 'text';
           }
-          
+
           allMessages.push({
             id: doc.id,
             ...processedData,
@@ -1324,7 +1367,7 @@ export class AdminService {
       });
 
       // Remover duplicatas (caso existam mensagens duplicadas entre sites)
-      const uniqueMessages = allMessages.filter((message, index, self) => 
+      const uniqueMessages = allMessages.filter((message, index, self) =>
         index === self.findIndex(m => m.id === message.id)
       );
 
@@ -1586,7 +1629,7 @@ export class AdminService {
           const siteMessages = snapshot.docs
             .map(doc => {
               const data = doc.data();
-              
+
               // Corrigir mensagens antigas que não têm o campo 'content'
               let processedData = { ...data };
               if (!processedData.content && processedData.message) {
@@ -1598,12 +1641,12 @@ export class AdminService {
                 processedData.content = '[Mensagem sem conteúdo]';
                 console.log('⚠️ [subscribeToDirectMessages] Mensagem sem conteúdo encontrada:', doc.id);
               }
-              
+
               // Garantir que o tipo existe
               if (!processedData.type) {
                 processedData.type = 'text';
               }
-              
+
               return {
                 id: doc.id,
                 ...processedData,

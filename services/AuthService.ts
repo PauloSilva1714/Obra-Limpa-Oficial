@@ -370,7 +370,7 @@ export class AuthService {
     try {
       // Parar monitoramento de presença antes do logout
       await AuthService.stopPresenceMonitoring();
-      
+
       // Fazer logout do Firebase Auth
       await signOut(auth);
       // Remover dados do AsyncStorage
@@ -853,35 +853,58 @@ export class AuthService {
 
   static async getUserSites(): Promise<Site[]> {
     try {
+      console.log('=== DEBUG: getUserSites iniciada ===');
       const currentUser = await AuthService.getCurrentUser();
+      console.log('=== DEBUG: Usuário atual:', currentUser?.id, currentUser?.name);
+
       if (!currentUser) {
+        console.log('=== DEBUG: Usuário não autenticado');
         throw new Error('Usuário não autenticado');
       }
 
       const userRef = doc(db, 'users', currentUser.id);
       const userDoc = await getDoc(userRef);
-      if (!userDoc.exists()) return [];
+      console.log('=== DEBUG: Documento do usuário existe:', userDoc.exists());
+
+      if (!userDoc.exists()) {
+        console.log('=== DEBUG: Documento do usuário não existe');
+        return [];
+      }
 
       const userData = userDoc.data() as User;
+      console.log('=== DEBUG: Dados do usuário:', userData);
+
       const userSiteIds: string[] = userData.sites || [];
-      if (userSiteIds.length === 0) return [];
+      console.log('=== DEBUG: IDs das obras do usuário:', userSiteIds);
+
+      if (userSiteIds.length === 0) {
+        console.log('=== DEBUG: Usuário não tem obras associadas');
+        return [];
+      }
 
       const allSites: Site[] = [];
       const batchSize = 10;
       for (let i = 0; i < userSiteIds.length; i += batchSize) {
         const batchIds = userSiteIds.slice(i, i + batchSize);
-      const sitesQuery = query(
-        collection(db, 'sites'),
+        console.log('=== DEBUG: Buscando lote de obras:', batchIds);
+
+        const sitesQuery = query(
+          collection(db, 'sites'),
           where('__name__', 'in', batchIds)
-      );
-      const sitesSnapshot = await getDocs(sitesQuery);
+        );
+        const sitesSnapshot = await getDocs(sitesQuery);
+        console.log('=== DEBUG: Obras encontradas no lote:', sitesSnapshot.size);
+
         allSites.push(...sitesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+          id: doc.id,
+          ...doc.data()
         } as Site)));
       }
+
+      console.log('=== DEBUG: Total de obras retornadas:', allSites.length);
       return allSites;
     } catch (error) {
+      console.error('=== DEBUG: Erro em getUserSites:', error);
       throw error;
     }
   }
@@ -2235,7 +2258,7 @@ export class AuthService {
         lastSeen: userData.lastSeen,
         lastActivity: userData.lastActivity
       });
-      
+
       return {
         isOnline: userData.isOnline || false,
         lastSeen: userData.lastSeen,
@@ -2265,9 +2288,9 @@ export class AuthService {
 
     const lastSeenDate = status.lastSeen ? new Date(status.lastSeen) : null;
     const lastActivityDate = status.lastActivity ? new Date(status.lastActivity) : null;
-    
+
     // Usar a data mais recente entre lastSeen e lastActivity
-    const mostRecentDate = lastSeenDate && lastActivityDate 
+    const mostRecentDate = lastSeenDate && lastActivityDate
       ? (lastSeenDate > lastActivityDate ? lastSeenDate : lastActivityDate)
       : (lastSeenDate || lastActivityDate);
 
