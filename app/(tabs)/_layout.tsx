@@ -13,12 +13,43 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
 import { useSite } from '@/contexts/SiteContext';
 
+const TABS_CONFIG = {
+  index: {
+    name: 'index',
+    title: 'Tarefas',
+    icon: Home,
+    roles: ['admin', 'worker'],
+  },
+  admin: {
+    name: 'admin',
+    title: 'Admin',
+    icon: Building2,
+    roles: ['admin'],
+  },
+  progress: {
+    name: 'progress',
+    title: 'Progresso',
+    icon: BarChart3,
+    roles: ['admin', 'worker'],
+  },
+  chat: {
+    name: 'chat',
+    title: 'Chat',
+    icon: MessageCircle,
+    roles: ['admin'],
+  },
+  profile: {
+    name: 'profile',
+    title: 'Perfil',
+    icon: User,
+    roles: ['admin', 'worker'],
+  },
+};
+
 function TabLayoutContent() {
-  const colorScheme = useColorScheme();
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
   const [userRole, setUserRole] = useState<'admin' | 'worker' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [renderKey, setRenderKey] = useState(0);
   const router = useRouter();
   const segments = useSegments();
   const { currentSite } = useSite();
@@ -31,8 +62,10 @@ function TabLayoutContent() {
         setUserRole(role);
         const currentUser = await AuthService.getCurrentUser();
         if (currentUser) {
+          // User loaded
         }
       } catch (error) {
+        console.error('Erro ao carregar role do usuário:', error);
       } finally {
         setIsLoading(false);
       }
@@ -40,29 +73,31 @@ function TabLayoutContent() {
     getUserRole();
   }, []);
 
+  // Forçar atualização do role quando o componente montar
   useEffect(() => {
     const forceUpdateRole = async () => {
       if (!isLoading) {
         const role = await AuthService.getUserRole();
         if (userRole !== role) {
           setUserRole(role);
-          setRenderKey(prev => prev + 1);
         }
       }
     };
+
     const timer = setTimeout(forceUpdateRole, 100);
     return () => clearTimeout(timer);
   }, [isLoading, userRole]);
 
+  // Sempre que mudar de obra, atualiza o papel
   useEffect(() => {
     const updateRoleOnSiteChange = async () => {
       const role = await AuthService.getUserRole();
       setUserRole(role);
-      setRenderKey(prev => prev + 1);
     };
     updateRoleOnSiteChange();
   }, [currentSite]);
 
+  // Redirecionar colaborador se estiver em rota inválida
   useEffect(() => {
     if (userRole === 'worker' && !isLoading) {
       const currentTab = segments[segments.length - 1];
@@ -72,6 +107,7 @@ function TabLayoutContent() {
     }
   }, [userRole, segments, isLoading]);
 
+  // Loading state
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -80,26 +116,26 @@ function TabLayoutContent() {
     );
   }
 
+  // Se não tem role válido, não renderiza nada
   if (!userRole) return null;
 
   return (
     <Tabs
-      key={renderKey}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 70,
+          paddingBottom: 10,
+          paddingTop: 10,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontWeight: '500',
           marginTop: 4,
         },
         tabBarIconStyle: {
@@ -110,8 +146,10 @@ function TabLayoutContent() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tarefas',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+          title: TABS_CONFIG.index.title,
+          tabBarIcon: ({ color, size }) => (
+            <Home size={size} color={color} />
+          ),
         }}
       />
       
@@ -119,8 +157,10 @@ function TabLayoutContent() {
         <Tabs.Screen
           name="admin"
           options={{
-            title: 'Admin',
-            tabBarIcon: ({ color, size }) => <Building2 size={size} color={color} />,
+            title: TABS_CONFIG.admin.title,
+            tabBarIcon: ({ color, size }) => (
+              <Building2 size={size} color={color} />
+            ),
           }}
         />
       )}
@@ -128,8 +168,10 @@ function TabLayoutContent() {
       <Tabs.Screen
         name="progress"
         options={{
-          title: 'Progresso',
-          tabBarIcon: ({ color, size }) => <BarChart3 size={size} color={color} />,
+          title: TABS_CONFIG.progress.title,
+          tabBarIcon: ({ color, size }) => (
+            <BarChart3 size={size} color={color} />
+          ),
         }}
       />
       
@@ -137,8 +179,10 @@ function TabLayoutContent() {
         <Tabs.Screen
           name="chat"
           options={{
-            title: 'Chat',
-            tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
+            title: TABS_CONFIG.chat.title,
+            tabBarIcon: ({ color, size }) => (
+              <MessageCircle size={size} color={color} />
+            ),
           }}
         />
       )}
@@ -146,8 +190,10 @@ function TabLayoutContent() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          title: TABS_CONFIG.profile.title,
+          tabBarIcon: ({ color, size }) => (
+            <User size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

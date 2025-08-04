@@ -352,6 +352,7 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}

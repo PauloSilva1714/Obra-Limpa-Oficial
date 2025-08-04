@@ -856,7 +856,6 @@ export class AuthService {
       console.log('=== DEBUG: getUserSites iniciada ===');
       const currentUser = await AuthService.getCurrentUser();
       console.log('=== DEBUG: Usuário atual:', currentUser?.id, currentUser?.name);
-
       if (!currentUser) {
         console.log('=== DEBUG: Usuário não autenticado');
         throw new Error('Usuário não autenticado');
@@ -873,39 +872,77 @@ export class AuthService {
 
       const userData = userDoc.data() as User;
       console.log('=== DEBUG: Dados do usuário:', userData);
-
       const userSiteIds: string[] = userData.sites || [];
       console.log('=== DEBUG: IDs das obras do usuário:', userSiteIds);
 
       if (userSiteIds.length === 0) {
         console.log('=== DEBUG: Usuário não tem obras associadas');
+        
+        // Se for admin e não tem obras, verificar se há obras criadas por ele
+        if (userData.role === 'admin') {
+          console.log('=== DEBUG: Usuário é admin, verificando obras criadas por ele ===');
+          const sitesQuery = query(collection(db, 'sites'), where('createdBy', '==', currentUser.id));
+          const sitesSnapshot = await getDocs(sitesQuery);
+          
+          if (sitesSnapshot.size > 0) {
+            const siteIds = sitesSnapshot.docs.map(doc => doc.id);
+            console.log(`=== DEBUG: Encontradas ${sitesSnapshot.size} obras criadas pelo admin ===`);
+            
+            // Atualizar o usuário com as obras encontradas
+            await updateDoc(userRef, {
+              sites: siteIds,
+              siteId: siteIds[0]
+            });
+            
+            // Atualizar também o AsyncStorage
+            const updatedUser = { ...userData, sites: siteIds, siteId: siteIds[0] };
+            await AuthService.saveUserToStorage(updatedUser);
+            
+            // Retornar as obras encontradas
+            const sites = sitesSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            } as Site));
+            
+            console.log('=== DEBUG: Obras retornadas após correção:', sites.length);
+            return sites;
+          }
+        }
+        
         return [];
       }
 
-      const allSites: Site[] = [];
+      // Buscar obras em lotes de 10 (limitação do Firestore)
+      const sites: Site[] = [];
       const batchSize = 10;
+      
       for (let i = 0; i < userSiteIds.length; i += batchSize) {
         const batchIds = userSiteIds.slice(i, i + batchSize);
         console.log('=== DEBUG: Buscando lote de obras:', batchIds);
-
+        
         const sitesQuery = query(
           collection(db, 'sites'),
           where('__name__', 'in', batchIds)
         );
+        
         const sitesSnapshot = await getDocs(sitesQuery);
         console.log('=== DEBUG: Obras encontradas no lote:', sitesSnapshot.size);
-
-        allSites.push(...sitesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Site)));
+        
+        sitesSnapshot.docs.forEach(doc => {
+          const siteData = doc.data() as Site;
+          console.log('=== DEBUG: Obra encontrada:', doc.id, siteData.name, 'Criada por:', siteData.createdBy);
+          sites.push({
+            id: doc.id,
+            ...siteData
+          });
+        });
       }
 
-      console.log('=== DEBUG: Total de obras retornadas:', allSites.length);
-      return allSites;
+      console.log('=== DEBUG: Total de obras retornadas:', sites.length);
+      return sites;
     } catch (error) {
       console.error('=== DEBUG: Erro em getUserSites:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -929,7 +966,6 @@ export class AuthService {
   static async getUserRole(): Promise<'admin' | 'worker'> {
     try {
       const userData = await AsyncStorage.getItem(AuthService.USER_KEY);
-
       if (!userData) {
         return 'worker';
       }

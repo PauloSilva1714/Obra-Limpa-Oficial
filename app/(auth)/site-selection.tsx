@@ -20,10 +20,6 @@ export default function SiteSelectionScreen() {
         console.log('=== DEBUG: SiteSelection - Iniciando carregamento de obras ===');
         setLoading(true);
 
-        console.log('=== DEBUG: SiteSelection - Chamando SiteService.getUserSites() ===');
-        const userSites = await SiteService.getUserSites();
-        console.log('=== DEBUG: SiteSelection - Obras retornadas:', userSites.length);
-        console.log('=== DEBUG: SiteSelection - Detalhes das obras:', userSites);
 
         setSites(userSites);
 

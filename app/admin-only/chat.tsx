@@ -79,6 +79,7 @@ export default function ChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#1F2937' }}>
+
       {/* Tabs */}
       <View style={styles.tabBar}>
         <TouchableOpacity

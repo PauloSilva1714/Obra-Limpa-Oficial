@@ -314,6 +314,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Toast de sucesso no topo */}
         {showSuccessToast && (
