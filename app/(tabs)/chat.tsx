@@ -214,13 +214,6 @@ export default function ChatScreen() {
   useEffect(() => {
     if (activeTab === 'grupo') {
       loadGroupMessages();
-
-      // Atualizar mensagens a cada 5 segundos quando a aba grupo estiver ativa
-      const interval = setInterval(() => {
-        loadGroupMessages();
-      }, 5000);
-
-      return () => clearInterval(interval);
     }
   }, [activeTab]);
 
@@ -326,7 +319,7 @@ export default function ChatScreen() {
   };
 
   // Funções para chat em grupo
-  const loadGroupMessages = async () => {
+    const loadGroupMessages = async () => {
     try {
       setLoadingGroupMessages(true);
       const currentSite = await AuthService.getCurrentSite();
@@ -334,20 +327,15 @@ export default function ChatScreen() {
         console.log('=== DEBUG: Carregando mensagens para o site:', currentSite.id);
         const messages = await AdminService.getMessages(currentSite.id);
         console.log('=== DEBUG: Mensagens recebidas do AdminService:', messages.length);
-        console.log('=== DEBUG: Primeira mensagem:', messages[0]);
 
         // Ordenar mensagens por data (mais recentes primeiro)
         const sortedMessages = messages.sort((a, b) => {
           const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
           const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-          return dateA.getTime() - dateB.getTime(); // Mudança: voltar para ordem cronológica
+          return dateA.getTime() - dateB.getTime();
         });
 
-        console.log('=== DEBUG: Mensagens ordenadas:', sortedMessages.length);
-        console.log('=== DEBUG: Primeira mensagem ordenada:', sortedMessages[0]);
-
         setGroupMessages(sortedMessages);
-        console.log('=== DEBUG: Estado groupMessages atualizado com:', sortedMessages.length, 'mensagens');
       } else {
         console.log('=== DEBUG: Site não encontrado');
       }
