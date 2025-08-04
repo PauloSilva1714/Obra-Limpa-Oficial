@@ -11,15 +11,18 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Modal,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { Search, MessageCircle, User, Camera, MoreVertical, ArrowLeft, Paperclip, Send, Smile } from 'lucide-react-native';
+import { Search, MessageCircle, User, Camera, MoreVertical, ArrowLeft, Paperclip, Send, Smile, Users } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { AuthService } from '@/services/AuthService';
 import { AdminService } from '@/services/AdminService';
 import TabBarToggleButton from '@/components/TabBarToggleButton';
 import AdminDirectChat from '@/components/AdminDirectChat';
 import * as ImagePicker from 'expo-image-picker';
-import CameraScreen from '@/components/CameraScreen';
+import CameraScreen from '../../components/CameraScreen';
 import { Video } from 'expo-av';
 import { Timestamp, FieldValue } from 'firebase/firestore';
 
@@ -180,6 +183,13 @@ export default function ChatScreen() {
   const [messageText, setMessageText] = useState('');
   const [showCameraScreen, setShowCameraScreen] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
+
+  // Ref para o FlatList do chat de grupo
+  const groupMessagesFlatListRef = useRef<FlatList>(null);
 
   // Array de emojis disponíveis
   const EMOJIS = ['😊', '😂', '❤️', '👍', '🎉', '😎', '😢', '🔥', '💯', '❤️'];
@@ -234,6 +244,22 @@ export default function ChatScreen() {
 
     loadMessagesForNewChatTab();
   }, [activeTab, admins.length, currentUser?.id]);
+
+  // Rolar para o final do chat de grupo quando as mensagens forem carregadas
+  useEffect(() => {
+    if (groupMessagesFlatListRef.current && groupMessages.length > 0 && !loadingGroupMessages) {
+      groupMessagesFlatListRef.current.scrollToEnd({ animated: true });
+    }
+  }, [groupMessages.length, loadingGroupMessages]);
+
+  // Rolar para o final quando uma nova mensagem for enviada
+  useEffect(() => {
+    if (groupMessagesFlatListRef.current && groupMessages.length > 0) {
+      setTimeout(() => {
+        groupMessagesFlatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [groupMessages.length]);
 
   const loadAdmins = async () => {
     try {
@@ -324,9 +350,20 @@ export default function ChatScreen() {
       setLoadingGroupMessages(true);
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
-        console.log('=== DEBUG: Carregando mensagens para o site:', currentSite.id);
+        console.log('📋 [loadGroupMessages] Carregando mensagens para o site:', currentSite.id);
         const messages = await AdminService.getMessages(currentSite.id);
-        console.log('=== DEBUG: Mensagens recebidas do AdminService:', messages.length);
+        console.log('📋 [loadGroupMessages] Mensagens recebidas do AdminService:', messages.length);
+
+        // Log detalhado das mensagens
+        messages.forEach((msg, index) => {
+          console.log(`📋 [loadGroupMessages] Mensagem ${index + 1}:`, {
+            id: msg.id,
+            content: msg.content,
+            type: msg.type,
+            attachments: msg.attachments?.length || 0,
+            senderName: msg.senderName
+          });
+        });
 
         // Ordenar mensagens por data (mais recentes primeiro)
         const sortedMessages = messages.sort((a, b) => {
@@ -335,12 +372,13 @@ export default function ChatScreen() {
           return dateA.getTime() - dateB.getTime();
         });
 
+        console.log('📋 [loadGroupMessages] Mensagens ordenadas:', sortedMessages.length);
         setGroupMessages(sortedMessages);
       } else {
-        console.log('=== DEBUG: Site não encontrado');
+        console.log('❌ [loadGroupMessages] Site não encontrado');
       }
     } catch (error) {
-      console.error('Erro ao carregar mensagens do grupo:', error);
+      console.error('❌ [loadGroupMessages] Erro ao carregar mensagens do grupo:', error);
     } finally {
       setLoadingGroupMessages(false);
     }
@@ -374,6 +412,52 @@ export default function ChatScreen() {
     } catch (error) {
       console.error('Erro ao enviar mensagem do grupo:', error);
       Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
+    }
+  };
+
+  // Função para enviar imagem no chat de grupo
+  const handleSendGroupImage = async (imageUrl: string) => {
+    try {
+      console.log('🖼️ [handleSendGroupImage] Iniciando envio de imagem:', imageUrl);
+
+      const currentSite = await AuthService.getCurrentSite();
+      if (currentSite) {
+        await AdminService.sendMessage(
+          currentSite.id,
+          '', // Sem texto
+          'image', // Tipo imagem
+          'medium',
+          undefined,
+          [imageUrl]
+        );
+        await loadGroupMessages();
+      }
+    } catch (error) {
+      console.error('❌ [handleSendGroupImage] Erro ao enviar imagem no grupo:', error);
+      Alert.alert('Erro', 'Não foi possível enviar a imagem.');
+    }
+  };
+
+  // Função para enviar vídeo no chat de grupo
+  const handleSendGroupVideo = async (videoUrl: string) => {
+    try {
+      console.log('🎬 [handleSendGroupVideo] Iniciando envio de vídeo:', videoUrl);
+
+      const currentSite = await AuthService.getCurrentSite();
+      if (currentSite) {
+        await AdminService.sendMessage(
+          currentSite.id,
+          '🎥 Vídeo', // Texto para vídeo
+          'video', // Tipo vídeo
+          'medium',
+          undefined,
+          [videoUrl]
+        );
+        await loadGroupMessages();
+      }
+    } catch (error) {
+      console.error('❌ [handleSendGroupVideo] Erro ao enviar vídeo no grupo:', error);
+      Alert.alert('Erro', 'Não foi possível enviar o vídeo.');
     }
   };
 
@@ -533,7 +617,7 @@ export default function ChatScreen() {
     try {
       console.log('=== DEBUG: openCameraDirectly iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All, // Voltando para a sintaxe original
+        mediaTypes: ImagePicker.MediaTypeOptions.All, // Sintaxe correta
         allowsEditing: false,
         quality: 1.0, // Qualidade máxima
       });
@@ -573,7 +657,7 @@ export default function ChatScreen() {
     try {
       console.log('=== DEBUG: takePhotoComplete iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Voltando para a sintaxe original
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Sintaxe correta
         allowsEditing: false, // Sem crop intermediário
         quality: 0.8,
       });
@@ -609,7 +693,7 @@ export default function ChatScreen() {
     try {
       console.log('=== DEBUG: recordVideo iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos, // Voltando para a sintaxe original
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos, // Sintaxe correta
         allowsEditing: false, // Sem crop intermediário
         quality: 0.8,
         videoMaxDuration: 30,
@@ -644,33 +728,37 @@ export default function ChatScreen() {
 
   const selectMediaComplete = async () => {
     try {
+      console.log('📱 [selectMediaComplete] Abrindo galeria...');
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All, // Voltando para a sintaxe original
-        allowsEditing: false, // Sem crop intermediário
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: false,
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
-        console.log('Mídia selecionada:', asset.uri);
+        console.log('📱 [selectMediaComplete] Mídia selecionada:', {
+          uri: asset.uri,
+          type: asset.type,
+          fileName: asset.fileName
+        });
 
         // Enviar mídia diretamente sem abrir modal
         const isVideo = asset.type === 'video';
-        const mediaMessage: Message = {
-          id: Date.now().toString(),
-          text: '',
-          sender: currentUser?.id,
-          timestamp: new Date().toISOString(),
-          isOwn: true,
-          isPhoto: true,
-          mediaType: isVideo ? 'video' : 'photo',
-          uri: asset.uri
-        };
-
-        setMessages([...messages, mediaMessage]);
+        if (isVideo) {
+          console.log('🎬 [selectMediaComplete] Vídeo selecionado - implementar se necessário');
+          // (mantém lógica de vídeo se necessário)
+        } else {
+          console.log('🖼️ [selectMediaComplete] Imagem selecionada - enviando para o grupo');
+          // Enviar imagem corretamente para o grupo
+          await handleSendGroupImage(asset.uri);
+        }
+      } else {
+        console.log('📱 [selectMediaComplete] Nenhuma mídia selecionada');
       }
     } catch (error) {
-      console.error('Erro ao selecionar mídia:', error);
+      console.error('❌ [selectMediaComplete] Erro ao selecionar mídia:', error);
       Alert.alert('Erro', 'Não foi possível selecionar a mídia.');
     }
   };
@@ -816,12 +904,14 @@ export default function ChatScreen() {
   const renderGroupMessage = ({ item }: { item: any }) => {
     const isOwnMessage = item.senderId === currentUser?.id;
 
-    console.log('=== DEBUG: Renderizando mensagem do grupo:', {
+    console.log('🎨 [renderGroupMessage] Renderizando mensagem do grupo:', {
       id: item.id,
       content: item.content,
+      type: item.type,
       senderId: item.senderId,
       senderName: item.senderName,
       isOwnMessage,
+      attachments: item.attachments?.length || 0,
       createdAt: item.createdAt
     });
 
@@ -830,7 +920,61 @@ export default function ChatScreen() {
         {!isOwnMessage && (
           <Text style={styles.senderName}>{item.senderName}</Text>
         )}
-        <Text style={styles.messageText}>{item.content}</Text>
+
+        {/* Renderizar anexos de mídia */}
+        {item.attachments && item.attachments.length > 0 && (
+          <View style={styles.attachmentsContainer}>
+            {item.attachments.map((attachment: string, index: number) => {
+              // Verificar tipo de mídia baseado no tipo da mensagem e extensão do arquivo
+              const isImage = item.type === 'image' || attachment.includes('.jpg') || attachment.includes('.jpeg') || attachment.includes('.png') || attachment.includes('.gif');
+              const isVideo = item.type === 'video' || attachment.includes('.mp4') || attachment.includes('.mov') || attachment.includes('.avi');
+
+              if (isImage) {
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={{ marginBottom: 8 }}
+                    onPress={() => {
+                      console.log('🖼️ Abrindo imagem em tela cheia:', attachment);
+                      setCurrentImageUrl(attachment);
+                      setImageModalVisible(true);
+                    }}
+                  >
+                    <Image
+                      source={{ uri: attachment }}
+                      style={{ width: 200, height: 150, borderRadius: 8 }}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                );
+              } else if (isVideo) {
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.videoAttachmentContainer}
+                    onPress={() => {
+                      console.log('🎬 Reproduzindo vídeo do grupo:', attachment);
+                      setCurrentVideoUrl(attachment);
+                      setVideoModalVisible(true);
+                    }}
+                  >
+                    <View style={styles.videoThumbnail}>
+                      <View style={styles.videoPlayButton}>
+                        <Text style={styles.videoPlayIcon}>▶</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+              return null;
+            })}
+          </View>
+        )}
+
+        {/* Texto da mensagem - não exibir quando for imagem */}
+        {item.content && item.type !== 'image' && (
+          <Text style={styles.messageText}>{item.content}</Text>
+        )}
         <Text style={styles.messageTime}>
           {formatDate(item.createdAt)}
         </Text>
@@ -910,74 +1054,78 @@ export default function ChatScreen() {
   // Modal de edição de imagem removido - não será mais usado
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chat</Text>
-      </View>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Chat</Text>
+        </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Search size={20} color="#9CA3AF" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Pesquisar administradores..."
-          placeholderTextColor="#9CA3AF"
-          value={searchQuery}
-          onChangeText={handleSearch}
-        />
-        <TouchableOpacity style={styles.searchMenuButton}>
-          <TabBarToggleButton variant="minimal" />
-        </TouchableOpacity>
-      </View>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Search size={20} color="#9CA3AF" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Pesquisar administradores..."
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+          <TouchableOpacity style={styles.searchMenuButton}>
+            <TabBarToggleButton variant="minimal" />
+          </TouchableOpacity>
+        </View>
 
-      {/* Tab Navigation */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'individual' && styles.activeTab]}
-          onPress={() => setActiveTab('individual')}
-        >
-          <User size={16} color={activeTab === 'individual' ? '#F97316' : '#9CA3AF'} />
-          <Text style={[styles.tabText, activeTab === 'individual' && styles.activeTabText]}>
-            Individual
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'grupo' && styles.activeTab]}
-          onPress={() => setActiveTab('grupo')}
-        >
-          <MessageCircle size={16} color={activeTab === 'grupo' ? '#F97316' : '#9CA3AF'} />
-          <Text style={[styles.tabText, activeTab === 'grupo' && styles.activeTabText]}>
-            Grupo
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'novo' && styles.activeTab]}
-          onPress={async () => {
-             setActiveTab('novo');
+        {/* Tab Navigation */}
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'individual' && styles.activeTab]}
+            onPress={() => setActiveTab('individual')}
+          >
+            <User size={16} color={activeTab === 'individual' ? '#F97316' : '#9CA3AF'} />
+            <Text style={[styles.tabText, activeTab === 'individual' && styles.activeTabText]}>
+              Individual
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'grupo' && styles.activeTab]}
+            onPress={() => setActiveTab('grupo')}
+          >
+                          <Users size={16} color={activeTab === 'grupo' ? '#F97316' : '#9CA3AF'} />
+            <Text style={[styles.tabText, activeTab === 'grupo' && styles.activeTabText]}>
+              Grupo
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'novo' && styles.activeTab]}
+            onPress={async () => {
+               setActiveTab('novo');
 
-             // Recarregar as últimas mensagens quando a aba "novo" for selecionada
-             if (admins.length > 0 && currentUser) {
-               try {
-                 const currentSite = await AuthService.getCurrentSite();
-                 if (currentSite) {
-                   await loadLastMessages(currentSite.id, admins);
+               // Recarregar as últimas mensagens quando a aba "novo" for selecionada
+               if (admins.length > 0 && currentUser) {
+                 try {
+                   const currentSite = await AuthService.getCurrentSite();
+                   if (currentSite) {
+                     await loadLastMessages(currentSite.id, admins);
+                   }
+                 } catch (error) {
+                   console.error('Erro ao recarregar mensagens:', error);
                  }
-               } catch (error) {
-                 console.error('Erro ao recarregar mensagens:', error);
                }
-             }
-           }}
-        >
-          <MessageCircle size={16} color={activeTab === 'novo' ? '#F97316' : '#F97316'} />
-          <Text style={[styles.tabText, activeTab === 'novo' && styles.activeTabText]}>
-            Novo Chat
-          </Text>
-        </TouchableOpacity>
-      </View>
+             }}
+          >
+            <MessageCircle size={16} color={activeTab === 'novo' ? '#F97316' : '#F97316'} />
+            <Text style={[styles.tabText, activeTab === 'novo' && styles.activeTabText]}>
+              Novo Chat
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Content */}
-      <View style={styles.content}>
+        {/* Content */}
+        <View style={styles.content}>
         {activeTab === 'individual' && (
           <FlatList
             data={chatSessions}
@@ -1021,12 +1169,80 @@ export default function ChatScreen() {
                       </Text>
                     </View>
                   }
+                  ref={groupMessagesFlatListRef}
                 />
 
                 {/* Input de mensagem */}
                 <View style={styles.inputContainer}>
                   <View style={styles.inputRow}>
-                    <TouchableOpacity style={styles.mediaButton} onPress={openCameraDirectly}>
+                    <TouchableOpacity
+                      style={styles.mediaButton}
+                      onPress={() => {
+                        Alert.alert(
+                          'Selecionar Mídia',
+                          'Escolha uma opção:',
+                          [
+                            {
+                              text: 'Foto - Câmera',
+                              onPress: async () => {
+                                try {
+                                  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                                  if (status !== 'granted') {
+                                    Alert.alert('Permissão necessária', 'É necessário permitir o acesso à câmera para tirar fotos.');
+                                    return;
+                                  }
+
+                                  const result = await ImagePicker.launchCameraAsync({
+                                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                                    allowsEditing: true,
+                                    aspect: [4, 3],
+                                    quality: 0.8,
+                                  });
+
+                                  if (!result.canceled && result.assets && result.assets[0]) {
+                                    await handleSendGroupImage(result.assets[0].uri);
+                                  }
+                                } catch (error) {
+                                  console.error('Erro ao tirar foto:', error);
+                                  Alert.alert('Erro', 'Não foi possível tirar a foto.');
+                                }
+                              },
+                            },
+                            {
+                              text: 'Vídeo - Câmera',
+                              onPress: async () => {
+                                try {
+                                  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                                  if (status !== 'granted') {
+                                    Alert.alert('Permissão necessária', 'É necessário permitir o acesso à câmera para gravar vídeos.');
+                                    return;
+                                  }
+
+                                  const result = await ImagePicker.launchCameraAsync({
+                                    mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+                                    allowsEditing: true,
+                                    videoMaxDuration: 60,
+                                    quality: 0.8,
+                                  });
+
+                                  if (!result.canceled && result.assets && result.assets[0]) {
+                                    // Enviar vídeo para o grupo
+                                    await handleSendGroupVideo(result.assets[0].uri);
+                                  }
+                                } catch (error) {
+                                  console.error('Erro ao gravar vídeo:', error);
+                                  Alert.alert('Erro', 'Não foi possível gravar o vídeo.');
+                                }
+                              },
+                            },
+                            {
+                              text: 'Cancelar',
+                              style: 'cancel',
+                            },
+                          ]
+                        );
+                      }}
+                    >
                       <Camera size={18} color="white" />
                     </TouchableOpacity>
 
@@ -1046,6 +1262,9 @@ export default function ChatScreen() {
                       onChangeText={setGroupMessageText}
                       multiline
                       maxLength={500}
+                      blurOnSubmit={false}
+                      returnKeyType="default"
+                      textAlignVertical="center"
                     />
                     <TouchableOpacity
                       style={[styles.sendButton, !groupMessageText.trim() && styles.sendButtonDisabled]}
@@ -1100,7 +1319,102 @@ export default function ChatScreen() {
         )}
       </View>
 
-    </SafeAreaView>
+      {/* Modal de visualização de imagem em tela cheia */}
+      <Modal
+        visible={imageModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setImageModalVisible(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.95)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 40,
+              right: 20,
+              zIndex: 2,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              borderRadius: 20,
+              padding: 8,
+            }}
+            onPress={() => setImageModalVisible(false)}
+          >
+            <Text style={{ color: '#fff', fontSize: 24 }}>✕</Text>
+          </TouchableOpacity>
+          <Image
+            source={{ uri: currentImageUrl }}
+            style={{ width: '95%', height: '80%', borderRadius: 12 }}
+            resizeMode="contain"
+          />
+        </View>
+      </Modal>
+
+      {/* Modal de visualização de vídeo em tela cheia */}
+      <Modal
+        visible={videoModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setVideoModalVisible(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.95)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 40,
+              right: 20,
+              zIndex: 2,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              borderRadius: 20,
+              padding: 8,
+            }}
+            onPress={() => setVideoModalVisible(false)}
+          >
+            <Text style={{ color: '#fff', fontSize: 24 }}>✕</Text>
+          </TouchableOpacity>
+
+          {currentVideoUrl.includes('.mp4') || currentVideoUrl.includes('.mov') || currentVideoUrl.includes('.avi') ? (
+            Platform.OS === 'web' ? (
+              <video
+                src={currentVideoUrl}
+                controls
+                autoPlay
+                style={{
+                  width: '95%',
+                  height: '80%',
+                  borderRadius: 12,
+                }}
+              />
+            ) : (
+              <Video
+                source={{ uri: currentVideoUrl }}
+                style={{ width: '95%', height: '80%', borderRadius: 12 }}
+                useNativeControls
+                shouldPlay
+                isLooping={false}
+                resizeMode="contain"
+              />
+            )
+          ) : (
+            <Image
+              source={{ uri: currentVideoUrl }}
+              style={{ width: '95%', height: '80%', borderRadius: 12 }}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1353,8 +1667,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
+    minHeight: 40,
     maxHeight: 100,
     fontSize: 14,
+    lineHeight: 20,
   },
 
   sendButtonDisabled: {
@@ -1646,6 +1962,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 2,
+  },
+  // Estilos para anexos de mídia
+  attachmentsContainer: {
+    marginBottom: 8,
+  },
+  attachmentContainer: {
+    marginBottom: 4,
+  },
+  attachmentImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+  },
+  videoAttachmentContainer: {
+    marginBottom: 4,
+  },
+  videoThumbnail: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    backgroundColor: '#000',
+  },
+  videoPlayButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlayIcon: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   adminCompany: {
     fontSize: 12,

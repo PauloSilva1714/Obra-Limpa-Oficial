@@ -31,11 +31,12 @@ import {
 } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { Timestamp, FieldValue } from 'firebase/firestore';
-import { uploadImageAsync } from '../services/PhotoService';
+import { uploadImageAsync, uploadVideoAsync } from '../services/PhotoService';
 import ImagePicker from './ImagePicker';
 import DocumentPicker from './DocumentPicker';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { createUniqueId } from '../utils/idUtils';
+import { Video } from 'expo-video';
 
 interface AdminChatProps {
   siteId: string;
@@ -63,6 +64,8 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<AdminMessage[]>([]);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
 
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
@@ -236,6 +239,52 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     }
   };
 
+  // Função para enviar vídeo
+  const handleSendVideo = async (videoUri: string) => {
+    try {
+      setSending(true);
+
+      // Upload do vídeo para o Firebase Storage
+      const uploadedUrl = await uploadVideoAsync(videoUri, currentUser?.id || '');
+
+      // Criar mensagem com anexo
+      const clientId = createUniqueId();
+      const tempId = 'temp-' + clientId;
+
+      const optimisticMsg: AdminMessage = {
+        id: tempId,
+        siteId,
+        senderId: currentUser?.id || '',
+        senderName: currentUser?.name || 'Você',
+        senderEmail: currentUser?.email || '',
+        content: '🎥 Vídeo',
+        type: 'video',
+        priority: 'medium',
+        createdAt: new Date().toISOString(),
+        readBy: [currentUser?.id || ''],
+        attachments: [uploadedUrl],
+        clientId,
+      };
+
+      setPendingMessages((prev) => [...prev, optimisticMsg]);
+      setMessages((prev) => sortMessages([...prev, optimisticMsg]));
+
+      await AdminService.sendMessage(
+        siteId,
+        '🎥 Vídeo',
+        'video',
+        'medium',
+        clientId,
+        [uploadedUrl]
+      );
+
+    } catch (error: any) {
+      Alert.alert('Erro', 'Não foi possível enviar o vídeo: ' + (error?.message || ''));
+    } finally {
+      setSending(false);
+    }
+  };
+
   // Função para abrir câmera para foto
   const openCameraForPhoto = async () => {
     try {
@@ -278,7 +327,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await handleSendImage(result.assets[0].uri);
+        await handleSendVideo(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Erro ao abrir câmera:', error);
@@ -328,7 +377,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await handleSendImage(result.assets[0].uri);
+        await handleSendVideo(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Erro ao selecionar vídeo:', error);
@@ -500,15 +549,42 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         {/* Renderizar anexos de mídia */}
         {item.attachments && item.attachments.length > 0 && (
           <View style={styles.attachmentsContainer}>
-            {item.attachments.map((attachment, index) => (
-              <TouchableOpacity key={index} style={styles.attachmentContainer}>
-                <Image
-                  source={{ uri: attachment }}
-                  style={styles.attachmentImage}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            ))}
+            {item.attachments.map((attachment, index) => {
+              // Verificar tipo de mídia
+              const isImage = item.type === 'image' || attachment.includes('.jpg') || attachment.includes('.jpeg') || attachment.includes('.png') || attachment.includes('.gif');
+              const isVideo = item.type === 'video' || attachment.includes('.mp4') || attachment.includes('.mov') || attachment.includes('.avi');
+
+              if (isVideo) {
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.videoAttachmentContainer, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.primary + '20' }]}
+                    onPress={() => {
+                          console.log('🎬 Reproduzindo vídeo dentro do app:', attachment);
+                          setVideoModalVisible(true);
+                          setCurrentVideoUrl(attachment);
+                        }}
+                  >
+                    <View style={styles.videoIcon}>
+                      <Text style={[styles.videoIconText, { color: isOwnMessage ? 'white' : colors.primary }]}>▶️</Text>
+                    </View>
+                    <Text style={[styles.videoAttachmentText, { color: isOwnMessage ? 'white' : colors.primary }]}>
+                      🎥 Reproduzir Vídeo
+                    </Text>
+                  </TouchableOpacity>
+                );
+              } else {
+                return (
+                  <TouchableOpacity key={index} style={styles.attachmentContainer}>
+                    <Image
+                      source={{ uri: attachment }}
+                      style={styles.attachmentImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                );
+              }
+            })}
           </View>
         )}
 
@@ -845,7 +921,46 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         </View>
       </Modal>
 
+      {/* Modal de Vídeo */}
+      <Modal
+        visible={videoModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setVideoModalVisible(false)}
+      >
+        <View style={styles.videoModalOverlay}>
+          <View style={styles.videoModalContainer}>
+            <TouchableOpacity
+              style={styles.videoCloseButton}
+              onPress={() => setVideoModalVisible(false)}
+            >
+              <Text style={styles.videoCloseButtonText}>✕</Text>
+            </TouchableOpacity>
 
+            {Platform.OS === 'web' ? (
+              <video
+                src={currentVideoUrl}
+                controls
+                autoPlay
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: 8,
+                }}
+              />
+            ) : (
+              <Video
+                source={{ uri: currentVideoUrl }}
+                style={styles.videoPlayer}
+                useNativeControls
+                shouldPlay
+                isLooping={false}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -1146,6 +1261,66 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   attachmentImage: {
+    width: '100%',
+    height: '100%',
+  },
+  videoAttachmentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 4,
+    gap: 8,
+    minHeight: 50,
+    width: '100%',
+  },
+  videoIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoIconText: {
+    fontSize: 16,
+  },
+  videoAttachmentText: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  videoModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoModalContainer: {
+    width: '90%',
+    height: '70%',
+    backgroundColor: '#000',
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  videoCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1000,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoCloseButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  videoPlayer: {
     width: '100%',
     height: '100%',
   },

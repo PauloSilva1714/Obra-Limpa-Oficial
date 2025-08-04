@@ -87,6 +87,45 @@ export async function uploadImageAsync(
   }
 }
 
+export async function uploadVideoAsync(
+  uriOrFile: string | File,
+  userId: string
+): Promise<string> {
+  try {
+    
+    const storage = getStorage();
+    let blob: Blob;
+    let fileName: string;
+
+    if (typeof uriOrFile === 'string') {
+      // Mobile: uri
+      const response = await fetch(uriOrFile);
+      if (!response.ok) {
+        console.error('[PhotoService] Erro na resposta fetch:', response.status);
+        throw new Error(`Erro ao buscar vídeo: ${response.status}`);
+      }
+      blob = await response.blob();
+      fileName = `videos/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.mp4`;
+    } else {
+      // Web: File
+      blob = uriOrFile;
+      const fileExtension = uriOrFile.name.split('.').pop() || 'mp4';
+      fileName = `videos/${userId}/${Date.now()}_${uriOrFile.name.replace(/\.[^/.]+$/, '')}.${fileExtension}`;
+    }
+
+    const fileRef = ref(storage, fileName);
+    
+    await uploadBytes(fileRef, blob);
+    
+    const downloadURL = await getDownloadURL(fileRef);
+    
+    return downloadURL;
+  } catch (error) {
+    console.error('[PhotoService] Erro no upload de vídeo:', error);
+    return typeof uriOrFile === 'string' ? uriOrFile : '';
+  }
+}
+
 export async function uploadProfilePhoto(userId: string, uriOrFile: string | File): Promise<string> {
   try {
     const storage = getStorage();

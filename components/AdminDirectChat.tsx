@@ -17,12 +17,13 @@ import { Send, ArrowLeft, Trash2, User, Check, Camera, Paperclip } from 'lucide-
 import { useTheme } from '../contexts/ThemeContext';
 import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
-import { uploadImageAsync } from '../services/PhotoService';
+import { uploadImageAsync, uploadVideoAsync } from '../services/PhotoService';
 
 
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { Video } from 'expo-av';
 import { Timestamp, FieldValue, query, collection, where, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { createUniqueId } from '../utils/idUtils';
@@ -53,7 +54,8 @@ export default function AdminDirectChat({
   const [showOptions, setShowOptions] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<AdminDirectMessage[]>([]);
   const [otherUserPhotoURL, setOtherUserPhotoURL] = useState<string | null>(null);
-
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
 
   const [otherUserStatus, setOtherUserStatus] = useState<string>('Carregando...');
 
@@ -84,6 +86,10 @@ export default function AdminDirectChat({
       try {
         console.log('🔍 [AdminDirectChat] Inicializando componente:', { siteId, otherUserId, otherUserName });
         setLoading(true);
+
+        // Migrar mensagens antigas se necessário
+        console.log('🔄 [AdminDirectChat] Verificando migração de mensagens antigas...');
+        await AdminService.migrateOldDirectMessages();
 
         console.log('🔍 [AdminDirectChat] Buscando mensagens iniciais...');
         const messagesData = await AdminService.getDirectMessages(siteId, otherUserId, {});
@@ -185,6 +191,24 @@ export default function AdminDirectChat({
     };
   }, [otherUserId]);
 
+  // useEffect para rolar automaticamente para o final quando mensagens são carregadas
+  useEffect(() => {
+    if (messages.length > 0 && !loading) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 300);
+    }
+  }, [messages.length, loading]);
+
+  // Rolar para o final quando uma nova mensagem for enviada
+  useEffect(() => {
+    if (flatListRef.current && messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages.length]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
     try {
@@ -272,7 +296,7 @@ export default function AdminDirectChat({
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const videoUri = result.assets[0].uri;
-        await handleSendImage(videoUri);
+        await handleSendVideo(videoUri);
       }
     } catch (error) {
       console.error('Erro ao abrir câmera:', error);
@@ -284,13 +308,13 @@ export default function AdminDirectChat({
   const handleSendImage = async (imageUri: string) => {
     try {
       setSending(true);
-      
+
       // Upload da imagem para o Firebase Storage
       const uploadedUrl = await uploadImageAsync(imageUri, currentUser?.id || '');
-      
+
       const clientId = createUniqueId();
       const tempId = 'temp-' + clientId;
-      
+
       // Mensagem otimista
       const optimisticMsg: AdminDirectMessage = {
         id: tempId,
@@ -300,7 +324,7 @@ export default function AdminDirectChat({
         senderEmail: currentUser?.email || '',
         recipientId: otherUserId,
         recipientName: otherUserName,
-        content: '📷 Foto',
+        content: '', // Não exibir texto 'Foto'
         type: 'image',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -315,7 +339,7 @@ export default function AdminDirectChat({
       await AdminService.sendDirectMessage(
         siteId,
         otherUserId,
-        '📷 Foto',
+        '', // Não exibir texto 'Foto'
         'image',
         clientId,
         [uploadedUrl]
@@ -323,6 +347,54 @@ export default function AdminDirectChat({
 
     } catch (error: any) {
       Alert.alert('Erro', 'Não foi possível enviar a imagem: ' + (error?.message || ''));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Função para processar e enviar vídeo
+  const handleSendVideo = async (videoUri: string) => {
+    try {
+      setSending(true);
+
+      // Upload do vídeo para o Firebase Storage
+      const uploadedUrl = await uploadVideoAsync(videoUri, currentUser?.id || '');
+
+      const clientId = createUniqueId();
+      const tempId = 'temp-' + clientId;
+
+      // Mensagem otimista
+      const optimisticMsg: AdminDirectMessage = {
+        id: tempId,
+        siteId,
+        senderId: currentUser?.id || '',
+        senderName: currentUser?.name || 'Você',
+        senderEmail: currentUser?.email || '',
+        recipientId: otherUserId,
+        recipientName: otherUserName,
+        content: '🎥 Vídeo',
+        type: 'video',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        readBy: [currentUser?.id || ''],
+        attachments: [uploadedUrl],
+        clientId,
+      };
+
+      setPendingMessages((prev) => [...prev, optimisticMsg]);
+      setMessages((prev) => sortMessages([...prev, optimisticMsg]));
+
+      await AdminService.sendDirectMessage(
+        siteId,
+        otherUserId,
+        '🎥 Vídeo',
+        'video',
+        clientId,
+        [uploadedUrl]
+      );
+
+    } catch (error: any) {
+      Alert.alert('Erro', 'Não foi possível enviar o vídeo: ' + (error?.message || ''));
     } finally {
       setSending(false);
     }
@@ -378,7 +450,7 @@ export default function AdminDirectChat({
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const videoUri = result.assets[0].uri;
-        await handleSendImage(videoUri);
+        await handleSendVideo(videoUri);
       }
     } catch (error) {
       console.error('Erro ao selecionar vídeo:', error);
@@ -398,7 +470,7 @@ export default function AdminDirectChat({
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         console.log('Documento selecionado:', asset);
-        
+
         // Verificar tamanho do arquivo (máximo 10MB)
         if (asset.size && asset.size > 10 * 1024 * 1024) {
           Alert.alert('Erro', 'O arquivo é muito grande. Tamanho máximo permitido: 10MB');
@@ -417,14 +489,14 @@ export default function AdminDirectChat({
   const handleSendDocument = async (documentUri: string, fileName: string, mimeType: string) => {
     try {
       setSending(true);
-      
+
       // Upload do documento para o Firebase Storage
       const uploadedUrl = await uploadImageAsync(documentUri, currentUser?.id || '');
-      
+
       const messageText = `📎 ${fileName}`;
       const clientId = createUniqueId();
       const tempId = 'temp-' + clientId;
-      
+
       // Mensagem otimista
       const optimisticMsg: AdminDirectMessage = {
         id: tempId,
@@ -580,24 +652,49 @@ export default function AdminDirectChat({
           {item.attachments && item.attachments.length > 0 && (
             <View style={styles.attachmentsContainer}>
               {item.attachments.map((attachment, index) => {
-                // Verificar se é uma imagem ou arquivo
+                // Verificar tipo de mídia
                 const isImage = item.type === 'image' || attachment.includes('.jpg') || attachment.includes('.jpeg') || attachment.includes('.png') || attachment.includes('.gif');
-                const isFile = item.type === 'file' || !isImage;
-                
+                const isVideo = item.type === 'video' || attachment.includes('.mp4') || attachment.includes('.mov') || attachment.includes('.avi');
+                const isFile = item.type === 'file' || (!isImage && !isVideo);
+
                 if (isImage) {
                   return (
-                    <TouchableOpacity key={index} style={styles.attachmentContainer}>
+                    <TouchableOpacity
+                      key={index}
+                      style={{ marginBottom: 8 }}
+                      onPress={() => {
+                        setCurrentVideoUrl(attachment);
+                        setVideoModalVisible(true);
+                      }}
+                    >
                       <Image
                         source={{ uri: attachment }}
-                        style={styles.attachmentImage}
+                        style={{ width: 200, height: 150, borderRadius: 8 }}
                         resizeMode="cover"
                       />
                     </TouchableOpacity>
                   );
+                } else if (isVideo) {
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.videoAttachmentContainer}
+                      onPress={() => {
+                        setVideoModalVisible(true);
+                        setCurrentVideoUrl(attachment);
+                      }}
+                    >
+                      <View style={styles.videoThumbnail}>
+                        <View style={styles.videoPlayButton}>
+                          <Text style={styles.videoPlayIcon}>▶</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
                 } else {
                   return (
-                    <TouchableOpacity 
-                      key={index} 
+                    <TouchableOpacity
+                      key={index}
                       style={[styles.fileAttachmentContainer, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.primary + '20' }]}
                       onPress={() => {
                         // Abrir arquivo (implementar se necessário)
@@ -605,9 +702,7 @@ export default function AdminDirectChat({
                       }}
                     >
                       <Paperclip size={16} color={isOwnMessage ? 'white' : colors.primary} />
-                      <Text style={[styles.fileAttachmentText, { color: isOwnMessage ? 'white' : colors.primary }]}>
-                        Arquivo anexado
-                      </Text>
+                      <Text style={[styles.fileAttachmentText, { color: isOwnMessage ? 'white' : colors.primary }]}>Arquivo anexado</Text>
                     </TouchableOpacity>
                   );
                 }
@@ -616,9 +711,11 @@ export default function AdminDirectChat({
           )}
 
           {/* Texto da mensagem */}
-          <Text style={[styles.messageText, { color: isOwnMessage ? 'white' : colors.text }]}>
-            {item.content || '[Mensagem sem conteúdo]'}
-          </Text>
+          {item.content && item.type !== 'image' && (
+            <Text style={[styles.messageText, { color: isOwnMessage ? 'white' : colors.text }]}>
+              {item.content}
+            </Text>
+          )}
         </View>
       </View>
     );
@@ -731,7 +828,7 @@ export default function AdminDirectChat({
         <View style={styles.inputRow}>
           {/* Botões de mídia - sempre visíveis */}
           <TouchableOpacity
-            style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+            style={styles.mediaButton}
             onPress={() => {
                Alert.alert(
                  'Selecionar Mídia',
@@ -760,13 +857,14 @@ export default function AdminDirectChat({
                  ]
                );
              }}
+            accessibilityLabel="Abrir câmera"
           >
             <Camera size={18} color="white" />
           </TouchableOpacity>
 
           {/* Botão de anexo (clipe de papel) */}
           <TouchableOpacity
-            style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+            style={styles.mediaButton}
             onPress={() => {
               console.log('Attachment button pressed - opening document picker');
               selectDocument();
@@ -776,23 +874,19 @@ export default function AdminDirectChat({
             <Paperclip size={18} color="white" />
           </TouchableOpacity>
 
-          {/* Botão de emoji movido para a linha de input */}
+          {/* Botão de emoji */}
           <TouchableOpacity
             onPress={() => setShowOptions(!showOptions)}
-            style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+            style={styles.mediaButton}
             accessibilityLabel={showOptions ? 'Esconder opções' : 'Mostrar opções'}
           >
             <Text style={{ fontSize: 18, color: 'white' }}>{showOptions ? '❌' : '😊'}</Text>
           </TouchableOpacity>
 
           <TextInput
-            style={[styles.messageInput, {
-              backgroundColor: colors.surface,
-              color: colors.text,
-              borderColor: colors.border
-            }]}
+            style={styles.messageInput}
             placeholder={`Digite sua mensagem para ${otherUserName}...`}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor="#9CA3AF"
             value={newMessage}
             onChangeText={setNewMessage}
             multiline
@@ -801,7 +895,7 @@ export default function AdminDirectChat({
             blurOnSubmit={false}
           />
           <TouchableOpacity
-            style={[styles.sendButton, { backgroundColor: colors.primary }]}
+            style={[styles.sendButton, sending || !newMessage.trim() ? { backgroundColor: '#6B7280' } : {}]}
             onPress={handleSendMessage}
             disabled={sending || !newMessage.trim()}
           >
@@ -842,6 +936,55 @@ export default function AdminDirectChat({
           </View>
         </View>
       </Modal>
+
+                {/* Modal de Vídeo/Imagem */}
+        <Modal
+          visible={videoModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setVideoModalVisible(false)}
+        >
+          <View style={styles.videoModalOverlay}>
+            <View style={styles.videoModalContainer}>
+              <TouchableOpacity
+                style={styles.videoCloseButton}
+                onPress={() => setVideoModalVisible(false)}
+              >
+                <Text style={styles.videoCloseButtonText}>✕</Text>
+              </TouchableOpacity>
+
+              {currentVideoUrl.includes('.mp4') || currentVideoUrl.includes('.mov') || currentVideoUrl.includes('.avi') ? (
+                Platform.OS === 'web' ? (
+                  <video
+                    src={currentVideoUrl}
+                    controls
+                    autoPlay
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: 8,
+                    }}
+                  />
+                ) : (
+                  <Video
+                    source={{ uri: currentVideoUrl }}
+                    style={styles.videoPlayer}
+                    useNativeControls
+                    shouldPlay
+                    isLooping={false}
+                    resizeMode="contain"
+                  />
+                )
+              ) : (
+                <Image
+                  source={{ uri: currentVideoUrl }}
+                  style={styles.fullScreenImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </View>
+        </Modal>
 
 
 
@@ -959,7 +1102,9 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     borderTopWidth: 1,
-    padding: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingBottom: 15,
     marginBottom: 20,
   },
   inputRow: {
@@ -970,6 +1115,9 @@ const styles = StyleSheet.create({
   messageInput: {
     flex: 1,
     borderWidth: 1,
+    borderColor: '#374151',
+    backgroundColor: '#1F2937',
+    color: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
@@ -977,11 +1125,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   sendButton: {
+    backgroundColor: '#F97316',
+    borderRadius: 20,
     width: 40,
     height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   chatTypeIndicator: {
     flexDirection: 'row',
@@ -1061,15 +1210,18 @@ const styles = StyleSheet.create({
   },
   mediaButtons: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
     marginRight: 8,
+    alignItems: 'center',
   },
   mediaButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
+    backgroundColor: '#F97316',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -1102,6 +1254,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  videoAttachmentContainer: {
+    marginBottom: 4,
+  },
+  videoThumbnail: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    backgroundColor: '#000',
+  },
+  videoPlayButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlayIcon: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1112,5 +1289,44 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#10B981', // Verde para online
+  },
+  videoModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoModalContainer: {
+    width: '90%',
+    height: '70%',
+    backgroundColor: '#000',
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  videoCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1000,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoCloseButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  videoPlayer: {
+    width: '100%',
+    height: '100%',
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
   },
 });

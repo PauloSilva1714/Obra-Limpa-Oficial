@@ -1279,12 +1279,12 @@ export class AdminService {
       );
       const testSnapshot = await getDocs(testQuery);
       console.log('🔍 [getDirectMessages] Total de documentos na coleção (primeiros 50):', testSnapshot.size);
-      
+
       // Contar total de documentos na coleção
       const countQuery = query(collection(db, 'adminDirectMessages'));
       const countSnapshot = await getDocs(countQuery);
       console.log('🔍 [getDirectMessages] TOTAL REAL de documentos na coleção:', countSnapshot.size);
-      
+
       testSnapshot.docs.forEach((doc, index) => {
         const data = doc.data();
         console.log(`🔍 [getDirectMessages] Documento ${index + 1}:`, {
@@ -1376,9 +1376,25 @@ export class AdminService {
             console.log('⚠️ [getDirectMessages] Mensagem sem conteúdo encontrada:', doc.id);
           }
 
-          // Garantir que o tipo existe
+          // Determinar o tipo correto baseado nos attachments
           if (!processedData.type) {
-            processedData.type = 'text';
+            if (processedData.attachments && processedData.attachments.length > 0) {
+              const firstAttachment = processedData.attachments[0];
+              if (firstAttachment.includes('.jpg') || firstAttachment.includes('.jpeg') ||
+                  firstAttachment.includes('.png') || firstAttachment.includes('.gif')) {
+                processedData.type = 'image';
+                console.log('🖼️ [getDirectMessages] Definindo tipo como image para:', doc.id);
+              } else if (firstAttachment.includes('.mp4') || firstAttachment.includes('.mov') ||
+                         firstAttachment.includes('.avi')) {
+                processedData.type = 'video';
+                console.log('🎥 [getDirectMessages] Definindo tipo como video para:', doc.id);
+              } else {
+                processedData.type = 'file';
+                console.log('📎 [getDirectMessages] Definindo tipo como file para:', doc.id);
+              }
+            } else {
+              processedData.type = 'text';
+            }
           }
 
           allMessages.push({
@@ -2008,6 +2024,66 @@ export class AdminService {
     } catch (error) {
       console.error('Erro ao buscar obras do usuário:', error);
       return [];
+    }
+  }
+
+  /**
+   * Migra mensagens antigas que usam 'message' para 'content'
+   * Esta função deve ser chamada uma vez para corrigir mensagens antigas
+   */
+  static async migrateOldDirectMessages(): Promise<void> {
+    try {
+      console.log('🔄 [migrateOldDirectMessages] Iniciando migração de mensagens antigas...');
+
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        console.warn('❌ [migrateOldDirectMessages] Usuário não é admin');
+        return;
+      }
+
+      // Buscar todas as mensagens que usam o campo 'message' em vez de 'content'
+      const q = query(
+        collection(db, 'adminDirectMessages'),
+        where('message', '!=', null)
+      );
+
+      const querySnapshot = await getDocs(q);
+      console.log('🔍 [migrateOldDirectMessages] Encontradas', querySnapshot.size, 'mensagens para migrar');
+
+      const batch = writeBatch(db);
+      let updatedCount = 0;
+
+      querySnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data.message && !data.content) {
+          // Migrar 'message' para 'content'
+          const updateData: any = {
+            content: data.message,
+            type: data.type || 'text' // Garantir que tenha tipo
+          };
+
+          // Se tem attachments e não tem type definido, definir como 'image'
+          if (data.attachments && data.attachments.length > 0 && !data.type) {
+            const firstAttachment = data.attachments[0];
+            if (firstAttachment.includes('.jpg') || firstAttachment.includes('.jpeg') ||
+                firstAttachment.includes('.png') || firstAttachment.includes('.gif')) {
+              updateData.type = 'image';
+            }
+          }
+
+          batch.update(doc.ref, updateData);
+          updatedCount++;
+        }
+      });
+
+      if (updatedCount > 0) {
+        await batch.commit();
+        console.log('✅ [migrateOldDirectMessages] Migradas', updatedCount, 'mensagens');
+      } else {
+        console.log('ℹ️ [migrateOldDirectMessages] Nenhuma mensagem precisa ser migrada');
+      }
+    } catch (error) {
+      console.error('❌ [migrateOldDirectMessages] Erro na migração:', error);
     }
   }
 }
