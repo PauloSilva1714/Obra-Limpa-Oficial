@@ -13,12 +13,12 @@ import {
   Modal,
   Image,
 } from 'react-native';
-import { Send, ArrowLeft, Trash2, User, Check, Camera, Paperclip } from 'lucide-react-native';
+import { Send, ArrowLeft, Trash2, User, Check, Camera } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { uploadImageAsync } from '../services/PhotoService';
-import MediaPicker from './MediaPicker';
+
 import CameraScreen from './CameraScreen';
 import * as ImagePicker from 'expo-image-picker';
 import { Timestamp, FieldValue, query, collection, where, orderBy } from 'firebase/firestore';
@@ -33,12 +33,12 @@ interface AdminDirectChatProps {
   style?: any;
 }
 
-export default function AdminDirectChat({ 
-  siteId, 
-  otherUserId, 
-  otherUserName, 
-  onBack, 
-  style 
+export default function AdminDirectChat({
+  siteId,
+  otherUserId,
+  otherUserName,
+  onBack,
+  style
 }: AdminDirectChatProps) {
   const { colors } = useTheme();
   const [messages, setMessages] = useState<AdminDirectMessage[]>([]);
@@ -51,10 +51,10 @@ export default function AdminDirectChat({
   const [showOptions, setShowOptions] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<AdminDirectMessage[]>([]);
   const [otherUserPhotoURL, setOtherUserPhotoURL] = useState<string | null>(null);
-  const [showMediaPicker, setShowMediaPicker] = useState(false);
+
   const [showCameraScreen, setShowCameraScreen] = useState(false);
   const [otherUserStatus, setOtherUserStatus] = useState<string>('Carregando...');
-  
+
   const flatListRef = useRef<FlatList>(null);
   const unsubscribeMessages = useRef<(() => void) | null>(null);
 
@@ -82,26 +82,26 @@ export default function AdminDirectChat({
       try {
         console.log('🔍 [AdminDirectChat] Inicializando componente:', { siteId, otherUserId, otherUserName });
         setLoading(true);
-        
+
         console.log('🔍 [AdminDirectChat] Buscando mensagens iniciais...');
         const messagesData = await AdminService.getDirectMessages(siteId, otherUserId, {});
         console.log('🔍 [AdminDirectChat] Mensagens encontradas:', messagesData.length, messagesData);
-        
+
         if (isMounted) {
           const sortedMessages = sortMessages(messagesData);
           console.log('🔍 [AdminDirectChat] Mensagens ordenadas:', sortedMessages.length);
           setMessages(sortedMessages);
         }
-        
+
         if (unsubscribeMessages.current) unsubscribeMessages.current();
-        
+
         console.log('🔍 [AdminDirectChat] Configurando subscrição em tempo real...');
         const unsubscribe = await AdminService.subscribeToDirectMessages(
           siteId,
           otherUserId,
           (newMessages) => {
             console.log('🔍 [AdminDirectChat] Mensagens recebidas via subscrição:', newMessages.length);
-            
+
             if (isMounted) {
               setPendingMessages((pending) => {
                 // Usar clientId para identificar mensagens confirmadas
@@ -206,7 +206,7 @@ export default function AdminDirectChat({
         attachments: [],
         clientId,
       };
-      
+
       setPendingMessages((prev) => [...prev, optimisticMsg]);
       setMessages((prev) => sortMessages([...prev, optimisticMsg]));
       setNewMessage('');
@@ -222,16 +222,16 @@ export default function AdminDirectChat({
   const handleSendMedia = async (mediaUri: string, mediaType: 'image' | 'video', caption?: string) => {
     try {
       setSending(true);
-      
+
       // Upload da mídia para o Firebase Storage
       const uploadedUrl = await uploadImageAsync(mediaUri, currentUser?.id || '');
-      
+
       // Criar mensagem com anexo
       const clientId = createUniqueId();
       const tempId = 'temp-' + clientId;
-      
+
       const messageText = caption || (mediaType === 'image' ? '📷 Foto' : '🎥 Vídeo');
-      
+
       const optimisticMsg: AdminDirectMessage = {
         id: tempId,
         siteId,
@@ -248,19 +248,19 @@ export default function AdminDirectChat({
         attachments: [uploadedUrl],
         clientId,
       };
-      
+
       setPendingMessages((prev) => [...prev, optimisticMsg]);
       setMessages((prev) => sortMessages([...prev, optimisticMsg]));
-      
+
       await AdminService.sendDirectMessage(
-        siteId, 
-        otherUserId, 
-        messageText, 
+        siteId,
+        otherUserId,
+        messageText,
         'image',
-        clientId, 
+        clientId,
         [uploadedUrl]
       );
-      
+
     } catch (error: any) {
       Alert.alert('Erro', 'Não foi possível enviar a mídia: ' + (error?.message || ''));
     } finally {
@@ -354,7 +354,7 @@ export default function AdminDirectChat({
   const renderMessage = ({ item }: { item: AdminDirectMessage }) => {
     const isOwnMessage = currentUser?.id === item.senderId;
     const initial = item.senderName ? item.senderName.charAt(0).toUpperCase() : '?';
-    
+
     return (
       <View style={[
         styles.messageContainer,
@@ -362,14 +362,14 @@ export default function AdminDirectChat({
       ]}>
         <View style={styles.messageHeader}>
           <View style={styles.userInfo}>
-            <View style={[styles.avatar, { backgroundColor: isOwnMessage ? colors.primary : colors.surface, borderColor: colors.border }]}> 
+            <View style={[styles.avatar, { backgroundColor: isOwnMessage ? colors.primary : colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.avatarText, { color: isOwnMessage ? 'white' : colors.text }]}>{initial}</Text>
             </View>
             <View style={styles.messageInfo}>
               <Text style={[styles.senderName, { color: colors.text }]}>
                 {isOwnMessage ? 'Você' : item.senderName}
               </Text>
-              <Text style={[styles.messageTime, { color: colors.textMuted }]}> 
+              <Text style={[styles.messageTime, { color: colors.textMuted }]}>
                 {formatDate(item.createdAt)}
                 {/* Confirmação de leitura */}
                 {isOwnMessage && (
@@ -415,7 +415,7 @@ export default function AdminDirectChat({
               ))}
             </View>
           )}
-          
+
           {/* Texto da mensagem */}
           <Text style={[styles.messageText, { color: isOwnMessage ? 'white' : colors.text }]}>
             {item.content || '[Mensagem sem conteúdo]'}
@@ -444,7 +444,7 @@ export default function AdminDirectChat({
   const EMOJIS = ['😀', '😂', '😍', '👍', '🙏', '😎', '😢', '🎉', '🚀', '❤️'];
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }, style]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
@@ -453,7 +453,7 @@ export default function AdminDirectChat({
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
-        
+
         <View style={styles.headerContent}>
           <View style={styles.userInfo}>
             {otherUserPhotoURL ? (
@@ -463,7 +463,7 @@ export default function AdminDirectChat({
                 resizeMode="cover"
               />
             ) : (
-              <View style={[styles.headerAvatar, { backgroundColor: colors.primary }]}> 
+              <View style={[styles.headerAvatar, { backgroundColor: colors.primary }]}>
                 <Text style={[styles.headerAvatarText, { color: 'white' }]}>{otherUserName.charAt(0).toUpperCase()}</Text>
               </View>
             )}
@@ -498,7 +498,7 @@ export default function AdminDirectChat({
         contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
       />
-      
+
       {/* Message Input */}
       <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
         {/* Área de opções (emojis + indicador de chat) */}
@@ -517,7 +517,7 @@ export default function AdminDirectChat({
                 </TouchableOpacity>
               ))}
             </View>
-            
+
             {/* Chat Type Indicator */}
             <View style={[styles.chatTypeIndicator, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
               <User size={16} color={colors.primary} />
@@ -527,7 +527,7 @@ export default function AdminDirectChat({
             </View>
           </>
         )}
-        
+
         {/* Campo de mensagem e botões - sempre visíveis */}
         <View style={styles.inputRow}>
           {/* Botões de mídia - sempre visíveis */}
@@ -540,17 +540,9 @@ export default function AdminDirectChat({
           >
             <Camera size={18} color="white" />
           </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
-            onPress={() => {
-              console.log('Paperclip button pressed');
-              setShowMediaPicker(true);
-            }}
-          >
-            <Paperclip size={18} color="white" />
-          </TouchableOpacity>
-          
+
+
+
           {/* Botão de emoji movido para a linha de input */}
           <TouchableOpacity
             onPress={() => setShowOptions(!showOptions)}
@@ -559,12 +551,12 @@ export default function AdminDirectChat({
           >
             <Text style={{ fontSize: 18, color: 'white' }}>{showOptions ? '❌' : '😊'}</Text>
           </TouchableOpacity>
-          
+
           <TextInput
-            style={[styles.messageInput, { 
-              backgroundColor: colors.surface, 
+            style={[styles.messageInput, {
+              backgroundColor: colors.surface,
               color: colors.text,
-              borderColor: colors.border 
+              borderColor: colors.border
             }]}
             placeholder={`Digite sua mensagem para ${otherUserName}...`}
             placeholderTextColor={colors.textMuted}
@@ -597,7 +589,7 @@ export default function AdminDirectChat({
         onRequestClose={cancelDeleteMessage}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.deleteModal, { backgroundColor: colors.surface }]}> 
+          <View style={[styles.deleteModal, { backgroundColor: colors.surface }]}>
             <Text style={[styles.deleteModalTitle, { color: colors.text }]}>Confirmar Exclusão</Text>
             <Text style={[styles.deleteModalText, { color: colors.textSecondary }]}>Tem certeza que deseja excluir esta mensagem? Esta ação não pode ser desfeita.</Text>
             <View style={styles.deleteModalActions}>
@@ -618,12 +610,7 @@ export default function AdminDirectChat({
         </View>
       </Modal>
 
-      {/* MediaPicker Modal */}
-      <MediaPicker
-        visible={showMediaPicker}
-        onClose={() => setShowMediaPicker(false)}
-        onSendMedia={handleSendMedia}
-      />
+
 
       {/* Camera Screen */}
       <CameraScreen

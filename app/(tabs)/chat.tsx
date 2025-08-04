@@ -59,7 +59,7 @@ const VideoPlayer = ({ source, style, filter, getFilterStyle }: {
   };
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       activeOpacity={1}
       onPress={handleVideoPress}
       style={styles.videoTouchableWrapper}
@@ -76,11 +76,11 @@ const VideoPlayer = ({ source, style, filter, getFilterStyle }: {
         isMuted={false}
         usePoster={false}
       />
-      
+
       {/* Controles customizados */}
       {showControls && (
         <View style={styles.videoControlsOverlay}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.playPauseButton}
             onPress={togglePlayPause}
           >
@@ -90,15 +90,15 @@ const VideoPlayer = ({ source, style, filter, getFilterStyle }: {
           </TouchableOpacity>
         </View>
       )}
-      
+
       {/* Overlay do filtro para vídeo */}
       {filter && filter !== 'Normal' && (
-        <View 
+        <View
           style={[
             styles.filterOverlay,
             getFilterStyle(filter),
             { pointerEvents: 'none' }
-          ]} 
+          ]}
         />
       )}
     </TouchableOpacity>
@@ -168,7 +168,7 @@ export default function ChatScreen() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [lastMessages, setLastMessages] = useState<{[key: string]: {message: string, time: string}}>({});
-  
+
   // Estados para chat em grupo
   const [groupMessages, setGroupMessages] = useState<any[]>([]);
   const [groupMessageText, setGroupMessageText] = useState('');
@@ -177,19 +177,6 @@ export default function ChatScreen() {
   const [selectedChat, setSelectedChat] = useState<{ userId: string; userName: string } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState('');
-  const [showCameraEditor, setShowCameraEditor] = useState(false);
-  const [capturedMedia, setCapturedMedia] = useState<{
-    uri: string;
-    type: 'photo' | 'video';
-    width?: number;
-    height?: number;
-  } | null>(null);
-  const [mediaCaption, setMediaCaption] = useState('');
-  const [appliedFilter, setAppliedFilter] = useState<string>('');
-  const [appliedSticker, setAppliedSticker] = useState<string>('');
-  const [appliedText, setAppliedText] = useState<string>('');
-  const [drawingMode, setDrawingMode] = useState<string>('');
-  const [cropMode, setCropMode] = useState<string>('');
   const [showCameraScreen, setShowCameraScreen] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
 
@@ -226,12 +213,12 @@ export default function ChatScreen() {
   useEffect(() => {
     if (activeTab === 'grupo') {
       loadGroupMessages();
-      
+
       // Atualizar mensagens a cada 5 segundos quando a aba grupo estiver ativa
       const interval = setInterval(() => {
         loadGroupMessages();
       }, 5000);
-      
+
       return () => clearInterval(interval);
     }
   }, [activeTab]);
@@ -259,13 +246,13 @@ export default function ChatScreen() {
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
         const allAdmins = await AuthService.getAdminsBySite(currentSite.id);
-        
+
         // Filtrar o usuário atual da lista
         const filteredAdmins = currentUser ? allAdmins.filter(admin => admin.id !== currentUser.id) : allAdmins;
-        
+
         setAdmins(filteredAdmins);
         setFilteredAdmins(filteredAdmins);
-        
+
         // Buscar última mensagem de cada administrador
         await loadLastMessages(currentSite.id, filteredAdmins);
       }
@@ -279,14 +266,14 @@ export default function ChatScreen() {
       // Usar o mesmo método que a aba Individual - buscar sessões de chat
       const sessions = await AdminService.getChatSessions(siteId);
       const messagesMap: {[key: string]: {message: string, time: string}} = {};
-      
+
       for (const admin of adminsList) {
         if (admin.id !== currentUser?.id) {
           // Procurar a sessão de chat correspondente a este admin
-          const session = sessions.find(s => 
+          const session = sessions.find(s =>
             s.participants.includes(admin.id) && s.participants.includes(currentUser?.id || '')
           );
-          
+
           if (session && session.lastMessage) {
             messagesMap[admin.id] = {
               message: session.lastMessage,
@@ -295,7 +282,7 @@ export default function ChatScreen() {
           }
         }
       }
-      
+
       setLastMessages(messagesMap);
     } catch (error) {
       console.error('Erro ao carregar últimas mensagens:', error);
@@ -307,12 +294,12 @@ export default function ChatScreen() {
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
         const sessions = await AdminService.getChatSessions(currentSite.id);
-        
+
         // Buscar informações completas dos participantes para incluir fotos
         const sessionsWithPhotos = await Promise.all(
           sessions.map(async (session) => {
             const participantPhotos: string[] = [];
-            
+
             for (const participantId of session.participants) {
               try {
                 const user = await AuthService.getUserById(participantId);
@@ -322,14 +309,14 @@ export default function ChatScreen() {
                 participantPhotos.push('');
               }
             }
-            
+
             return {
               ...session,
               participantPhotos
             };
           })
         );
-        
+
         setChatSessions(sessionsWithPhotos);
       }
     } catch (error) {
@@ -400,30 +387,30 @@ export default function ChatScreen() {
 
   const getFilterStyle = (filterName: string | null) => {
     if (!filterName || filterName === 'Normal') return {};
-    
+
     switch (filterName) {
       case 'Vintage':
-        return { 
+        return {
           backgroundColor: 'rgba(244, 164, 96, 0.3)',
           opacity: 0.9
         };
       case 'B&W':
-        return { 
+        return {
           backgroundColor: 'rgba(128, 128, 128, 0.5)',
           opacity: 0.8
         };
       case 'Sepia':
-        return { 
+        return {
           backgroundColor: 'rgba(222, 184, 135, 0.4)',
           opacity: 0.9
         };
       case 'Vivid':
-        return { 
+        return {
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
           opacity: 1
         };
       case 'Cool':
-        return { 
+        return {
           backgroundColor: 'rgba(135, 206, 235, 0.3)',
           opacity: 0.9
         };
@@ -455,7 +442,7 @@ export default function ChatScreen() {
             {textItem.text}
           </Text>
         ))}
-        
+
         {/* Renderizar emojis */}
         {edits.emojis?.map((emojiItem: any) => (
           <Text
@@ -472,7 +459,7 @@ export default function ChatScreen() {
             {emojiItem.emoji}
           </Text>
         ))}
-        
+
         {/* Renderizar stickers */}
         {edits.stickers?.map((stickerItem: any) => (
           <Text
@@ -535,16 +522,7 @@ export default function ChatScreen() {
 
   const openCameraDirectly = async () => {
     try {
-      // Solicitar permissões
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permissão necessária', 'Precisamos de acesso à câmera para tirar fotos.');
-        return;
-      }
-
-      console.log('=== DEBUG: Abrindo câmera diretamente ===');
-      
-      // Abrir câmera nativa com configurações mínimas para interface completa
+      console.log('=== DEBUG: openCameraDirectly iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.All, // Voltando para a sintaxe original
         allowsEditing: false,
@@ -560,17 +538,19 @@ export default function ChatScreen() {
         const isVideo = asset.type === 'video';
         console.log('=== DEBUG: Tipo de mídia:', isVideo ? 'video' : 'photo');
 
-        // Abrir diretamente o editor (como na imagem)
-        console.log('=== DEBUG: Definindo capturedMedia ===');
-        setCapturedMedia({
-          uri: asset.uri,
-          type: isVideo ? 'video' : 'photo',
-          width: asset.width,
-          height: asset.height,
-        });
-        console.log('=== DEBUG: Definindo showCameraEditor como true ===');
-        setShowCameraEditor(true);
-        console.log('=== DEBUG: Estados definidos ===');
+        // Enviar mídia diretamente sem abrir modal
+        const mediaMessage: Message = {
+          id: Date.now().toString(),
+          text: '',
+          sender: currentUser?.id,
+          timestamp: new Date().toISOString(),
+          isOwn: true,
+          isPhoto: true,
+          mediaType: isVideo ? 'video' : 'photo',
+          uri: asset.uri
+        };
+
+        setMessages([...messages, mediaMessage]);
       } else {
         console.log('=== DEBUG: Câmera cancelada ou sem assets ===');
       }
@@ -594,17 +574,19 @@ export default function ChatScreen() {
         const asset = result.assets[0];
         console.log('=== DEBUG: Foto capturada:', asset.uri);
 
-        // Abrir diretamente o editor (como na imagem)
-        console.log('=== DEBUG: Definindo capturedMedia ===');
-        setCapturedMedia({
-          uri: asset.uri,
-          type: 'photo',
-          width: asset.width,
-          height: asset.height,
-        });
-        console.log('=== DEBUG: Definindo showCameraEditor como true ===');
-        setShowCameraEditor(true);
-        console.log('=== DEBUG: Estados definidos ===');
+        // Enviar foto diretamente sem abrir modal
+        const mediaMessage: Message = {
+          id: Date.now().toString(),
+          text: '',
+          sender: currentUser?.id,
+          timestamp: new Date().toISOString(),
+          isOwn: true,
+          isPhoto: true,
+          mediaType: 'photo',
+          uri: asset.uri
+        };
+
+        setMessages([...messages, mediaMessage]);
       } else {
         console.log('=== DEBUG: Câmera cancelada ou sem assets ===');
       }
@@ -629,17 +611,19 @@ export default function ChatScreen() {
         const asset = result.assets[0];
         console.log('=== DEBUG: Vídeo gravado:', asset.uri);
 
-        // Abrir diretamente o editor (como na imagem)
-        console.log('=== DEBUG: Definindo capturedMedia (vídeo) ===');
-        setCapturedMedia({
-          uri: asset.uri,
-          type: 'video',
-          width: asset.width,
-          height: asset.height,
-        });
-        console.log('=== DEBUG: Definindo showCameraEditor como true (vídeo) ===');
-        setShowCameraEditor(true);
-        console.log('=== DEBUG: Estados definidos (vídeo) ===');
+        // Enviar vídeo diretamente sem abrir modal
+        const mediaMessage: Message = {
+          id: Date.now().toString(),
+          text: '',
+          sender: currentUser?.id,
+          timestamp: new Date().toISOString(),
+          isOwn: true,
+          isPhoto: true,
+          mediaType: 'video',
+          uri: asset.uri
+        };
+
+        setMessages([...messages, mediaMessage]);
       } else {
         console.log('=== DEBUG: Vídeo cancelado ou sem assets ===');
       }
@@ -661,15 +645,20 @@ export default function ChatScreen() {
         const asset = result.assets[0];
         console.log('Mídia selecionada:', asset.uri);
 
-        // Abrir diretamente o editor (como na imagem)
+        // Enviar mídia diretamente sem abrir modal
         const isVideo = asset.type === 'video';
-        setCapturedMedia({
-          uri: asset.uri,
-          type: isVideo ? 'video' : 'photo',
-          width: asset.width,
-          height: asset.height,
-        });
-        setShowCameraEditor(true);
+        const mediaMessage: Message = {
+          id: Date.now().toString(),
+          text: '',
+          sender: currentUser?.id,
+          timestamp: new Date().toISOString(),
+          isOwn: true,
+          isPhoto: true,
+          mediaType: isVideo ? 'video' : 'photo',
+          uri: asset.uri
+        };
+
+        setMessages([...messages, mediaMessage]);
       }
     } catch (error) {
       console.error('Erro ao selecionar mídia:', error);
@@ -679,119 +668,6 @@ export default function ChatScreen() {
 
   const handleMoreOptionsPress = () => {
     // Modal removido - função não faz nada
-  };
-
-  const closeCameraEditor = () => {
-    setShowCameraEditor(false);
-    setCapturedMedia(null);
-    setMediaCaption('');
-    setAppliedFilter('');
-    setAppliedSticker('');
-    setAppliedText('');
-    setDrawingMode('');
-    setCropMode('');
-  };
-
-  const closeCameraScreen = () => {
-    setShowCameraScreen(false);
-  };
-
-  const handleCameraCapture = (media: string | { uri: string; type: string; edits: any }, caption?: string) => {
-    console.log('=== DEBUG: handleCameraCapture chamada ===');
-    console.log('Media recebida:', media);
-    console.log('Tipo da media:', typeof media);
-    
-    // Se é uma string, pode ser foto ou vídeo - vamos verificar pela extensão
-    if (typeof media === 'string') {
-      const isVideoFile = media.toLowerCase().includes('.mp4') || media.toLowerCase().includes('.mov') || media.toLowerCase().includes('video');
-      console.log('É arquivo de vídeo?', isVideoFile);
-      
-      // Para vídeos vindos como string, abrir o editor primeiro
-      if (isVideoFile) {
-        console.log('Abrindo editor para vídeo...');
-        setCapturedMedia({
-          uri: media,
-          type: 'video'
-        });
-        setShowCameraEditor(true);
-        setShowCameraScreen(false);
-        return;
-      }
-      
-      // Para fotos, criar mensagem diretamente
-      const mediaMessage: Message = {
-        id: Date.now().toString(),
-        text: caption || '',
-        sender: currentUser?.id,
-        timestamp: new Date().toISOString(),
-        isOwn: true,
-        isPhoto: true,
-        mediaType: 'photo',
-        uri: media
-      };
-      
-      setMessages([...messages, mediaMessage]);
-      setShowCameraScreen(false);
-    } else {
-      // Novo formato - mídia com edições
-      const hasEdits = media.edits && (
-        media.edits.filter || 
-        media.edits.crop
-      );
-      
-      const mediaMessage: Message = {
-        id: Date.now().toString(),
-        text: caption || '',
-        sender: currentUser?.id,
-        timestamp: new Date().toISOString(),
-        isOwn: true,
-        isPhoto: true, // Mantemos true para indicar que é mídia
-        mediaType: media.type, // 'photo' ou 'video'
-        uri: media.uri,
-        edits: media.edits // Armazenar as edições para renderização posterior
-      };
-
-      setMessages([...messages, mediaMessage]);
-      setShowCameraScreen(false);
-    }
-  };
-
-   const sendMediaWithCaption = () => {
-    if (!capturedMedia) return;
-
-    const mediaMessage: Message = {
-      id: Date.now().toString(),
-      text: mediaCaption || '',
-      sender: currentUser?.id,
-      timestamp: new Date().toISOString(),
-      isOwn: true,
-      isPhoto: true,
-      mediaType: capturedMedia.type,
-      uri: capturedMedia.uri
-    };
-
-    setMessages([...messages, mediaMessage]);
-    closeCameraEditor();
-  };
-
-  const applyFilter = (filterType: string) => {
-    // Função removida - não faz nada
-  };
-
-  const addText = () => {
-    // Função removida - não faz nada
-  };
-
-  const addSticker = () => {
-    // Função removida - não faz nada
-  };
-
-  const drawOnMedia = () => {
-    // Função removida - não faz nada
-  };
-
-  const cropMedia = () => {
-    // Função removida - não faz nada
   };
 
   const handleBackToChatList = () => {
@@ -809,15 +685,15 @@ export default function ChatScreen() {
 
   const formatTime = (dateString: string) => {
     if (!dateString) return 'Agora';
-    
+
     const date = new Date(dateString);
-    
+
     // Verificar se a data é válida
     if (isNaN(date.getTime())) {
       console.warn('Data inválida recebida:', dateString);
       return 'Agora';
     }
-    
+
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
@@ -854,7 +730,7 @@ export default function ChatScreen() {
 
   const renderAdminItem = ({ item }: { item: Admin }) => {
     const lastMessage = lastMessages[item.id];
-    
+
     return (
       <TouchableOpacity
         style={styles.adminItem}
@@ -908,9 +784,9 @@ export default function ChatScreen() {
         )}
         <Text style={styles.messageText}>{item.message}</Text>
         <Text style={styles.messageTime}>
-          {messageTime.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+          {messageTime.toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit'
           })}
         </Text>
       </View>
@@ -986,100 +862,7 @@ export default function ChatScreen() {
   }
 
   // Manter o resto do código de câmera para não quebrar funcionalidades existentes
-  if (showCameraEditor && capturedMedia) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.cameraEditorOverlay}>
-          {/* Top Toolbar */}
-          <View style={styles.cameraEditorToolbar}>
-            <TouchableOpacity style={styles.toolbarButton} onPress={closeCameraEditor}>
-              <Text style={styles.toolbarIcon}>✕</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton}>
-              <Text style={styles.toolbarIcon}>HD ✓</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toolbarButton, cropMode && styles.toolbarButtonActive]}
-              onPress={cropMedia}
-            >
-              <Text style={styles.toolbarIcon}>⏹️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toolbarButton, appliedSticker && styles.toolbarButtonActive]}
-              onPress={addSticker}
-            >
-              <Text style={styles.toolbarIcon}>😊</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toolbarButton, appliedText && styles.toolbarButtonActive]}
-              onPress={addText}
-            >
-              <Text style={styles.toolbarIcon}>T</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toolbarButton, drawingMode && styles.toolbarButtonActive]}
-              onPress={drawOnMedia}
-            >
-              <Text style={styles.toolbarIcon}>✏️</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Media Preview */}
-          <View style={styles.cameraEditorPreview}>
-            {capturedMedia.type === 'video' ? (
-              <Video
-                source={{ uri: capturedMedia.uri }}
-                style={styles.cameraEditorImage}
-                useNativeControls={true}
-                resizeMode="contain"
-                shouldPlay={false}
-                isLooping={false}
-                volume={1.0}
-                isMuted={false}
-                usePoster={false}
-              />
-            ) : (
-              <Image
-                source={{ uri: capturedMedia.uri }}
-                style={styles.cameraEditorImage}
-                resizeMode="contain"
-              />
-            )}
-          </View>
-
-          {/* Bottom Controls */}
-          <View style={styles.cameraEditorBottom}>
-            <TouchableOpacity
-              style={[styles.filterButton, appliedFilter && styles.filterButtonActive]}
-              onPress={applyFilter}
-            >
-              <Text style={styles.filterText}>
-                {appliedFilter ? `Filtros (${appliedFilter})` : 'Filtros'}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.captionContainer}>
-              <TextInput
-                style={styles.captionInput}
-                placeholder="Adicione uma legenda..."
-                placeholderTextColor="#9CA3AF"
-                value={mediaCaption}
-                onChangeText={setMediaCaption}
-                multiline
-              />
-            </View>
-
-            <View style={styles.sendInfoContainer}>
-              <Text style={styles.sendInfoText}>Eu (você)</Text>
-              <TouchableOpacity style={styles.sendButton} onPress={sendMediaWithCaption}>
-                <Text style={styles.sendButtonIcon}>➤</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Modal de edição de imagem removido - não será mais usado
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1127,7 +910,7 @@ export default function ChatScreen() {
           style={[styles.tab, activeTab === 'novo' && styles.activeTab]}
           onPress={async () => {
              setActiveTab('novo');
-             
+
              // Recarregar as últimas mensagens quando a aba "novo" for selecionada
              if (admins.length > 0 && currentUser) {
                try {
@@ -1194,22 +977,22 @@ export default function ChatScreen() {
                     </View>
                   }
                 />
-                
+
                 {/* Input de mensagem */}
                 <View style={styles.inputContainer}>
                   <View style={styles.inputRow}>
                     <TouchableOpacity style={styles.mediaButton} onPress={openCameraDirectly}>
                       <Camera size={18} color="white" />
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.mediaButton} onPress={selectMediaComplete}>
                       <Paperclip size={18} color="white" />
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.mediaButton} onPress={() => setShowOptions(!showOptions)}>
                       <Text style={{ fontSize: 18, color: 'white' }}>😊</Text>
                     </TouchableOpacity>
-                    
+
                     <TextInput
                       style={styles.messageInput}
                       placeholder="Digite sua mensagem..."
@@ -1227,7 +1010,7 @@ export default function ChatScreen() {
                       <Send size={20} color="white" />
                     </TouchableOpacity>
                   </View>
-                  
+
                   {/* Lista de emojis */}
                   {showOptions && (
                     <View style={styles.emojiContainer}>
