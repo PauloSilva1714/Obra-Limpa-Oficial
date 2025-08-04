@@ -1,55 +1,24 @@
-import { Tabs, useRouter, useSegments, Stack } from 'expo-router';
+import { Tabs, useRouter, useSegments } from 'expo-router';
 import { useColorScheme, View, Text, StyleSheet } from 'react-native';
 import {
   Home,
   User,
   BarChart3,
-  Camera,
-  Users,
   Building2,
-  MessageCircle // Adiciona ícone de chat
+  MessageCircle
 } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/config/i18n';
 import { useSite } from '@/contexts/SiteContext';
-import { Slot } from 'expo-router';
-
-const TABS_CONFIG = {
-  index: {
-    name: 'index',
-    title: t('tasks'),
-    icon: Home,
-  },
-  admin: {
-    name: 'admin',
-    title: t('admin'),
-    icon: Building2,
-  },
-  progress: {
-    name: 'progress',
-    title: t('progress'),
-    icon: BarChart3,
-  },
-  chat: {
-    name: 'chat',
-    title: 'Chat',
-    icon: MessageCircle,
-  },
-  profile: {
-    name: 'profile',
-    title: t('profile'),
-    icon: User,
-  },
-};
 
 function TabLayoutContent() {
   const colorScheme = useColorScheme();
   const { colors, isDarkMode } = useTheme();
   const [userRole, setUserRole] = useState<'admin' | 'worker' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [renderKey, setRenderKey] = useState(0); // Forçar re-render
+  const [renderKey, setRenderKey] = useState(0);
   const router = useRouter();
   const segments = useSegments();
   const { currentSite } = useSite();
@@ -58,11 +27,8 @@ function TabLayoutContent() {
     const getUserRole = async () => {
       try {
         await AuthService.debugAsyncStorage();
-
         const role = await AuthService.getUserRole();
-
         setUserRole(role);
-
         const currentUser = await AuthService.getCurrentUser();
         if (currentUser) {
         }
@@ -74,25 +40,20 @@ function TabLayoutContent() {
     getUserRole();
   }, []);
 
-  // Forçar atualização do role quando o componente montar
   useEffect(() => {
     const forceUpdateRole = async () => {
       if (!isLoading) {
         const role = await AuthService.getUserRole();
-
         if (userRole !== role) {
           setUserRole(role);
-          setRenderKey(prev => prev + 1); // Forçar re-render
+          setRenderKey(prev => prev + 1);
         }
       }
     };
-
-    // Aguardar um pouco para garantir que o AsyncStorage foi carregado
     const timer = setTimeout(forceUpdateRole, 100);
     return () => clearTimeout(timer);
   }, [isLoading, userRole]);
 
-  // Sempre que mudar de obra, atualiza o papel e força re-render
   useEffect(() => {
     const updateRoleOnSiteChange = async () => {
       const role = await AuthService.getUserRole();
@@ -102,7 +63,6 @@ function TabLayoutContent() {
     updateRoleOnSiteChange();
   }, [currentSite]);
 
-  // Redirecionar colaborador se estiver em rota inválida
   useEffect(() => {
     if (userRole === 'worker' && !isLoading) {
       const currentTab = segments[segments.length - 1];
@@ -112,7 +72,6 @@ function TabLayoutContent() {
     }
   }, [userRole, segments, isLoading]);
 
-  // Loading state
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -121,21 +80,77 @@ function TabLayoutContent() {
     );
   }
 
-  // Se não tem role válido, não renderiza nada
-  if (!userRole) return null; // ou um loading
+  if (!userRole) return null;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="admin" />
-          <Stack.Screen name="progress" />
-          <Stack.Screen name="chat" />
-          <Stack.Screen name="profile" />
-        </Stack>
-      </View>
-    </View>
+    <Tabs
+      key={renderKey}
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginBottom: 2,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Tarefas',
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+        }}
+      />
+      
+      {userRole === 'admin' && (
+        <Tabs.Screen
+          name="admin"
+          options={{
+            title: 'Admin',
+            tabBarIcon: ({ color, size }) => <Building2 size={size} color={color} />,
+          }}
+        />
+      )}
+      
+      <Tabs.Screen
+        name="progress"
+        options={{
+          title: 'Progresso',
+          tabBarIcon: ({ color, size }) => <BarChart3 size={size} color={color} />,
+        }}
+      />
+      
+      {userRole === 'admin' && (
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: 'Chat',
+            tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
+          }}
+        />
+      )}
+      
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+        }}
+      />
+    </Tabs>
   );
 }
 

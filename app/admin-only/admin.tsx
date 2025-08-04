@@ -40,7 +40,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSite } from '../../contexts/SiteContext';
 import { t } from '../../config/i18n';
 import logo from '../(auth)/obra-limpa-logo.png';
-import TabBarToggleButton from '../../components/TabBarToggleButton';
+
 
 interface AdminStats {
   totalSites: number;
@@ -626,7 +626,7 @@ export default function AdminScreen() {
             <TouchableOpacity style={[styles.refreshButton, { backgroundColor: colors.primary + '15' }]} onPress={loadAdminStats}>
               <RefreshCw size={24} color={colors.primary} />
             </TouchableOpacity>
-            <TabBarToggleButton size={20} variant="glass" />
+
           </View>
           <Text style={styles.title}>Painel Administrativo</Text>
           {currentSite?.name && (

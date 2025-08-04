@@ -18,7 +18,7 @@ import { AuthService } from '@/services/AuthService';
 import { router } from 'expo-router';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import { TaskModal } from '@/components/TaskModal';
-import TabBarToggleButton from '@/components/TabBarToggleButton';
+
 import { shadows } from '@/utils/shadowUtils';
 
 const { width } = Dimensions.get('window');
@@ -352,9 +352,6 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.menuButtonContainer}>
-        <TabBarToggleButton variant="modern" />
-      </View>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -421,12 +418,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
-  menuButtonContainer: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 1000,
-  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

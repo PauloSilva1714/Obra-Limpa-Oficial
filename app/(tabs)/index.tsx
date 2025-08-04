@@ -54,7 +54,7 @@ import { TaskFeedCard } from '../../components/TaskFeedCard';
 import { ConnectionStatus } from '../../components/ConnectionStatus';
 import { useSite } from '../../contexts/SiteContext';
 import { useLocalSearchParams } from 'expo-router';
-import TabBarToggleButton from '../../components/TabBarToggleButton';
+
 
 // Conditional import for Video and ResizeMode to avoid import errors
 let Video: any, ResizeMode: any;
@@ -727,7 +727,7 @@ export default function TasksScreen() {
                 )}
               </View>
               
-              <TabBarToggleButton size={20} variant="floating" style={{ marginLeft: 12 }} />
+
             </View>
             <Text style={[styles.headerTitle, { color: colors.text, marginTop: 16, marginBottom: 8, paddingHorizontal: 16 }]}>Tarefas</Text>
           </View>

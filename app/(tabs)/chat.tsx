@@ -19,7 +19,7 @@ import { Search, MessageCircle, User, Camera, MoreVertical, ArrowLeft, Paperclip
 import { useRouter } from 'expo-router';
 import { AuthService } from '@/services/AuthService';
 import { AdminService } from '@/services/AdminService';
-import TabBarToggleButton from '@/components/TabBarToggleButton';
+
 import AdminDirectChat from '@/components/AdminDirectChat';
 import * as ImagePicker from 'expo-image-picker';
 import CameraScreen from '../../components/CameraScreen';
@@ -1074,9 +1074,7 @@ export default function ChatScreen() {
             value={searchQuery}
             onChangeText={handleSearch}
           />
-          <TouchableOpacity style={styles.searchMenuButton}>
-            <TabBarToggleButton variant="minimal" />
-          </TouchableOpacity>
+
         </View>
 
         {/* Tab Navigation */}
@@ -1463,9 +1461,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
   },
-  searchMenuButton: {
-    marginLeft: 12,
-  },
+
   tabBar: {
     flexDirection: 'row',
     backgroundColor: '#374151',

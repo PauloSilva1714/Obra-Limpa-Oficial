@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { TextInput as RNTextInput } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { AboutAppModal } from '@/components/AboutAppModal';
-import TabBarToggleButton from '@/components/TabBarToggleButton';
+
 
 interface UserProfile {
   name: string;
@@ -314,7 +314,6 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TabBarToggleButton variant="glass" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Toast de sucesso no topo */}
         {showSuccessToast && (
