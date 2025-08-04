@@ -13,14 +13,16 @@ import {
   Modal,
   Image,
 } from 'react-native';
-import { Send, ArrowLeft, Trash2, User, Check, Camera } from 'lucide-react-native';
+import { Send, ArrowLeft, Trash2, User, Check, Camera, Paperclip } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { uploadImageAsync } from '../services/PhotoService';
 
-import CameraScreen from './CameraScreen';
+
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Timestamp, FieldValue, query, collection, where, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { createUniqueId } from '../utils/idUtils';
@@ -52,7 +54,7 @@ export default function AdminDirectChat({
   const [pendingMessages, setPendingMessages] = useState<AdminDirectMessage[]>([]);
   const [otherUserPhotoURL, setOtherUserPhotoURL] = useState<string | null>(null);
 
-  const [showCameraScreen, setShowCameraScreen] = useState(false);
+
   const [otherUserStatus, setOtherUserStatus] = useState<string>('Carregando...');
 
   const flatListRef = useRef<FlatList>(null);
@@ -218,20 +220,78 @@ export default function AdminDirectChat({
     }
   };
 
-  // Função para enviar mídia
-  const handleSendMedia = async (mediaUri: string, mediaType: 'image' | 'video', caption?: string) => {
+
+
+
+
+  // Função para abrir câmera para foto
+  const openCameraForPhoto = async () => {
+    try {
+      // Solicitar permissões
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'É necessário permitir o acesso à câmera para tirar fotos.');
+        return;
+      }
+
+      // Abrir câmera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, // Permite edição/crop nativo
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        await handleSendImage(imageUri);
+      }
+    } catch (error) {
+      console.error('Erro ao abrir câmera:', error);
+      Alert.alert('Erro', 'Não foi possível abrir a câmera');
+    }
+  };
+
+  // Função para abrir câmera para vídeo
+  const openCameraForVideo = async () => {
+    try {
+      // Solicitar permissões
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'É necessário permitir o acesso à câmera para gravar vídeos.');
+        return;
+      }
+
+      // Abrir câmera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true, // Permite edição nativa
+        videoMaxDuration: 60, // 60 segundos máximo
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const videoUri = result.assets[0].uri;
+        await handleSendImage(videoUri);
+      }
+    } catch (error) {
+      console.error('Erro ao abrir câmera:', error);
+      Alert.alert('Erro', 'Não foi possível abrir a câmera');
+    }
+  };
+
+  // Função para processar e enviar imagem
+  const handleSendImage = async (imageUri: string) => {
     try {
       setSending(true);
-
-      // Upload da mídia para o Firebase Storage
-      const uploadedUrl = await uploadImageAsync(mediaUri, currentUser?.id || '');
-
-      // Criar mensagem com anexo
+      
+      // Upload da imagem para o Firebase Storage
+      const uploadedUrl = await uploadImageAsync(imageUri, currentUser?.id || '');
+      
       const clientId = createUniqueId();
       const tempId = 'temp-' + clientId;
-
-      const messageText = caption || (mediaType === 'image' ? '📷 Foto' : '🎥 Vídeo');
-
+      
+      // Mensagem otimista
       const optimisticMsg: AdminDirectMessage = {
         id: tempId,
         siteId,
@@ -240,10 +300,144 @@ export default function AdminDirectChat({
         senderEmail: currentUser?.email || '',
         recipientId: otherUserId,
         recipientName: otherUserName,
-        recipientEmail: '',
-        content: messageText,
+        content: '📷 Foto',
         type: 'image',
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        readBy: [currentUser?.id || ''],
+        attachments: [uploadedUrl],
+        clientId,
+      };
+
+      setPendingMessages((prev) => [...prev, optimisticMsg]);
+      setMessages((prev) => sortMessages([...prev, optimisticMsg]));
+
+      await AdminService.sendDirectMessage(
+        siteId,
+        otherUserId,
+        '📷 Foto',
+        'image',
+        clientId,
+        [uploadedUrl]
+      );
+
+    } catch (error: any) {
+      Alert.alert('Erro', 'Não foi possível enviar a imagem: ' + (error?.message || ''));
+    } finally {
+      setSending(false);
+    }
+  };
+
+
+
+  // Função para selecionar foto da galeria com crop
+  const selectPhotoFromGallery = async () => {
+    try {
+      // Solicitar permissões
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'É necessário permitir o acesso à galeria para selecionar fotos.');
+        return;
+      }
+
+      // Abrir galeria
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, // Permite edição/crop nativo
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        await handleSendImage(imageUri);
+      }
+    } catch (error) {
+      console.error('Erro ao selecionar foto:', error);
+      Alert.alert('Erro', 'Não foi possível selecionar a foto');
+    }
+  };
+
+  // Função para selecionar vídeo da galeria
+  const selectVideoFromGallery = async () => {
+    try {
+      // Solicitar permissões
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'É necessário permitir o acesso à galeria para selecionar vídeos.');
+        return;
+      }
+
+      // Abrir galeria
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true, // Permite edição nativa
+        videoMaxDuration: 60, // 60 segundos máximo
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const videoUri = result.assets[0].uri;
+        await handleSendImage(videoUri);
+      }
+    } catch (error) {
+      console.error('Erro ao selecionar vídeo:', error);
+      Alert.alert('Erro', 'Não foi possível selecionar o vídeo');
+    }
+  };
+
+  // Função para selecionar documentos/arquivos
+  const selectDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('Documento selecionado:', asset);
+        
+        // Verificar tamanho do arquivo (máximo 10MB)
+        if (asset.size && asset.size > 10 * 1024 * 1024) {
+          Alert.alert('Erro', 'O arquivo é muito grande. Tamanho máximo permitido: 10MB');
+          return;
+        }
+
+        await handleSendDocument(asset.uri, asset.name || 'documento', asset.mimeType || 'application/octet-stream');
+      }
+    } catch (error) {
+      console.error('Erro ao selecionar documento:', error);
+      Alert.alert('Erro', 'Não foi possível selecionar o documento');
+    }
+  };
+
+  // Função para enviar documento
+  const handleSendDocument = async (documentUri: string, fileName: string, mimeType: string) => {
+    try {
+      setSending(true);
+      
+      // Upload do documento para o Firebase Storage
+      const uploadedUrl = await uploadImageAsync(documentUri, currentUser?.id || '');
+      
+      const messageText = `📎 ${fileName}`;
+      const clientId = createUniqueId();
+      const tempId = 'temp-' + clientId;
+      
+      // Mensagem otimista
+      const optimisticMsg: AdminDirectMessage = {
+        id: tempId,
+        siteId,
+        senderId: currentUser?.id || '',
+        senderName: currentUser?.name || 'Você',
+        senderEmail: currentUser?.email || '',
+        recipientId: otherUserId,
+        recipientName: otherUserName,
+        content: messageText,
+        type: 'file',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         readBy: [currentUser?.id || ''],
         attachments: [uploadedUrl],
         clientId,
@@ -256,35 +450,16 @@ export default function AdminDirectChat({
         siteId,
         otherUserId,
         messageText,
-        'image',
+        'file',
         clientId,
         [uploadedUrl]
       );
 
     } catch (error: any) {
-      Alert.alert('Erro', 'Não foi possível enviar a mídia: ' + (error?.message || ''));
+      Alert.alert('Erro', 'Não foi possível enviar o documento: ' + (error?.message || ''));
     } finally {
       setSending(false);
     }
-  };
-
-  // Função para lidar com foto tirada pela câmera nativa
-  const handlePhotoTaken = async (photoUri: string) => {
-    try {
-      await handleSendMedia(photoUri, 'image');
-    } catch (error) {
-      console.error('Erro ao enviar foto da câmera:', error);
-      Alert.alert('Erro', 'Não foi possível enviar a foto');
-    }
-  };
-
-  // Função para abrir câmera nativa diretamente
-  const openNativeCamera = async () => {
-    setShowCameraScreen(true);
-  };
-
-  const closeCameraScreen = () => {
-    setShowCameraScreen(false);
   };
 
   // Enviar ao pressionar Enter (sem Shift)
@@ -401,18 +576,42 @@ export default function AdminDirectChat({
           </View>
         </View>
         <View style={[styles.messageBubble, { backgroundColor: isOwnMessage ? colors.primary : colors.surface, borderColor: colors.border }]}>
-          {/* Renderizar anexos de mídia */}
+          {/* Renderizar anexos */}
           {item.attachments && item.attachments.length > 0 && (
             <View style={styles.attachmentsContainer}>
-              {item.attachments.map((attachment, index) => (
-                <TouchableOpacity key={index} style={styles.attachmentContainer}>
-                  <Image
-                    source={{ uri: attachment }}
-                    style={styles.attachmentImage}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              ))}
+              {item.attachments.map((attachment, index) => {
+                // Verificar se é uma imagem ou arquivo
+                const isImage = item.type === 'image' || attachment.includes('.jpg') || attachment.includes('.jpeg') || attachment.includes('.png') || attachment.includes('.gif');
+                const isFile = item.type === 'file' || !isImage;
+                
+                if (isImage) {
+                  return (
+                    <TouchableOpacity key={index} style={styles.attachmentContainer}>
+                      <Image
+                        source={{ uri: attachment }}
+                        style={styles.attachmentImage}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  );
+                } else {
+                  return (
+                    <TouchableOpacity 
+                      key={index} 
+                      style={[styles.fileAttachmentContainer, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.primary + '20' }]}
+                      onPress={() => {
+                        // Abrir arquivo (implementar se necessário)
+                        console.log('Abrir arquivo:', attachment);
+                      }}
+                    >
+                      <Paperclip size={16} color={isOwnMessage ? 'white' : colors.primary} />
+                      <Text style={[styles.fileAttachmentText, { color: isOwnMessage ? 'white' : colors.primary }]}>
+                        Arquivo anexado
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }
+              })}
             </View>
           )}
 
@@ -534,14 +733,48 @@ export default function AdminDirectChat({
           <TouchableOpacity
             style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
             onPress={() => {
-              console.log('Camera button pressed - opening native camera directly');
-              openNativeCamera();
-            }}
+               Alert.alert(
+                 'Selecionar Mídia',
+                 'Escolha uma opção:',
+                 [
+                   {
+                     text: 'Foto - Câmera',
+                     onPress: () => openCameraForPhoto(),
+                   },
+                   {
+                     text: 'Vídeo - Câmera',
+                     onPress: () => openCameraForVideo(),
+                   },
+                   {
+                     text: 'Foto - Galeria',
+                     onPress: () => selectPhotoFromGallery(),
+                   },
+                   {
+                     text: 'Vídeo - Galeria',
+                     onPress: () => selectVideoFromGallery(),
+                   },
+                   {
+                     text: 'Cancelar',
+                     style: 'cancel',
+                   },
+                 ]
+               );
+             }}
           >
             <Camera size={18} color="white" />
           </TouchableOpacity>
 
-
+          {/* Botão de anexo (clipe de papel) */}
+          <TouchableOpacity
+            style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+            onPress={() => {
+              console.log('Attachment button pressed - opening document picker');
+              selectDocument();
+            }}
+            accessibilityLabel="Anexar arquivo"
+          >
+            <Paperclip size={18} color="white" />
+          </TouchableOpacity>
 
           {/* Botão de emoji movido para a linha de input */}
           <TouchableOpacity
@@ -612,13 +845,7 @@ export default function AdminDirectChat({
 
 
 
-      {/* Camera Screen */}
-      <CameraScreen
-        visible={showCameraScreen}
-        onClose={() => setShowCameraScreen(false)}
-        onPhotoTaken={handlePhotoTaken}
-        onVideoRecorded={handlePhotoTaken}
-      />
+
     </KeyboardAvoidingView>
   );
 }
@@ -862,6 +1089,18 @@ const styles = StyleSheet.create({
     width: 200,
     height: 150,
     borderRadius: 8,
+  },
+  fileAttachmentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 4,
+    gap: 8,
+  },
+  fileAttachmentText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   statusContainer: {
     flexDirection: 'row',

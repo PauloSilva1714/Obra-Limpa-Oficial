@@ -31,8 +31,10 @@ import {
 } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { Timestamp, FieldValue } from 'firebase/firestore';
-import CameraScreen from './CameraScreen';
 import { uploadImageAsync } from '../services/PhotoService';
+import ImagePicker from './ImagePicker';
+import DocumentPicker from './DocumentPicker';
+import * as ExpoImagePicker from 'expo-image-picker';
 import { createUniqueId } from '../utils/idUtils';
 
 interface AdminChatProps {
@@ -60,7 +62,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false);
-  const [showCameraScreen, setShowCameraScreen] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<AdminMessage[]>([]);
 
   const flatListRef = useRef<FlatList>(null);
@@ -187,19 +188,19 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     }
   };
 
-  // Função para enviar mídia
-  const handleSendMedia = async (mediaUri: string, mediaType: 'image' | 'video', caption?: string) => {
+
+
+  // Função para enviar imagem
+  const handleSendImage = async (imageUri: string) => {
     try {
       setSending(true);
 
-      // Upload da mídia para o Firebase Storage
-      const uploadedUrl = await uploadImageAsync(mediaUri, currentUser?.id || '');
+      // Upload da imagem para o Firebase Storage
+      const uploadedUrl = await uploadImageAsync(imageUri, currentUser?.id || '');
 
       // Criar mensagem com anexo
       const clientId = createUniqueId();
       const tempId = 'temp-' + clientId;
-
-      const messageText = caption || (mediaType === 'image' ? '📷 Foto' : '🎥 Vídeo');
 
       const optimisticMsg: AdminMessage = {
         id: tempId,
@@ -207,7 +208,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         senderId: currentUser?.id || '',
         senderName: currentUser?.name || 'Você',
         senderEmail: currentUser?.email || '',
-        content: messageText,
+        content: '📷 Foto',
         type: 'image',
         priority: 'medium',
         createdAt: new Date().toISOString(),
@@ -221,7 +222,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
 
       await AdminService.sendMessage(
         siteId,
-        messageText,
+        '📷 Foto',
         'image',
         'medium',
         clientId,
@@ -229,29 +230,125 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
       );
 
     } catch (error: any) {
-      Alert.alert('Erro', 'Não foi possível enviar a mídia: ' + (error?.message || ''));
+      Alert.alert('Erro', 'Não foi possível enviar a imagem: ' + (error?.message || ''));
     } finally {
       setSending(false);
     }
   };
 
-  // Função para lidar com foto tirada pela câmera nativa
-  const handlePhotoTaken = async (photoUri: string) => {
+  // Função para abrir câmera para foto
+  const openCameraForPhoto = async () => {
     try {
-      await handleSendMedia(photoUri, 'image');
+      const { status } = await ExpoImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'É necessário permitir o acesso à câmera para tirar fotos.');
+        return;
+      }
+
+      const result = await ExpoImagePicker.launchCameraAsync({
+        mediaTypes: ExpoImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await handleSendImage(result.assets[0].uri);
+      }
     } catch (error) {
-      console.error('Erro ao enviar foto da câmera:', error);
-      Alert.alert('Erro', 'Não foi possível enviar a foto');
+      console.error('Erro ao abrir câmera:', error);
+      Alert.alert('Erro', 'Não foi possível abrir a câmera');
     }
   };
 
-  // Função para abrir câmera nativa diretamente
-  const openNativeCamera = async () => {
-    setShowCameraScreen(true);
+  // Função para abrir câmera para vídeo
+  const openCameraForVideo = async () => {
+    try {
+      const { status } = await ExpoImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'É necessário permitir o acesso à câmera para gravar vídeos.');
+        return;
+      }
+
+      const result = await ExpoImagePicker.launchCameraAsync({
+        mediaTypes: ExpoImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true,
+        videoMaxDuration: 60, // 60 segundos máximo
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await handleSendImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Erro ao abrir câmera:', error);
+      Alert.alert('Erro', 'Não foi possível abrir a câmera');
+    }
   };
 
-  const closeCameraScreen = () => {
-    setShowCameraScreen(false);
+  // Função para selecionar foto da galeria
+  const selectPhotoFromGallery = async () => {
+    try {
+      const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'É necessário permitir o acesso à galeria para selecionar fotos.');
+        return;
+      }
+
+      const result = await ExpoImagePicker.launchImageLibraryAsync({
+        mediaTypes: ExpoImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await handleSendImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Erro ao selecionar foto:', error);
+      Alert.alert('Erro', 'Não foi possível selecionar a foto');
+    }
+  };
+
+  // Função para selecionar vídeo da galeria
+  const selectVideoFromGallery = async () => {
+    try {
+      const { status } = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'É necessário permitir o acesso à galeria para selecionar vídeos.');
+        return;
+      }
+
+      const result = await ExpoImagePicker.launchImageLibraryAsync({
+        mediaTypes: ExpoImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true,
+        videoMaxDuration: 60, // 60 segundos máximo
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await handleSendImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Erro ao selecionar vídeo:', error);
+      Alert.alert('Erro', 'Não foi possível selecionar o vídeo');
+    }
+  };
+
+  // Função para mostrar opções de mídia
+  const showMediaOptions = () => {
+    Alert.alert(
+      'Selecionar Mídia',
+      'Escolha uma opção:',
+      [
+        { text: 'Foto - Câmera', onPress: openCameraForPhoto },
+        { text: 'Vídeo - Câmera', onPress: openCameraForVideo },
+        { text: 'Foto - Galeria', onPress: selectPhotoFromGallery },
+        { text: 'Vídeo - Galeria', onPress: selectVideoFromGallery },
+        { text: 'Cancelar', style: 'cancel' }
+      ]
+    );
   };
 
   const handleDeleteMessage = (messageId: string) => {
@@ -644,10 +741,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                   {/* Botões de mídia - sempre visíveis */}
                   <TouchableOpacity
                     style={[styles.mediaButton, { backgroundColor: colors.primary, marginRight: 8 }]}
-                    onPress={() => {
-                      console.log('Camera button pressed - opening native camera directly');
-                      openNativeCamera();
-                    }}
+                    onPress={showMediaOptions}
                   >
                     <Camera size={18} color="white" />
                   </TouchableOpacity>
@@ -751,13 +845,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         </View>
       </Modal>
 
-      {/* Camera Screen */}
-      <CameraScreen
-        visible={showCameraScreen}
-        onClose={() => setShowCameraScreen(false)}
-        onPhotoTaken={handlePhotoTaken}
-        onVideoRecorded={handlePhotoTaken}
-      />
+
     </KeyboardAvoidingView>
   );
 }

@@ -1250,7 +1250,7 @@ export class AdminService {
     otherUserId: string,
     options?: { limitCount?: number }
   ): Promise<AdminDirectMessage[]> {
-    const limitCount = options?.limitCount ?? 50;
+    const limitCount = options?.limitCount ?? 100; // Aumentando limite padrão para 100
     try {
       console.log('🔍 [getDirectMessages] Iniciando busca:', { siteId, otherUserId, limitCount });
 
@@ -1270,6 +1270,32 @@ export class AdminService {
         console.log('❌ [getDirectMessages] Usuário não tem acesso ao site:', siteId);
         return [];
       }
+
+      // DEBUG: Verificar se há mensagens na coleção adminDirectMessages
+      console.log('🔍 [getDirectMessages] Verificando coleção adminDirectMessages...');
+      const testQuery = query(
+        collection(db, 'adminDirectMessages'),
+        limit(50) // Aumentando para 50 para ver mais mensagens
+      );
+      const testSnapshot = await getDocs(testQuery);
+      console.log('🔍 [getDirectMessages] Total de documentos na coleção (primeiros 50):', testSnapshot.size);
+      
+      // Contar total de documentos na coleção
+      const countQuery = query(collection(db, 'adminDirectMessages'));
+      const countSnapshot = await getDocs(countQuery);
+      console.log('🔍 [getDirectMessages] TOTAL REAL de documentos na coleção:', countSnapshot.size);
+      
+      testSnapshot.docs.forEach((doc, index) => {
+        const data = doc.data();
+        console.log(`🔍 [getDirectMessages] Documento ${index + 1}:`, {
+          id: doc.id,
+          siteId: data.siteId,
+          senderId: data.senderId,
+          recipientId: data.recipientId,
+          content: data.content?.substring(0, 50) || data.message?.substring(0, 50) || 'sem conteúdo',
+          createdAt: data.createdAt
+        });
+      });
 
       // Buscar informações do outro usuário para encontrar sites compartilhados
       const otherUser = await AuthService.getUserById(otherUserId);
