@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   Pause,
   Play,
+  Building2,
 } from 'lucide-react-native';
 import { safeTouchProps, createDebouncedPress } from '../utils/touchUtils';
 import { Task, Comment } from '@/services/TaskService';
@@ -48,6 +49,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
 }) => {
   const { colors } = useTheme();
   const [workers, setWorkers] = useState<any[]>([]);
+  const [creatorCompany, setCreatorCompany] = useState<string>('');
 
   useEffect(() => {
     AuthService.getCurrentSite().then(site => {
@@ -60,6 +62,45 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
       }
     });
   }, []);
+
+  // Buscar a empresa do criador da tarefa
+  useEffect(() => {
+    const fetchCreatorCompany = async () => {
+      try {
+        // Se temos o ID do criador, usar ele para buscar a empresa
+        if (task.createdById) {
+          const user = await AuthService.getUserById(task.createdById);
+          if (user && user.company) {
+            setCreatorCompany(user.company);
+            return;
+          }
+        }
+
+        // Fallback: buscar pelo nome se não temos o ID
+        if (task.createdByName) {
+          // Primeiro tentar buscar por email (se o createdByName for um email)
+          let user = await AuthService.getUserByEmail(task.createdByName);
+
+          // Se não encontrou por email, buscar por nome
+          if (!user) {
+            const currentSite = await AuthService.getCurrentSite();
+            if (currentSite) {
+              const admins = await AuthService.getAdminsBySite(currentSite.id);
+              user = admins.find(admin => admin.name === task.createdByName);
+            }
+          }
+
+          if (user && user.company) {
+            setCreatorCompany(user.company);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar empresa do criador:', error);
+      }
+    };
+
+    fetchCreatorCompany();
+  }, [task.createdByName, task.createdById]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -148,15 +189,15 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
   // Função utilitária para exibir nomes dos responsáveis
   const getAssigneesNames = () => {
     if (!task.assignedTo) return 'Não atribuído';
-    
+
     let assignees: string[] = [];
-    
+
     if (Array.isArray(task.assignedTo)) {
       assignees = task.assignedTo;
     } else if (typeof task.assignedTo === 'string') {
       assignees = task.assignedTo.split(', ').map(a => a.trim());
     }
-    
+
     // Converter IDs para nomes reais
     const realNames = assignees.map(assignee => {
       // Verificar se é um ID de worker (formato de ID do Firestore)
@@ -167,7 +208,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
       // Se não encontrou o worker, retornar o nome como está (pode ser um nome manual)
       return assignee;
     });
-    
+
     return realNames.length > 0 ? realNames.join(', ') : 'Não atribuído';
   };
 
@@ -186,7 +227,15 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
           )}
         </View>
         <View style={styles.fbHeaderInfo}>
-          <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>
+                     <View style={styles.fbUserNameContainer}>
+             <Text style={styles.fbUserName}>{task.createdByName || 'Usuário'}</Text>
+             {creatorCompany && (
+               <View style={styles.fbUserCompanyBadge}>
+                 <Building2 size={10} color="#3B82F6" style={{ marginRight: 3 }} />
+                 <Text style={styles.fbUserCompany}>{creatorCompany}</Text>
+               </View>
+             )}
+           </View>
           <Text style={styles.fbDate}>{new Date(task.createdAt).toLocaleDateString('pt-BR')}</Text>
           </View>
         <View style={styles.statusRiskBadges}>
@@ -223,7 +272,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
         <Text style={[styles.taskDescription, { color: colors.textMuted }]}>
           {task.description}
         </Text>
-        
+
         <View style={styles.taskDetails}>
           <View style={styles.detailItem}>
             <Text style={[styles.fbAssignees, { color: colors.textMuted }]}>
@@ -471,10 +520,32 @@ const styles = StyleSheet.create({
   fbHeaderInfo: {
     flex: 1,
   },
+  fbUserNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
   fbUserName: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#1c1e21',
+  },
+  fbUserCompanyBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  fbUserCompany: {
+    fontSize: 10,
+    fontFamily: 'Inter-SemiBold',
+    color: '#3B82F6',
+    textTransform: 'uppercase',
   },
   fbDate: {
     fontSize: 12,

@@ -34,6 +34,7 @@ export interface Task {
   comments?: Comment[];
   createdByName?: string; // Nome do criador da tarefa
   createdByPhotoURL?: string; // URL da foto do criador
+  createdById?: string; // ID do criador da tarefa
 }
 
 export interface Comment {
@@ -113,6 +114,7 @@ export class TaskService {
       const currentUser = await AuthService.getCurrentUser();
       const createdByName = currentUser?.name || 'Usuário';
       const createdByPhotoURL = currentUser?.photoURL || null;
+      const createdById = currentUser?.id || null;
 
       const now = new Date().toISOString();
       const newTask: any = {
@@ -127,6 +129,7 @@ export class TaskService {
         comments: [], // Garantir que comments sempre seja um array
         createdByName, // Adiciona o nome do criador
         createdByPhotoURL, // Adiciona a foto do criador
+        createdById, // Adiciona o ID do criador
       };
       if (!newTask.completedAt) {
         delete newTask.completedAt;
