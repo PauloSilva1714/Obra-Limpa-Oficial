@@ -72,15 +72,23 @@ class AddressService {
    * Busca endereços usando Google Places Autocomplete API
    */
   async searchAddresses(query: string): Promise<AddressResult[]> {
+    console.log('=== DEBUG AddressService.searchAddresses ===');
+    console.log('Query:', query);
+    console.log('API Key configurada:', isApiKeyConfigured());
+    console.log('API Key:', getApiKey());
+    
     if (!isApiKeyConfigured()) {
+      console.log('API Key não configurada, usando dados mock');
       return this.getMockSearchResults(query);
     }
 
     if (!query || query.trim().length < 2) {
+      console.log('Query muito curta, retornando array vazio');
       return [];
     }
 
     try {
+      console.log('Iniciando busca na API do Google Places...');
 
       // Tentativa 1: Busca padrão
       let params: { input: string; language: string; components: string; types?: string } = {
@@ -90,6 +98,7 @@ class AddressService {
       };
 
       let url = getPlacesApiUrl('autocomplete', params);
+      console.log('URL da API:', url);
 
       let response = await fetch(url, {
         method: 'GET',
@@ -98,13 +107,19 @@ class AddressService {
         },
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       if (!response.ok) {
+        console.log('Erro HTTP:', response.status);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       let data = await response.json();
+      console.log('Resposta da API:', data);
 
       if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
+        console.log('Resultados encontrados:', data.predictions.length);
         return data.predictions.map((prediction: GooglePlaceResult, index: number) => ({
           id: `search_${index}`,
           title: prediction.structured_formatting.main_text,
@@ -149,8 +164,10 @@ class AddressService {
         }));
       }
 
+      console.log('Nenhum resultado encontrado na primeira tentativa');
       return [];
     } catch (error) {
+      console.log('Erro na busca:', error);
       // Fallback para dados simulados em caso de erro
       return this.getMockSearchResults(query);
     }

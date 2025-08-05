@@ -507,21 +507,6 @@ export default function RegisterScreen() {
                   />
                 </View>
 
-                <View style={styles.inputContainer}>
-                  <Building2 size={20} color="#6B7280" style={styles.inputIcon} />
-                  <TextInput
-                    ref={siteAddressRef}
-                    style={styles.input}
-                    placeholder="Endereço da obra"
-                    value={formData.siteAddress}
-                    onChangeText={(text) => setFormData({ ...formData, siteAddress: text })}
-                    placeholderTextColor="#9CA3AF"
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    editable={!inviteInfo}
-                  />
-                </View>
-
                 <AddressSearch
                   placeholder="Endereço da obra"
                   value={formData.siteAddress}
