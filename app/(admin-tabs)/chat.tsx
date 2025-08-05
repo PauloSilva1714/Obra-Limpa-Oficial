@@ -214,8 +214,11 @@ export default function ChatScreen() {
         setIsAdmin(role === 'admin');
         setCurrentUser(user);
 
+        console.log('=== DEBUG: ChatScreen - isAdmin definido como:', role === 'admin');
+
         if (role !== 'admin') {
-          router.replace('/(tabs)');
+          console.log('=== DEBUG: ChatScreen - Redirecionando usuário não-admin');
+          router.replace('/(worker-tabs)');
           return;
         }
 

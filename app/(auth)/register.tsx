@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  KeyboardAvoidingView, 
-  Platform, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
   Animated,
   Dimensions,
   Modal,
@@ -47,11 +47,16 @@ const FUNCOES_OBRA = [
 ];
 
 // Função utilitária para redirecionar após aceite de convite
-function redirectAfterInvite() {
+async function redirectAfterInvite() {
   const auth = getAuth();
   if (auth.currentUser) {
-    // Usuário já está logado
-    router.replace('/(tabs)/progress');
+    // Usuário já está logado - verificar papel para redirecionar corretamente
+    const user = await AuthService.getCurrentUser();
+    if (user?.role === 'admin') {
+      router.replace('/(admin-tabs)');
+    } else {
+      router.replace('/(worker-tabs)/progress');
+    }
   } else {
     // Usuário não está logado
     router.replace('/(auth)/login');
@@ -121,7 +126,7 @@ export default function RegisterScreen() {
     if (typeof document !== 'undefined') {
       document.title = 'Obra Limpa - Cadastro';
     }
-    
+
     // Animação de entrada
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -362,14 +367,14 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Form com scroll se necessário */}
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.formContainer}
           showsVerticalScrollIndicator={false}
         >
           {/* Header que rola junto com o conteúdo */}
         <View style={styles.headerContainer}>
             <View style={styles.headerTop}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -387,7 +392,7 @@ export default function RegisterScreen() {
           <Text style={styles.subtitle}>Sistema de Gestão Inteligente</Text>
         </View>
 
-          <Animated.View 
+          <Animated.View
             style={[
               styles.form,
               {
@@ -527,7 +532,7 @@ export default function RegisterScreen() {
                 />
 
                 <Text style={styles.helpText}>
-                  {formData.inviteCode.trim() 
+                  {formData.inviteCode.trim()
                     ? 'Você está se juntando a uma obra existente via convite.'
                     : 'Você está criando uma nova obra. Informe o nome e endereço da obra para começar.'
                   }

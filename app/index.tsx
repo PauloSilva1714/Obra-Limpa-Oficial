@@ -22,25 +22,25 @@ export default function Index() {
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const initializeApp = async () => {
       try {
         console.log('[Index] Iniciando aplicativo...');
-        
+
         // Inicializar sistema de captura de erros PRIMEIRO
         const errorHandler = ErrorHandler.getInstance();
         await errorHandler.initialize();
         await errorHandler.saveErrorLog('App iniciado', 'startup');
-        
+
         if (!isMounted) return;
         setInitStep('Aguardando Firebase...');
-        
+
         // Aguardar mais tempo para garantir que tudo está pronto
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         if (!isMounted) return;
         setInitStep('Verificando autenticação...');
-        
+
         // Verificar se há dados salvos primeiro
         let storedUser = null;
         try {
@@ -52,18 +52,18 @@ export default function Index() {
           console.error('[Index] Erro ao ler AsyncStorage:', storageError);
           await errorHandler.saveErrorLog(`Erro AsyncStorage: ${storageError}`, 'storage_error');
         }
-        
+
         if (!isMounted) return;
         setInitStep('Verificando Firebase Auth...');
-        
+
         // Verificar autenticação do Firebase com timeout
         let firebaseUser = null;
         try {
           const authPromise = AuthService.waitForFirebaseAuth();
-          const timeoutPromise = new Promise((_, reject) => 
+          const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout Firebase Auth')), 8000)
           );
-          
+
           firebaseUser = await Promise.race([authPromise, timeoutPromise]);
           console.log('[Index] Firebase Auth:', firebaseUser ? 'Autenticado' : 'Não autenticado');
           await errorHandler.saveErrorLog(`Firebase Auth: ${firebaseUser ? 'Autenticado' : 'Não autenticado'}`, 'firebase_auth');
@@ -71,25 +71,32 @@ export default function Index() {
           console.error('[Index] Erro Firebase Auth:', authError);
           await errorHandler.saveErrorLog(`Erro Firebase Auth: ${authError}`, 'firebase_error');
         }
-        
+
         if (!isMounted) return;
         setInitStep('Processando dados do usuário...');
-        
+
         // Se temos usuário no storage, tentar usar
         if (storedUser && storedUser.uid) {
           try {
             console.log('[Index] Usando usuário do storage');
             await errorHandler.saveErrorLog('Usando usuário do storage', 'user_from_storage');
-            
+
             if (!isMounted) return;
             setInitStep('Redirecionando...');
-            
+
             // Aguardar um pouco antes de redirecionar
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             if (isMounted) {
-              console.log('[Index] Redirecionando para tabs');
-              router.replace('/(tabs)');
+              // Verificar o papel do usuário para redirecionar corretamente
+              const userRole = storageUser?.role;
+              if (userRole === 'admin') {
+                console.log('[Index] Redirecionando admin para admin-tabs');
+                router.replace('/(admin-tabs)');
+              } else {
+                console.log('[Index] Redirecionando worker para worker-tabs');
+                router.replace('/(worker-tabs)');
+              }
               return;
             }
           } catch (storageUserError) {
@@ -97,31 +104,38 @@ export default function Index() {
             await errorHandler.saveErrorLog(`Erro usuário storage: ${storageUserError}`, 'storage_user_error');
           }
         }
-        
+
         // Se temos usuário do Firebase, buscar dados
         if (firebaseUser && (firebaseUser as any).uid) {
           try {
             if (!isMounted) return;
             setInitStep('Buscando dados do Firestore...');
-            
+
             console.log('[Index] Buscando dados do usuário no Firestore');
             const userData = await AuthService.getUserById((firebaseUser as any).uid);
-            
+
             if (userData && isMounted) {
               console.log('[Index] Dados do usuário encontrados');
               await errorHandler.saveErrorLog('Dados do usuário encontrados no Firestore', 'firestore_success');
-              
+
               setInitStep('Salvando dados...');
               await AuthService.saveUserToStorage(userData);
-              
+
               if (!isMounted) return;
               setInitStep('Redirecionando...');
-              
+
               await new Promise(resolve => setTimeout(resolve, 500));
-              
+
               if (isMounted) {
-                console.log('[Index] Redirecionando para tabs');
-                router.replace('/(tabs)');
+                // Verificar o papel do usuário para redirecionar corretamente
+                const userRole = userData?.role;
+                if (userRole === 'admin') {
+                  console.log('[Index] Redirecionando admin para admin-tabs');
+                  router.replace('/(admin-tabs)');
+                } else {
+                  console.log('[Index] Redirecionando worker para worker-tabs');
+                  router.replace('/(worker-tabs)');
+                }
                 return;
               }
             } else {
@@ -130,7 +144,7 @@ export default function Index() {
           } catch (firestoreError) {
             console.error('[Index] Erro ao buscar dados do Firestore:', firestoreError);
             await errorHandler.saveErrorLog(`Erro Firestore: ${firestoreError}`, 'firestore_error');
-            
+
             // Limpar dados corrompidos
             try {
               await AsyncStorage.multiRemove(['user', 'site']);
@@ -140,33 +154,33 @@ export default function Index() {
             }
           }
         }
-        
+
         // Se chegou até aqui, redirecionar para login
         if (isMounted) {
           console.log('[Index] Redirecionando para login');
           await errorHandler.saveErrorLog('Redirecionando para login', 'redirect_login');
           setInitStep('Redirecionando para login...');
-          
+
           await new Promise(resolve => setTimeout(resolve, 500));
-          
+
           if (isMounted) {
             router.replace('/(auth)/login');
           }
         }
-        
+
       } catch (criticalError) {
         console.error('[Index] Erro crítico na inicialização:', criticalError);
-        
+
         try {
           const errorHandler = ErrorHandler.getInstance();
           await errorHandler.saveErrorLog(`Erro crítico: ${criticalError}`, 'critical_error');
         } catch (logError) {
           console.error('[Index] Erro ao salvar log crítico:', logError);
         }
-        
+
         if (isMounted) {
           setError(`Erro crítico: ${(criticalError as any)?.message || criticalError}`);
-          
+
           // Tentar limpar dados e redirecionar após um tempo MAIOR
           setTimeout(async () => {
             try {
@@ -188,7 +202,7 @@ export default function Index() {
 
     // Executar inicialização
     initializeApp();
-    
+
     return () => {
       isMounted = false;
     };
@@ -199,13 +213,13 @@ export default function Index() {
     try {
       const errorHandler = ErrorHandler.getInstance();
       const formattedLogs = await errorHandler.getFormattedLogs();
-      
+
       Alert.alert(
         'Logs de Erro',
         formattedLogs,
         [
-          { 
-            text: 'Limpar Logs', 
+          {
+            text: 'Limpar Logs',
             onPress: async () => {
               await errorHandler.clearErrorLogs();
               Alert.alert('Sucesso', 'Logs limpos com sucesso');

@@ -56,7 +56,13 @@ export default function SiteSelectionScreen() {
       const currentSite = await AuthService.getCurrentSite();
 
       if (currentSite) {
-        router.replace('/(tabs)');
+        // Verificar o papel do usuário para redirecionar corretamente
+        const user = await AuthService.getCurrentUser();
+        if (user?.role === 'admin') {
+          router.replace('/(admin-tabs)');
+        } else {
+          router.replace('/(worker-tabs)');
+        }
       } else {
         throw new Error('Falha ao salvar canteiro');
       }

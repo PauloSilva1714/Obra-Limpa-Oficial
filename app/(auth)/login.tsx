@@ -275,7 +275,14 @@ export default function LoginScreen() {
           if (!currentSite || !currentSite.id) {
             router.replace('/(auth)/site-selection');
           } else {
-            router.replace('/(tabs)');
+            router.replace('/(worker-tabs)');
+          }
+        } else if (user && user.role === 'admin') {
+          const currentSite = await AuthService.getCurrentSite();
+          if (!currentSite || !currentSite.id) {
+            router.replace('/(auth)/site-selection');
+          } else {
+            router.replace('/(admin-tabs)');
           }
         } else {
           await AuthService.setCurrentSite(null);

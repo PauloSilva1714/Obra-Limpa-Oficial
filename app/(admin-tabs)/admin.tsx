@@ -11,7 +11,7 @@ export default function AdminTab() {
     AuthService.getUserRole().then(role => {
       setIsAdmin(role === 'admin');
       if (role !== 'admin') {
-        router.replace('/(tabs)');
+        router.replace('/(worker-tabs)');
       }
     });
   }, []);

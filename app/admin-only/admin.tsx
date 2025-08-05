@@ -59,7 +59,7 @@ function AdminTab() {
     AuthService.getUserRole().then(role => {
       setIsAdmin(role === 'admin');
       if (role !== 'admin') {
-        router.replace('/(tabs)');
+        router.replace('/(worker-tabs)');
       }
     });
   }, []);
@@ -104,14 +104,14 @@ export default function AdminScreen() {
     try {
       const userRole = await AuthService.getUserRole();
       if (userRole !== 'admin') {
-        router.replace('/(tabs)');
+        router.replace('/(worker-tabs)');
         return;
       }
       await loadAdminStats();
       await updateTotalWorkers();
     } catch (error) {
       console.error('Erro ao verificar usuário:', error);
-      router.replace('/(tabs)');
+      router.replace('/(worker-tabs)');
     }
     };
 

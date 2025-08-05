@@ -98,15 +98,16 @@ export default function RootLayout() {
               <meta name="apple-mobile-web-app-capable" content="yes" />
               <meta name="apple-mobile-web-app-status-bar-style" content="default" />
             </Head>
-            
+
             {/* Status de conexão - apenas em desenvolvimento */}
             {/* Removido ConnectionStatus do topo global, agora aparece apenas na tela de tarefas */}
-            
+
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="(auth)/login" />
               <Stack.Screen name="(auth)/site-selection" />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(worker-tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(admin-tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
             </Stack>
             <StatusBar style="auto" />
