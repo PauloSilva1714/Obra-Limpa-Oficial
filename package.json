@@ -89,7 +89,8 @@
     "stream-http": "^3.2.0",
     "url": "^0.11.4",
     "util": "^0.12.5",
-    "expo-document-picker": "~13.1.6"
+    "expo-document-picker": "~13.1.6",
+    "expo-updates": "~0.28.17"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

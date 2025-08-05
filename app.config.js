@@ -1,7 +1,7 @@
 module.exports = {
   name: 'Obra Limpa',
   slug: 'obra-limpa',
-  version: '1.0.0',
+  version: '1.0.1',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   scheme: 'com.obralimpa.app',
@@ -77,6 +77,12 @@ module.exports = {
   experiments: {
     typedRoutes: true,
     tsconfigPaths: true
+  },
+  updates: {
+    url: "https://u.expo.dev/daa03d49-e8d2-40c2-a009-ebd5176ff283"
+  },
+  runtimeVersion: {
+    policy: "appVersion"
   },
   extra: {
     firebase: {
