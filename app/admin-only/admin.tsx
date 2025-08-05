@@ -118,7 +118,7 @@ export default function AdminScreen() {
   const loadAdminStats = async () => {
     try {
       setLoading(true);
-      const sites = await AdminService.getAllSites();
+      const sites = await AuthService.getUserSites();
 
       // Buscar tarefas da obra atual
       const currentSite = await AuthService.getCurrentSite();
@@ -191,7 +191,7 @@ export default function AdminScreen() {
     try {
       setModalTitle('Selecionar Obra');
       setModalType('sites');
-      const sites = await AdminService.getAllSites();
+      const sites = await AuthService.getUserSites();
       setModalUsers(sites.map(site => ({
         id: site.id,
         name: site.name,
@@ -208,7 +208,7 @@ export default function AdminScreen() {
 
   const handleSiteSelection = async (siteId: string) => {
     try {
-      const sites = await AdminService.getAllSites();
+      const sites = await AuthService.getUserSites();
       const selectedSite = sites.find(site => site.id === siteId);
       if (selectedSite) {
         await AuthService.setCurrentSite(selectedSite);
