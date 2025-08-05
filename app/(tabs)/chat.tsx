@@ -19,6 +19,7 @@ import { Search, MessageCircle, User, Camera, MoreVertical, ArrowLeft, Paperclip
 import { useRouter } from 'expo-router';
 import { AuthService } from '@/services/AuthService';
 import { AdminService } from '@/services/AdminService';
+import { useTheme } from '@/contexts/ThemeContext';
 
 import AdminDirectChat from '@/components/AdminDirectChat';
 import * as ImagePicker from 'expo-image-picker';
@@ -167,6 +168,7 @@ interface Message {
 
 export default function ChatScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -972,7 +974,7 @@ export default function ChatScreen() {
 
     return (
       <TouchableOpacity
-        style={styles.adminItem}
+        style={[styles.adminItem, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
         onPress={() => handleSelectAdmin(item)}
       >
         <View style={styles.avatarContainer}>
@@ -991,14 +993,14 @@ export default function ChatScreen() {
         </View>
         <View style={styles.adminInfo}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.adminName}>{item.name}</Text>
+            <Text style={[styles.adminName, { color: colors.text }]}>{item.name}</Text>
             <View style={{ alignItems: 'flex-end' }}>
               {lastMessage ? (
-                <Text style={styles.timeText}>
+                <Text style={[styles.timeText, { color: colors.textMuted }]}>
                   {formatTime(lastMessage.time)}
                 </Text>
               ) : (
-                <Text style={styles.timeText}>Agora</Text>
+                <Text style={[styles.timeText, { color: colors.textMuted }]}>Agora</Text>
               )}
               <Text style={[styles.onlineStatusText, { color: getOnlineStatusColor() }]}>
                 {getOnlineStatusText()}
@@ -1006,16 +1008,16 @@ export default function ChatScreen() {
             </View>
           </View>
           {lastMessage ? (
-            <Text style={styles.lastMessage} numberOfLines={1}>
+            <Text style={[styles.lastMessage, { color: colors.textMuted }]} numberOfLines={1}>
               {lastMessage.message}
             </Text>
           ) : (
-            <Text style={styles.lastMessage} numberOfLines={1}>
+            <Text style={[styles.lastMessage, { color: colors.textMuted }]} numberOfLines={1}>
               Iniciar conversa
             </Text>
           )}
           {item.company && (
-            <Text style={styles.adminCompany}>{item.company}</Text>
+            <Text style={[styles.adminCompany, { color: colors.textSecondary }]}>{item.company}</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -1109,32 +1111,32 @@ export default function ChatScreen() {
 
     return (
       <TouchableOpacity
-        style={styles.chatItem}
+        style={[styles.chatItem, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
         onPress={() => handleSelectAdmin({ id: otherParticipant.id, name: otherParticipant.name, email: '', role: '' })}
       >
         <View style={styles.avatarContainer}>
           {otherParticipant.photoURL ? (
             <Image source={{ uri: otherParticipant.photoURL }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatar, { backgroundColor: '#F97316' }]}>
-              <Text style={styles.avatarText}>{initials}</Text>
+            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.avatarText, { color: colors.text }]}>{initials}</Text>
             </View>
           )}
         </View>
         <View style={styles.chatInfo}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.chatName} numberOfLines={1}>{otherParticipant.name}</Text>
-            <Text style={styles.timeText}>
+            <Text style={[styles.chatName, { color: colors.text }]} numberOfLines={1}>{otherParticipant.name}</Text>
+            <Text style={[styles.timeText, { color: colors.textMuted }]}>
               {item.lastMessageTime ? formatTime(item.lastMessageTime) : 'Agora'}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.lastMessage} numberOfLines={1}>
+            <Text style={[styles.lastMessage, { color: colors.textMuted }]} numberOfLines={1}>
               {item.lastMessage || 'Nenhuma mensagem'}
             </Text>
             {item.unreadCount > 0 && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadText}>{item.unreadCount}</Text>
+              <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.unreadText, { color: colors.text }]}>{item.unreadCount}</Text>
               </View>
             )}
           </View>
@@ -1144,11 +1146,11 @@ export default function ChatScreen() {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
+      return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F97316" />
-          <Text style={styles.loadingText}>Carregando chat...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.primary }]}>Carregando chat...</Text>
         </View>
       </SafeAreaView>
     );
@@ -1176,50 +1178,49 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Chat</Text>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Chat</Text>
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={20} color="#9CA3AF" style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Search size={20} color={colors.textMuted} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Pesquisar administradores..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={handleSearch}
           />
-
         </View>
 
         {/* Tab Navigation */}
-        <View style={styles.tabBar}>
+        <View style={[styles.tabBar, { backgroundColor: colors.surface }]}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'individual' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'individual' && { backgroundColor: colors.primary }]}
             onPress={() => setActiveTab('individual')}
           >
-            <User size={16} color={activeTab === 'individual' ? '#F97316' : '#9CA3AF'} />
-            <Text style={[styles.tabText, activeTab === 'individual' && styles.activeTabText]}>
+            <User size={16} color={activeTab === 'individual' ? colors.primary : colors.textMuted} />
+            <Text style={[styles.tabText, { color: activeTab === 'individual' ? colors.primary : colors.textMuted }]}>
               Individual
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'grupo' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'grupo' && { backgroundColor: colors.primary }]}
             onPress={() => setActiveTab('grupo')}
           >
-                          <Users size={16} color={activeTab === 'grupo' ? '#F97316' : '#9CA3AF'} />
-            <Text style={[styles.tabText, activeTab === 'grupo' && styles.activeTabText]}>
+            <Users size={16} color={activeTab === 'grupo' ? colors.primary : colors.textMuted} />
+            <Text style={[styles.tabText, { color: activeTab === 'grupo' ? colors.primary : colors.textMuted }]}>
               Grupo
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'novo' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'novo' && { backgroundColor: colors.primary }]}
             onPress={async () => {
                setActiveTab('novo');
 
@@ -1236,8 +1237,8 @@ export default function ChatScreen() {
                }
              }}
           >
-            <MessageCircle size={16} color={activeTab === 'novo' ? '#F97316' : '#F97316'} />
-            <Text style={[styles.tabText, activeTab === 'novo' && styles.activeTabText]}>
+            <MessageCircle size={16} color={activeTab === 'novo' ? colors.primary : colors.textMuted} />
+            <Text style={[styles.tabText, { color: activeTab === 'novo' ? colors.primary : colors.textMuted }]}>
               Novo Chat
             </Text>
           </TouchableOpacity>
@@ -1253,9 +1254,9 @@ export default function ChatScreen() {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <MessageCircle size={48} color="#9CA3AF" />
-                <Text style={styles.emptyTitle}>Nenhuma conversa encontrada</Text>
-                <Text style={styles.emptySubtitle}>
+                <MessageCircle size={48} color={colors.textMuted} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhuma conversa encontrada</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
                   Use o botão "Novo Chat" para iniciar uma conversa individual
                 </Text>
               </View>
@@ -1264,11 +1265,11 @@ export default function ChatScreen() {
         )}
 
         {activeTab === 'grupo' && (
-          <View style={styles.groupChatContainer}>
+          <View style={[styles.groupChatContainer, { backgroundColor: colors.background }]}>
             {loadingGroupMessages ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#F97316" />
-                <Text style={styles.loadingText}>Carregando mensagens...</Text>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[styles.loadingText, { color: colors.primary }]}>Carregando mensagens...</Text>
               </View>
             ) : (
               <>
@@ -1281,9 +1282,9 @@ export default function ChatScreen() {
                   contentContainerStyle={styles.messagesContent}
                   ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                      <MessageCircle size={48} color="#9CA3AF" />
-                      <Text style={styles.emptyTitle}>Nenhuma mensagem ainda</Text>
-                      <Text style={styles.emptySubtitle}>
+                      <MessageCircle size={48} color={colors.textMuted} />
+                      <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhuma mensagem ainda</Text>
+                      <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
                         Seja o primeiro a enviar uma mensagem para o grupo!
                       </Text>
                     </View>
@@ -1427,9 +1428,9 @@ export default function ChatScreen() {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <User size={48} color="#9CA3AF" />
-                <Text style={styles.emptyTitle}>Nenhum administrador encontrado</Text>
-                <Text style={styles.emptySubtitle}>
+                <User size={48} color={colors.textMuted} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhum administrador encontrado</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
                   {searchQuery ? 'Tente uma busca diferente' : 'Não há administradores disponíveis'}
                 </Text>
               </View>

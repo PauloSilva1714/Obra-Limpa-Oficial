@@ -54,6 +54,7 @@ export default function AdminDirectChat({
   const [showOptions, setShowOptions] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<AdminDirectMessage[]>([]);
   const [otherUserPhotoURL, setOtherUserPhotoURL] = useState<string | null>(null);
+  const [otherUserCompany, setOtherUserCompany] = useState<string | null>(null);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
 
@@ -152,9 +153,10 @@ export default function AdminDirectChat({
   }, []);
 
   useEffect(() => {
-    // Buscar foto de perfil do outro usuário
+    // Buscar foto de perfil e empresa do outro usuário
     AuthService.getUserById(otherUserId).then(user => {
       setOtherUserPhotoURL(user?.photoURL || null);
+      setOtherUserCompany(user?.company || null);
     });
   }, [otherUserId]);
 
@@ -763,19 +765,24 @@ export default function AdminDirectChat({
                 <Text style={[styles.headerAvatarText, { color: 'white' }]}>{otherUserName.charAt(0).toUpperCase()}</Text>
               </View>
             )}
-            <View style={styles.headerUserInfo}>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>
-                {otherUserName}
-              </Text>
-              <View style={styles.statusContainer}>
-                {otherUserStatus === 'Online' && (
-                  <View style={styles.onlineIndicator} />
-                )}
-                <Text style={[styles.headerSubtitle, { color: colors.text }]}>
-                  {otherUserStatus}
-                </Text>
-              </View>
-            </View>
+                         <View style={styles.headerUserInfo}>
+               <Text style={[styles.headerTitle, { color: colors.text }]}>
+                 {otherUserName}
+                 {otherUserCompany && (
+                   <Text style={[styles.headerCompany, { color: colors.textMuted }]}>
+                     {' '}• {otherUserCompany}
+                   </Text>
+                 )}
+               </Text>
+               <View style={styles.statusContainer}>
+                 {otherUserStatus === 'Online' && (
+                   <View style={styles.onlineIndicator} />
+                 )}
+                 <Text style={[styles.headerSubtitle, { color: colors.text }]}>
+                   {otherUserStatus}
+                 </Text>
+               </View>
+             </View>
           </View>
         </View>
 
@@ -828,7 +835,7 @@ export default function AdminDirectChat({
         <View style={styles.inputRow}>
           {/* Botões de mídia - sempre visíveis */}
           <TouchableOpacity
-            style={styles.mediaButton}
+            style={[styles.mediaButton, { backgroundColor: colors.primary }]}
             onPress={() => {
                Alert.alert(
                  'Selecionar Mídia',
@@ -864,7 +871,7 @@ export default function AdminDirectChat({
 
           {/* Botão de anexo (clipe de papel) */}
           <TouchableOpacity
-            style={styles.mediaButton}
+            style={[styles.mediaButton, { backgroundColor: colors.primary }]}
             onPress={() => {
               console.log('Attachment button pressed - opening document picker');
               selectDocument();
@@ -877,16 +884,20 @@ export default function AdminDirectChat({
           {/* Botão de emoji */}
           <TouchableOpacity
             onPress={() => setShowOptions(!showOptions)}
-            style={styles.mediaButton}
+            style={[styles.mediaButton, { backgroundColor: colors.primary }]}
             accessibilityLabel={showOptions ? 'Esconder opções' : 'Mostrar opções'}
           >
             <Text style={{ fontSize: 18, color: 'white' }}>{showOptions ? '❌' : '😊'}</Text>
           </TouchableOpacity>
 
           <TextInput
-            style={styles.messageInput}
+            style={[styles.messageInput, {
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              color: colors.text
+            }]}
             placeholder={`Digite sua mensagem para ${otherUserName}...`}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textMuted}
             value={newMessage}
             onChangeText={setNewMessage}
             multiline
@@ -895,7 +906,9 @@ export default function AdminDirectChat({
             blurOnSubmit={false}
           />
           <TouchableOpacity
-            style={[styles.sendButton, sending || !newMessage.trim() ? { backgroundColor: '#6B7280' } : {}]}
+            style={[styles.sendButton, {
+              backgroundColor: sending || !newMessage.trim() ? colors.textMuted : colors.primary
+            }]}
             onPress={handleSendMessage}
             disabled={sending || !newMessage.trim()}
           >
@@ -996,13 +1009,15 @@ export default function AdminDirectChat({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    minHeight: '100%',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
+    minHeight: 60,
   },
   backButton: {
     padding: 8,
@@ -1012,12 +1027,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
+    flexWrap: 'wrap',
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
+    flexWrap: 'wrap',
+  },
+  headerCompany: {
+    fontSize: 12,
+    fontWeight: '400',
   },
   headerActions: {
     padding: 8,
@@ -1031,7 +1052,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    padding: 15,
+    padding: 12,
+    paddingBottom: 20,
   },
   messageContainer: {
     marginBottom: 15,
@@ -1084,14 +1106,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   messageBubble: {
-    padding: 12,
+    padding: 10,
     borderWidth: 1,
     borderRadius: 12,
     maxWidth: '85%',
+    minHeight: 36,
   },
   messageText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 18,
+    flexWrap: 'wrap',
   },
   deleteButton: {
     padding: 6,
@@ -1103,14 +1127,16 @@ const styles = StyleSheet.create({
   inputContainer: {
     borderTopWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    paddingBottom: 15,
-    marginBottom: 20,
+    paddingVertical: 8,
+    paddingBottom: 12,
+    marginBottom: 10,
+    minHeight: 60,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 10,
+    gap: 8,
+    minHeight: 44,
   },
   messageInput: {
     flex: 1,
@@ -1119,18 +1145,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#1F2937',
     color: '#FFFFFF',
     borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
     maxHeight: 100,
     fontSize: 14,
+    lineHeight: 18,
   },
   sendButton: {
     backgroundColor: '#F97316',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
+    borderRadius: 18,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
   },
   chatTypeIndicator: {
     flexDirection: 'row',
@@ -1207,6 +1243,7 @@ const styles = StyleSheet.create({
   headerUserInfo: {
     flexDirection: 'column',
     flex: 1,
+    justifyContent: 'center',
   },
   mediaButtons: {
     flexDirection: 'row',
@@ -1215,13 +1252,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mediaButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F97316',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 6,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
