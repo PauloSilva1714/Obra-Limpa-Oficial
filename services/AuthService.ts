@@ -877,57 +877,72 @@ export class AuthService {
 
       if (userSiteIds.length === 0) {
         console.log('=== DEBUG: Usuário não tem obras associadas');
-        
+
         // Se for admin e não tem obras, verificar se há obras criadas por ele
         if (userData.role === 'admin') {
           console.log('=== DEBUG: Usuário é admin, verificando obras criadas por ele ===');
           const sitesQuery = query(collection(db, 'sites'), where('createdBy', '==', currentUser.id));
           const sitesSnapshot = await getDocs(sitesQuery);
-          
+
           if (sitesSnapshot.size > 0) {
             const siteIds = sitesSnapshot.docs.map(doc => doc.id);
             console.log(`=== DEBUG: Encontradas ${sitesSnapshot.size} obras criadas pelo admin ===`);
-            
+
             // Atualizar o usuário com as obras encontradas
             await updateDoc(userRef, {
               sites: siteIds,
               siteId: siteIds[0]
             });
-            
+
             // Atualizar também o AsyncStorage
             const updatedUser = { ...userData, sites: siteIds, siteId: siteIds[0] };
             await AuthService.saveUserToStorage(updatedUser);
-            
+
             // Retornar as obras encontradas
             const sites = sitesSnapshot.docs.map(doc => ({
               id: doc.id,
               ...doc.data()
             } as Site));
-            
+
             console.log('=== DEBUG: Obras retornadas após correção:', sites.length);
             return sites;
           }
         }
-        
+
+        // Se não for admin ou não encontrou obras, tentar buscar todas as obras disponíveis
+        console.log('=== DEBUG: Tentando buscar todas as obras disponíveis ===');
+        const allSitesSnapshot = await getDocs(collection(db, 'sites'));
+        console.log(`=== DEBUG: Total de obras disponíveis: ${allSitesSnapshot.size}`);
+
+        if (allSitesSnapshot.size > 0) {
+          const sites = allSitesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Site));
+
+          console.log('=== DEBUG: Obras retornadas (todas disponíveis):', sites.length);
+          return sites;
+        }
+
         return [];
       }
 
       // Buscar obras em lotes de 10 (limitação do Firestore)
       const sites: Site[] = [];
       const batchSize = 10;
-      
+
       for (let i = 0; i < userSiteIds.length; i += batchSize) {
         const batchIds = userSiteIds.slice(i, i + batchSize);
         console.log('=== DEBUG: Buscando lote de obras:', batchIds);
-        
+
         const sitesQuery = query(
           collection(db, 'sites'),
           where('__name__', 'in', batchIds)
         );
-        
+
         const sitesSnapshot = await getDocs(sitesQuery);
         console.log('=== DEBUG: Obras encontradas no lote:', sitesSnapshot.size);
-        
+
         sitesSnapshot.docs.forEach(doc => {
           const siteData = doc.data() as Site;
           console.log('=== DEBUG: Obra encontrada:', doc.id, siteData.name, 'Criada por:', siteData.createdBy);
@@ -2090,6 +2105,11 @@ export class AuthService {
   static async getAdminsBySite(siteId: string): Promise<User[]> {
     try {
       console.log('[AuthService] getAdminsBySite - Buscando administradores para siteId:', siteId);
+
+      // Buscar usuário atual para debug
+      const currentUser = await AuthService.getCurrentUser();
+      console.log('[AuthService] getAdminsBySite - Usuário atual:', currentUser?.id, currentUser?.name);
+
       const usersQuery = query(
         collection(db, 'users'),
         where('role', '==', 'admin'),
@@ -2097,7 +2117,12 @@ export class AuthService {
       );
       const snapshot = await getDocs(usersQuery);
       const admins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-      console.log('[AuthService] getAdminsBySite - Administradores encontrados:', admins.length, admins);
+
+      console.log('[AuthService] getAdminsBySite - Administradores encontrados:', admins.length);
+      admins.forEach(admin => {
+        console.log(`[AuthService] getAdminsBySite - Admin: ${admin.name} (${admin.id}) - É usuário atual? ${admin.id === currentUser?.id}`);
+      });
+
       return admins;
     } catch (error) {
       console.error('[AuthService] getAdminsBySite - Erro ao buscar administradores da obra:', error);
@@ -2419,6 +2444,125 @@ export class AuthService {
       await AuthService.updateUserOnlineStatus(currentUser.id, false);
     } catch (error) {
       console.error('[AuthService] Erro ao parar monitoramento de presença:', error);
+    }
+  }
+
+  static async debugSpecificSites(): Promise<void> {
+    try {
+      console.log('=== DEBUG: Verificando obras específicas ===');
+      const siteIds = ['LyMU13yC2dSaoBCn8sLe', 'OVefmBoLKJReVM1lkF8f', 'WHC3BeOAgCpP5tN3cEUL', 'cclQ9Rtai9yutH6T5E74'];
+
+      for (const siteId of siteIds) {
+        try {
+          const siteDoc = await getDoc(doc(db, 'sites', siteId));
+          if (siteDoc.exists()) {
+            const siteData = siteDoc.data();
+            console.log(`=== DEBUG: Obra ${siteId} encontrada:`, siteData);
+          } else {
+            console.log(`=== DEBUG: Obra ${siteId} NÃO encontrada`);
+          }
+        } catch (error) {
+          console.error(`=== DEBUG: Erro ao buscar obra ${siteId}:`, error);
+        }
+      }
+
+      // Verificar todas as obras na coleção
+      console.log('=== DEBUG: Listando todas as obras na coleção sites ===');
+      const allSitesSnapshot = await getDocs(collection(db, 'sites'));
+      console.log(`=== DEBUG: Total de obras na coleção: ${allSitesSnapshot.size}`);
+
+      allSitesSnapshot.docs.forEach(doc => {
+        const siteData = doc.data();
+        console.log(`=== DEBUG: Obra ${doc.id}:`, siteData.name, 'Criada por:', siteData.createdBy);
+      });
+
+    } catch (error) {
+      console.error('=== DEBUG: Erro ao verificar obras específicas:', error);
+    }
+  }
+
+  static async debugUserAccess(): Promise<void> {
+    try {
+      console.log('=== DEBUG: Verificando acesso do usuário ===');
+      const currentUser = await AuthService.getCurrentUser();
+      console.log('=== DEBUG: Usuário atual:', currentUser);
+
+      if (!currentUser) {
+        console.log('=== DEBUG: Usuário não autenticado');
+        return;
+      }
+
+      // Verificar se o usuário tem obras associadas
+      console.log('=== DEBUG: Obras associadas ao usuário:', currentUser.sites);
+      console.log('=== DEBUG: Obra atual do usuário:', currentUser.siteId);
+
+      // Se for admin, verificar todas as obras criadas por ele
+      if (currentUser.role === 'admin') {
+        console.log('=== DEBUG: Usuário é admin, verificando obras criadas por ele ===');
+        const sitesQuery = query(collection(db, 'sites'), where('createdBy', '==', currentUser.id));
+        const sitesSnapshot = await getDocs(sitesQuery);
+        console.log(`=== DEBUG: Obras criadas pelo admin: ${sitesSnapshot.size}`);
+
+        sitesSnapshot.docs.forEach(doc => {
+          const siteData = doc.data();
+          console.log(`=== DEBUG: Obra criada pelo admin: ${doc.id} - ${siteData.name}`);
+        });
+      }
+
+    } catch (error) {
+      console.error('=== DEBUG: Erro ao verificar acesso do usuário:', error);
+    }
+  }
+
+  static async forceUpdateUserSites(): Promise<void> {
+    try {
+      console.log('=== DEBUG: Forçando atualização das obras do usuário ===');
+      const currentUser = await AuthService.getCurrentUser();
+
+      if (!currentUser) {
+        console.log('=== DEBUG: Usuário não autenticado');
+        return;
+      }
+
+      const siteIds = ['LyMU13yC2dSaoBCn8sLe', 'OVefmBoLKJReVM1lkF8f', 'WHC3BeOAgCpP5tN3cEUL', 'cclQ9Rtai9yutH6T5E74'];
+
+      // Verificar quais obras existem
+      const existingSites = [];
+      for (const siteId of siteIds) {
+        try {
+          const siteDoc = await getDoc(doc(db, 'sites', siteId));
+          if (siteDoc.exists()) {
+            existingSites.push(siteId);
+            console.log(`=== DEBUG: Obra ${siteId} existe`);
+          } else {
+            console.log(`=== DEBUG: Obra ${siteId} não existe`);
+          }
+        } catch (error) {
+          console.error(`=== DEBUG: Erro ao verificar obra ${siteId}:`, error);
+        }
+      }
+
+      if (existingSites.length > 0) {
+        console.log(`=== DEBUG: Atualizando usuário com ${existingSites.length} obras`);
+
+        // Atualizar o usuário no Firestore
+        const userRef = doc(db, 'users', currentUser.id);
+        await updateDoc(userRef, {
+          sites: existingSites,
+          siteId: existingSites[0]
+        });
+
+        // Atualizar o AsyncStorage
+        const updatedUser = { ...currentUser, sites: existingSites, siteId: existingSites[0] };
+        await AuthService.saveUserToStorage(updatedUser);
+
+        console.log('=== DEBUG: Usuário atualizado com sucesso');
+      } else {
+        console.log('=== DEBUG: Nenhuma obra válida encontrada');
+      }
+
+    } catch (error) {
+      console.error('=== DEBUG: Erro ao forçar atualização das obras:', error);
     }
   }
 }

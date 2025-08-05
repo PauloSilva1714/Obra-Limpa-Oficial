@@ -1,5 +1,6 @@
 import { Tabs, useRouter, useSegments } from 'expo-router';
 import { useColorScheme, View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Home,
   User,
@@ -48,6 +49,7 @@ const TABS_CONFIG = {
 
 function TabLayoutContent() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [userRole, setUserRole] = useState<'admin' | 'worker' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -127,8 +129,8 @@ function TabLayoutContent() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 70,
-          paddingBottom: 10,
+          height: 70 + insets.bottom, // aumenta a altura para acomodar o safe area
+          paddingBottom: 10 + insets.bottom, // soma o safe area ao padding inferior
           paddingTop: 10,
         },
         tabBarActiveTintColor: colors.primary,
@@ -152,7 +154,7 @@ function TabLayoutContent() {
           ),
         }}
       />
-      
+
       {userRole === 'admin' && (
         <Tabs.Screen
           name="admin"
@@ -164,7 +166,7 @@ function TabLayoutContent() {
           }}
         />
       )}
-      
+
       <Tabs.Screen
         name="progress"
         options={{
@@ -174,7 +176,7 @@ function TabLayoutContent() {
           ),
         }}
       />
-      
+
       {userRole === 'admin' && (
         <Tabs.Screen
           name="chat"
@@ -186,7 +188,7 @@ function TabLayoutContent() {
           }}
         />
       )}
-      
+
       <Tabs.Screen
         name="profile"
         options={{

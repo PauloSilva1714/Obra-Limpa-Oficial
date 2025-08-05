@@ -116,6 +116,9 @@ interface Admin {
   role: string;
   photoURL?: string;
   company?: string;
+  isOnline?: boolean;
+  lastSeen?: string;
+  lastActivity?: string;
 }
 
 interface ChatSession {
@@ -188,6 +191,9 @@ export default function ChatScreen() {
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
 
+  // Estado para status online dos administradores
+  const [adminOnlineStatus, setAdminOnlineStatus] = useState<{[key: string]: {isOnline: boolean, lastSeen?: string, lastActivity?: string}}>({});
+
   // Ref para o FlatList do chat de grupo
   const groupMessagesFlatListRef = useRef<FlatList>(null);
 
@@ -200,6 +206,9 @@ export default function ChatScreen() {
         const user = await AuthService.getCurrentUser();
         const role = await AuthService.getUserRole();
 
+        console.log('=== DEBUG: initializeChat - Usuário carregado:', user?.id, user?.name);
+        console.log('=== DEBUG: initializeChat - Role do usuário:', role);
+
         setIsAdmin(role === 'admin');
         setCurrentUser(user);
 
@@ -208,8 +217,12 @@ export default function ChatScreen() {
           return;
         }
 
-        await loadAdmins();
+        await loadAdmins(user);
         await loadChatSessions();
+
+        // Iniciar monitoramento de presença
+        await AuthService.startPresenceMonitoring();
+
         setLoading(false);
       } catch (error) {
         console.error('Erro ao inicializar chat:', error);
@@ -261,20 +274,54 @@ export default function ChatScreen() {
     }
   }, [groupMessages.length]);
 
-  const loadAdmins = async () => {
+  // Atualizar status online periodicamente
+  useEffect(() => {
+    if (activeTab === 'novo' && admins.length > 0) {
+      const interval = setInterval(() => {
+        loadAdminOnlineStatus(admins);
+      }, 30000); // Atualizar a cada 30 segundos
+
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, admins.length]);
+
+  const loadAdmins = async (user: any) => {
     try {
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
         const allAdmins = await AuthService.getAdminsBySite(currentSite.id);
 
-        // Filtrar o usuário atual da lista
-        const filteredAdmins = currentUser ? allAdmins.filter(admin => admin.id !== currentUser.id) : allAdmins;
+        console.log('=== DEBUG: loadAdmins - Todos os administradores encontrados:', allAdmins.length);
+        console.log('=== DEBUG: loadAdmins - Usuário atual:', user?.id, user?.name);
+
+        // Filtrar o usuário atual da lista - versão mais robusta
+        let filteredAdmins = allAdmins;
+        if (user && user.id) {
+          filteredAdmins = allAdmins.filter(admin => {
+            const shouldInclude = admin.id !== user.id;
+            console.log(`=== DEBUG: loadAdmins - Admin ${admin.name} (${admin.id}): ${shouldInclude ? 'INCLUÍDO' : 'FILTRADO'}`);
+            return shouldInclude;
+          });
+
+          // Verificação adicional para garantir que o usuário atual não está na lista
+          const currentUserInList = filteredAdmins.find(admin => admin.id === user.id);
+          if (currentUserInList) {
+            console.log('=== DEBUG: loadAdmins - ATENÇÃO: Usuário atual ainda está na lista após filtragem!');
+            filteredAdmins = filteredAdmins.filter(admin => admin.id !== user.id);
+          }
+        }
+
+        console.log('=== DEBUG: loadAdmins - Administradores após filtragem:', filteredAdmins.length);
+        console.log('=== DEBUG: loadAdmins - Lista final:', filteredAdmins.map(a => ({ id: a.id, name: a.name })));
 
         setAdmins(filteredAdmins);
         setFilteredAdmins(filteredAdmins);
 
         // Buscar última mensagem de cada administrador
         await loadLastMessages(currentSite.id, filteredAdmins);
+
+        // Carregar status online dos administradores
+        await loadAdminOnlineStatus(filteredAdmins);
       }
     } catch (error) {
       console.error('Erro ao carregar administradores:', error);
@@ -306,6 +353,32 @@ export default function ChatScreen() {
       setLastMessages(messagesMap);
     } catch (error) {
       console.error('Erro ao carregar últimas mensagens:', error);
+    }
+  };
+
+  const loadAdminOnlineStatus = async (adminsList: Admin[]) => {
+    try {
+      console.log('=== DEBUG: loadAdminOnlineStatus - Carregando status online para', adminsList.length, 'administradores');
+
+      const statusMap: {[key: string]: {isOnline: boolean, lastSeen?: string, lastActivity?: string}} = {};
+
+      for (const admin of adminsList) {
+        if (admin.id !== currentUser?.id) {
+          try {
+            const status = await AuthService.getUserOnlineStatus(admin.id);
+            statusMap[admin.id] = status;
+            console.log(`=== DEBUG: loadAdminOnlineStatus - ${admin.name}: ${status.isOnline ? 'Online' : 'Offline'}`);
+          } catch (error) {
+            console.error(`=== DEBUG: loadAdminOnlineStatus - Erro ao buscar status de ${admin.name}:`, error);
+            statusMap[admin.id] = { isOnline: false };
+          }
+        }
+      }
+
+      setAdminOnlineStatus(statusMap);
+      console.log('=== DEBUG: loadAdminOnlineStatus - Status carregados:', Object.keys(statusMap).length);
+    } catch (error) {
+      console.error('Erro ao carregar status online dos administradores:', error);
     }
   };
 
@@ -463,14 +536,27 @@ export default function ChatScreen() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    console.log('=== DEBUG: handleSearch - Query:', query);
+    console.log('=== DEBUG: handleSearch - Usuário atual:', currentUser?.id, currentUser?.name);
+
     if (query.trim() === '') {
+      console.log('=== DEBUG: handleSearch - Busca vazia, usando admins completos');
       setFilteredAdmins(admins);
     } else {
       const filtered = admins.filter(admin =>
         admin.name.toLowerCase().includes(query.toLowerCase()) ||
         admin.email.toLowerCase().includes(query.toLowerCase())
       );
-      setFilteredAdmins(filtered);
+
+      console.log('=== DEBUG: handleSearch - Resultados da busca:', filtered.length);
+      console.log('=== DEBUG: handleSearch - Resultados:', filtered.map(a => ({ id: a.id, name: a.name })));
+
+      // Garantir que o usuário atual não está na lista de busca
+      const finalFiltered = filtered.filter(admin => admin.id !== currentUser?.id);
+      console.log('=== DEBUG: handleSearch - Após filtragem do usuário atual:', finalFiltered.length);
+      console.log('=== DEBUG: handleSearch - Lista final:', finalFiltered.map(a => ({ id: a.id, name: a.name })));
+
+      setFilteredAdmins(finalFiltered);
     }
   };
 
@@ -858,6 +944,31 @@ export default function ChatScreen() {
 
   const renderAdminItem = ({ item }: { item: Admin }) => {
     const lastMessage = lastMessages[item.id];
+    const onlineStatus = adminOnlineStatus[item.id];
+
+    // Log de debug para verificar se está renderizando o usuário atual
+    console.log(`=== DEBUG: renderAdminItem - Renderizando admin: ${item.name} (${item.id}) - É usuário atual? ${item.id === currentUser?.id}`);
+
+    // Formatar status online
+    const getOnlineStatusText = () => {
+      if (!onlineStatus) return 'Offline';
+
+      if (onlineStatus.isOnline) {
+        return 'Online';
+      }
+
+      return AuthService.formatOnlineStatus(onlineStatus);
+    };
+
+    const getOnlineStatusColor = () => {
+      if (!onlineStatus) return '#9CA3AF';
+
+      if (onlineStatus.isOnline) {
+        return '#10B981'; // Verde para online
+      }
+
+      return '#9CA3AF'; // Cinza para offline
+    };
 
     return (
       <TouchableOpacity
@@ -872,17 +983,27 @@ export default function ChatScreen() {
               <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
             </View>
           )}
+          {/* Indicador de status online */}
+          <View style={[
+            styles.onlineIndicator,
+            { backgroundColor: getOnlineStatusColor() }
+          ]} />
         </View>
         <View style={styles.adminInfo}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.adminName}>{item.name}</Text>
-            {lastMessage ? (
-              <Text style={styles.timeText}>
-                {formatTime(lastMessage.time)}
+            <View style={{ alignItems: 'flex-end' }}>
+              {lastMessage ? (
+                <Text style={styles.timeText}>
+                  {formatTime(lastMessage.time)}
+                </Text>
+              ) : (
+                <Text style={styles.timeText}>Agora</Text>
+              )}
+              <Text style={[styles.onlineStatusText, { color: getOnlineStatusColor() }]}>
+                {getOnlineStatusText()}
               </Text>
-            ) : (
-              <Text style={styles.timeText}>Agora</Text>
-            )}
+            </View>
           </View>
           {lastMessage ? (
             <Text style={styles.lastMessage} numberOfLines={1}>
@@ -1887,6 +2008,21 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     marginRight: 12,
+    position: 'relative',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#1F2937',
+  },
+  onlineStatusText: {
+    fontSize: 11,
+    marginTop: 2,
   },
   // Estilos para chat em grupo
   groupChatContainer: {

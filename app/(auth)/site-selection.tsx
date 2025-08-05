@@ -20,7 +20,15 @@ export default function SiteSelectionScreen() {
         console.log('=== DEBUG: SiteSelection - Iniciando carregamento de obras ===');
         setLoading(true);
 
+        // Debug: Verificar obras específicas
+        await AuthService.debugSpecificSites();
 
+        // Debug: Verificar acesso do usuário
+        await AuthService.debugUserAccess();
+
+        console.log('=== DEBUG: SiteSelection - Buscando obras do usuário ===');
+        const userSites = await SiteService.getUserSites();
+        console.log('=== DEBUG: SiteSelection - Obras encontradas:', userSites.length);
         setSites(userSites);
 
         console.log('=== DEBUG: SiteSelection - Buscando dados do usuário ===');
@@ -64,6 +72,16 @@ export default function SiteSelectionScreen() {
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
       Alert.alert('Erro', 'Erro ao fazer logout.');
+    }
+  };
+
+  const handleForceUpdateSites = async () => {
+    try {
+      await AuthService.forceUpdateUserSites();
+      Alert.alert('Sucesso', 'Obras atualizadas com sucesso. Recarregue a tela.');
+    } catch (error) {
+      console.error('Erro ao forçar atualização:', error);
+      Alert.alert('Erro', 'Erro ao atualizar obras.');
     }
   };
 
@@ -159,6 +177,10 @@ export default function SiteSelectionScreen() {
           contentContainerStyle={styles.list}
         />
       </View>
+
+      <TouchableOpacity style={styles.updateButton} onPress={handleForceUpdateSites}>
+        <Text style={styles.updateButtonText}>Atualizar Obras</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutButtonText}>Sair</Text>
@@ -336,6 +358,19 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#10B981',
     borderRadius: 3,
+  },
+  updateButton: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    backgroundColor: '#3B82F6',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  updateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
   logoutButton: {
     margin: 20,
