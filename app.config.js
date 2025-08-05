@@ -26,7 +26,16 @@ module.exports = {
     },
     package: 'com.obralimpa.app',
     versionCode: 1,
-    googleServicesFile: './android/app/google-services.json'
+    googleServicesFile: './android/app/google-services.json',
+    permissions: [
+      'android.permission.CAMERA',
+      'android.permission.RECORD_AUDIO',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+      'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.INTERNET'
+    ]
   },
   web: {
     bundler: 'metro',
@@ -42,6 +51,22 @@ module.exports = {
     'expo-av',
     'expo-video',
     '@react-native-firebase/app',
+    [
+      'expo-camera',
+      {
+        cameraPermission: 'A aplicação acessa sua câmera para permitir que você tire fotos e grave vídeos.',
+        microphonePermission: 'A aplicação acessa seu microfone para permitir que você grave vídeos com áudio.',
+        recordAudioAndroid: true
+      }
+    ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'A aplicação acessa suas fotos para permitir que você selecione imagens.',
+        cameraPermission: 'A aplicação acessa sua câmera para permitir que você tire fotos.',
+        microphonePermission: 'A aplicação acessa seu microfone para permitir que você grave vídeos com áudio.'
+      }
+    ],
     [
       'expo-dev-client',
       {

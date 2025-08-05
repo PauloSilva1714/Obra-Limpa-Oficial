@@ -55,8 +55,7 @@ export const EmailService = {
         } catch (e) {
           // O corpo da resposta pode não ser um JSON válido, ignore o erro de parse
         }
-        // Log aprimorado para mostrar o erro completo do servidor
-        console.log('EmailService.sendEmail - Erro do servidor:', JSON.stringify(errorData, null, 2));
+        
         throw new Error(errorData.error?.message || 'Erro desconhecido ao enviar e-mail.');
       }
 

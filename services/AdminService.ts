@@ -183,19 +183,19 @@ export class AdminService {
     const limitCount = options?.limitCount ?? 50;
     try {
       if (!siteId) {
-        console.log('AdminService.getMessages - siteId é undefined, retornando array vazio');
+
         return [];
       }
 
       const currentUser = await AuthService.getCurrentUser();
 
       if (!currentUser || currentUser.role !== 'admin') {
-        console.log('AdminService.getMessages - Usuário não é admin, retornando array vazio');
+
         return [];
       }
 
       if (!currentUser.sites?.includes(siteId)) {
-        console.log('AdminService.getMessages - Usuário não tem acesso ao site:', siteId);
+
         return [];
       }
 
@@ -223,8 +223,7 @@ export class AdminService {
 
       return messages;
     } catch (error) {
-      console.log('AdminService.getMessages - Erro ao buscar mensagens:', error);
-      console.log('AdminService.getMessages - Stack trace:', error instanceof Error ? error.stack : 'N/A');
+
       return [];
     }
   }
@@ -275,12 +274,12 @@ export class AdminService {
       const currentUser = await AuthService.getCurrentUser();
 
       if (!currentUser) {
-        console.log('AdminService.getNotifications - Usuário não autenticado, retornando array vazio');
+
         return [];
       }
 
       if (currentUser.role !== 'admin') {
-        console.log('AdminService.getNotifications - Usuário não é admin, retornando array vazio');
+
         return [];
       }
 
@@ -305,12 +304,10 @@ export class AdminService {
     } catch (error: any) {
       // Verificar se é erro de permissão específico
       if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
-        console.log('AdminService.getNotifications - Permissões insuficientes para acessar notificações. Verifique as regras do Firestore.');
+
         return [];
       }
 
-      console.log('AdminService.getNotifications - Erro ao buscar notificações:', error);
-      console.log('AdminService.getNotifications - Stack trace:', error instanceof Error ? error.stack : 'N/A');
       return [];
     }
   }
@@ -1010,14 +1007,7 @@ export class AdminService {
     attachments?: string[]
   ): Promise<AdminDirectMessage> {
     try {
-      console.log('AdminService.sendDirectMessage - Enviando mensagem:', {
-        siteId,
-        recipientId,
-        content: content.substring(0, 50) + '...',
-        type,
-        clientId,
-        attachments: attachments?.length || 0
-      });
+      // Log removido para produção
 
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser || currentUser.role !== 'admin') {
@@ -1072,12 +1062,6 @@ export class AdminService {
         ...(clientId ? { clientId } : {}),
       };
 
-      console.log('AdminService.sendDirectMessage - Dados da mensagem preparados:', {
-        siteId: finalSiteId,
-        senderId: currentUser.id,
-        recipientId
-      });
-
       const docRef = await addDoc(
         collection(db, 'adminDirectMessages'),
         messageData
@@ -1127,18 +1111,14 @@ export class AdminService {
         limit(50) // Aumentando para 50 para ver mais mensagens
       );
       const testSnapshot = await getDocs(testQuery);
-      console.log('AdminService.getDirectMessages - Total de mensagens encontradas:', testSnapshot.size);
 
       // Contar total de documentos na coleção
       const countQuery = query(collection(db, 'adminDirectMessages'));
       const countSnapshot = await getDocs(countQuery);
+      // Debug: verificar dados dos documentos
       testSnapshot.docs.forEach((doc, index) => {
         const data = doc.data();
-        console.log(`Mensagem ${index + 1}:`, {
-          id: doc.id,
-          content: data.content?.substring(0, 50) || data.message?.substring(0, 50) || 'sem conteúdo',
-          createdAt: data.createdAt
-        });
+        // Log removido para produção
       });
 
       // Buscar informações do outro usuário para encontrar sites compartilhados

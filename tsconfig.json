@@ -1,31 +1,8 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "target": "es2020",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "lib": [
-      "es2020",
-      "dom",
-      "dom.iterable"
-    ],
-    "allowJs": true,
-    "jsx": "react-jsx",
     "baseUrl": ".",
-    "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo",
-    "skipLibCheck": true,
-    "noEmit": true,
-    "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
     "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "exactOptionalPropertyTypes": false,
-    "noImplicitReturns": false,
-    "noFallthroughCasesInSwitch": false,
     "paths": {
       "@/*": [
         "./*"
@@ -98,6 +75,5 @@
     "**/*.log",
     "**/*.tmp",
     "**/*.temp"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

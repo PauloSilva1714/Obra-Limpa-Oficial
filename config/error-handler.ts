@@ -246,12 +246,6 @@ export const setupGlobalErrorHandler = () => {
       // Não sobrescrever o comportamento padrão, apenas logar
       if (typeof process !== 'undefined' && process.on) {
         process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-          console.log('Unhandled Promise Rejection:', {
-            reason: reason,
-            stack: reason?.stack,
-            promise: promise
-          });
-          
           // Log para erros específicos
           if (reason?.code === 'auth/network-request-failed' ||
               reason?.message?.includes('Firebase') ||
@@ -271,8 +265,7 @@ export const setupGlobalErrorHandler = () => {
       if (args[0]?.includes?.('Warning:') || 
           args[0]?.includes?.('Error:') ||
           args[0]?.includes?.('React')) {
-        console.log('React error detected:', args[0]);
-      }
+        }
       
       // Chamar o console.error original
       originalConsoleError(...args);

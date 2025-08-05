@@ -188,7 +188,6 @@ export class AuthService {
       const parsedSite = JSON.parse(siteData);
 
       if (!parsedSite || typeof parsedSite !== 'object') {
-        console.log('AuthService.getCurrentSite - Site inválido ou não é objeto');
         return null;
       }
 
@@ -899,8 +898,6 @@ export class AuthService {
             id: doc.id,
             ...doc.data()
           } as Site));
-
-          console.log('AuthService.getUserSites - Total de sites encontrados:', sites.length);
           return sites;
         }
 
@@ -2053,9 +2050,6 @@ export class AuthService {
         id: doc.id,
         ...doc.data()
       } as User));
-
-      console.log('AuthService.getWorkersBySite - Workers encontrados:', workers.length);
-
       return workers;
     } catch (error) {
       return [];
@@ -2076,7 +2070,6 @@ export class AuthService {
       const admins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 
       admins.forEach(admin => {
-        console.log(`AuthService.getSiteAdmins - É usuário atual? ${admin.id === currentUser?.id}`);
       });
 
       return admins;
@@ -2146,9 +2139,6 @@ export class AuthService {
           workers.unshift(loggedInUser);
         }
       }
-
-      console.log('AuthService.getAllWorkers - Total workers:', workers.length);
-
       return workers;
     } catch (error) {
       return [];
@@ -2187,9 +2177,6 @@ export class AuthService {
           allUsers.unshift(loggedInUser);
         }
       }
-
-      console.log('AuthService.getAllUsersFromCurrentSite - Total users:', allUsers.length);
-
       return allUsers;
     } catch (error) {
       return [];
