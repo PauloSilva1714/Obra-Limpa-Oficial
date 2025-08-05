@@ -1205,8 +1205,8 @@ export default function ChatScreen() {
             style={[styles.tab, activeTab === 'individual' && { backgroundColor: colors.primary }]}
             onPress={() => setActiveTab('individual')}
           >
-            <User size={16} color={activeTab === 'individual' ? colors.primary : colors.textMuted} />
-            <Text style={[styles.tabText, { color: activeTab === 'individual' ? colors.primary : colors.textMuted }]}>
+            <User size={16} color={activeTab === 'individual' ? '#FFFFFF' : colors.textMuted} />
+            <Text style={[styles.tabText, { color: activeTab === 'individual' ? '#FFFFFF' : colors.textMuted }]}>
               Individual
             </Text>
           </TouchableOpacity>
@@ -1214,8 +1214,8 @@ export default function ChatScreen() {
             style={[styles.tab, activeTab === 'grupo' && { backgroundColor: colors.primary }]}
             onPress={() => setActiveTab('grupo')}
           >
-            <Users size={16} color={activeTab === 'grupo' ? colors.primary : colors.textMuted} />
-            <Text style={[styles.tabText, { color: activeTab === 'grupo' ? colors.primary : colors.textMuted }]}>
+            <Users size={16} color={activeTab === 'grupo' ? '#FFFFFF' : colors.textMuted} />
+            <Text style={[styles.tabText, { color: activeTab === 'grupo' ? '#FFFFFF' : colors.textMuted }]}>
               Grupo
             </Text>
           </TouchableOpacity>
@@ -1237,8 +1237,8 @@ export default function ChatScreen() {
                }
              }}
           >
-            <MessageCircle size={16} color={activeTab === 'novo' ? colors.primary : colors.textMuted} />
-            <Text style={[styles.tabText, { color: activeTab === 'novo' ? colors.primary : colors.textMuted }]}>
+            <MessageCircle size={16} color={activeTab === 'novo' ? '#FFFFFF' : colors.textMuted} />
+            <Text style={[styles.tabText, { color: activeTab === 'novo' ? '#FFFFFF' : colors.textMuted }]}>
               Novo Chat
             </Text>
           </TouchableOpacity>
