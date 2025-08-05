@@ -61,10 +61,11 @@ function TabLayoutContent() {
       try {
         await AuthService.debugAsyncStorage();
         const role = await AuthService.getUserRole();
+        console.log('[TabLayout] Role detectado:', role);
         setUserRole(role);
         const currentUser = await AuthService.getCurrentUser();
         if (currentUser) {
-          // User loaded
+          console.log('[TabLayout] Usuário atual:', currentUser.name, 'Role:', currentUser.role);
         }
       } catch (error) {
         console.error('Erro ao carregar role do usuário:', error);
@@ -103,7 +104,9 @@ function TabLayoutContent() {
   useEffect(() => {
     if (userRole === 'worker' && !isLoading) {
       const currentTab = segments[segments.length - 1];
+      console.log('[TabLayout] Colaborador em tab:', currentTab);
       if (currentTab === 'admin' || currentTab === 'chat') {
+        console.log('[TabLayout] Redirecionando colaborador de', currentTab, 'para /(tabs)');
         router.replace('/(tabs)');
       }
     }
@@ -120,6 +123,8 @@ function TabLayoutContent() {
 
   // Se não tem role válido, não renderiza nada
   if (!userRole) return null;
+
+  console.log('[TabLayout] Renderizando abas para role:', userRole);
 
   return (
     <Tabs
@@ -156,15 +161,18 @@ function TabLayoutContent() {
       />
 
       {userRole === 'admin' && (
-        <Tabs.Screen
-          name="admin"
-          options={{
-            title: TABS_CONFIG.admin.title,
-            tabBarIcon: ({ color, size }) => (
-              <Building2 size={size} color={color} />
-            ),
-          }}
-        />
+        <>
+          {console.log('[TabLayout] Renderizando aba Admin para role:', userRole)}
+          <Tabs.Screen
+            name="admin"
+            options={{
+              title: TABS_CONFIG.admin.title,
+              tabBarIcon: ({ color, size }) => (
+                <Building2 size={size} color={color} />
+              ),
+            }}
+          />
+        </>
       )}
 
       <Tabs.Screen
@@ -178,15 +186,18 @@ function TabLayoutContent() {
       />
 
       {userRole === 'admin' && (
-        <Tabs.Screen
-          name="chat"
-          options={{
-            title: TABS_CONFIG.chat.title,
-            tabBarIcon: ({ color, size }) => (
-              <MessageCircle size={size} color={color} />
-            ),
-          }}
-        />
+        <>
+          {console.log('[TabLayout] Renderizando aba Chat para role:', userRole)}
+          <Tabs.Screen
+            name="chat"
+            options={{
+              title: TABS_CONFIG.chat.title,
+              tabBarIcon: ({ color, size }) => (
+                <MessageCircle size={size} color={color} />
+              ),
+            }}
+          />
+        </>
       )}
 
       <Tabs.Screen

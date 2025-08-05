@@ -275,7 +275,7 @@ export default function LoginScreen() {
           if (!currentSite || !currentSite.id) {
             router.replace('/(auth)/site-selection');
           } else {
-            router.replace('/tasks' as any);
+            router.replace('/(tabs)');
           }
         } else {
           await AuthService.setCurrentSite(null);
