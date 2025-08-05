@@ -76,7 +76,6 @@ if (Platform.OS === 'web' || isExpoGo) {
           }
           return Notification.permission;
         } catch (error) {
-          console.warn('Erro ao solicitar permissão de notificação:', error);
           return 'denied';
         }
       };

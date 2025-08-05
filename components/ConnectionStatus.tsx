@@ -29,7 +29,6 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
       const isOnline = await checkFirebaseConnection();
       setIsConnected(isOnline);
     } catch (error) {
-      console.error('[ConnectionStatus] Erro na verificação forçada:', error);
       setIsConnected(false);
     } finally {
       setIsChecking(false);
@@ -55,7 +54,6 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
                   const isOnline = await checkFirebaseConnection();
                   resolve(isOnline);
                 } catch (error) {
-                  console.error('[ConnectionStatus] Erro na verificação:', error);
                   resolve(false);
                 }
               });
@@ -66,7 +64,6 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
                   const isOnline = await checkFirebaseConnection();
                   resolve(isOnline);
                 } catch (error) {
-                  console.error('[ConnectionStatus] Erro na verificação:', error);
                   resolve(false);
                 }
               }, 0);
@@ -79,7 +76,6 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
           setIsConnected(isOnline);
         }
       } catch (error) {
-        console.error('[ConnectionStatus] Erro na verificação:', error);
         if (isComponentMounted) {
           setIsConnected(false);
         }

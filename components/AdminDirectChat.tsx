@@ -19,7 +19,6 @@ import { AdminService, AdminDirectMessage } from '../services/AdminService';
 import { AuthService } from '../services/AuthService';
 import { uploadImageAsync, uploadVideoAsync } from '../services/PhotoService';
 
-
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -85,39 +84,29 @@ export default function AdminDirectChat({
     let isMounted = true;
     const initializeComponent = async () => {
       try {
-        console.log('🔍 [AdminDirectChat] Inicializando componente:', { siteId, otherUserId, otherUserName });
         setLoading(true);
 
         // Migrar mensagens antigas se necessário
-        console.log('🔄 [AdminDirectChat] Verificando migração de mensagens antigas...');
         await AdminService.migrateOldDirectMessages();
 
-        console.log('🔍 [AdminDirectChat] Buscando mensagens iniciais...');
         const messagesData = await AdminService.getDirectMessages(siteId, otherUserId, {});
-        console.log('🔍 [AdminDirectChat] Mensagens encontradas:', messagesData.length, messagesData);
-
         if (isMounted) {
           const sortedMessages = sortMessages(messagesData);
-          console.log('🔍 [AdminDirectChat] Mensagens ordenadas:', sortedMessages.length);
           setMessages(sortedMessages);
         }
 
         if (unsubscribeMessages.current) unsubscribeMessages.current();
 
-        console.log('🔍 [AdminDirectChat] Configurando subscrição em tempo real...');
         const unsubscribe = await AdminService.subscribeToDirectMessages(
           siteId,
           otherUserId,
           (newMessages) => {
-            console.log('🔍 [AdminDirectChat] Mensagens recebidas via subscrição:', newMessages.length);
-
             if (isMounted) {
               setPendingMessages((pending) => {
                 // Usar clientId para identificar mensagens confirmadas
                 const confirmedClientIds = newMessages.map(msg => msg.clientId).filter(Boolean);
                 const updatedPending = pending.filter(pmsg => !confirmedClientIds.includes(pmsg.clientId));
                 const updatedMessages = sortMessages([...newMessages, ...updatedPending]);
-                console.log('🔍 [AdminDirectChat] Mensagens finais após processamento:', updatedMessages.length);
                 setMessages(updatedMessages);
                 return updatedPending;
               });
@@ -128,10 +117,8 @@ export default function AdminDirectChat({
           }
         );
         unsubscribeMessages.current = unsubscribe;
-        console.log('🔍 [AdminDirectChat] Subscrição configurada com sucesso');
-      } catch (error) {
-        console.error('❌ [AdminDirectChat] Erro ao inicializar chat individual:', error);
-      } finally {
+        } catch (error) {
+        } finally {
         setLoading(false);
       }
     };
@@ -142,8 +129,7 @@ export default function AdminDirectChat({
         try {
           unsubscribeMessages.current();
         } catch (error) {
-          console.error('Erro ao desinscrever mensagens:', error);
-        }
+          }
       }
     };
   }, [siteId, otherUserId]);
@@ -166,27 +152,21 @@ export default function AdminDirectChat({
 
     const updateOtherUserStatus = async () => {
       try {
-        console.log('🔍 [AdminDirectChat] Buscando status do usuário:', otherUserId);
         const status = await AuthService.getUserOnlineStatus(otherUserId);
-        console.log('🔍 [AdminDirectChat] Status recebido:', status);
         const formattedStatus = AuthService.formatOnlineStatus(status);
-        console.log('🔍 [AdminDirectChat] Status formatado:', formattedStatus);
         setOtherUserStatus(formattedStatus);
       } catch (error) {
-        console.error('❌ [AdminDirectChat] Erro ao buscar status do usuário:', error);
         setOtherUserStatus('Offline');
       }
     };
 
     // Buscar status inicial
-    console.log('🔍 [AdminDirectChat] Iniciando monitoramento de status para:', otherUserId);
     updateOtherUserStatus();
 
     // Atualizar status a cada 30 segundos
     statusInterval = setInterval(updateOtherUserStatus, 30000);
 
     return () => {
-      console.log('🔍 [AdminDirectChat] Parando monitoramento de status para:', otherUserId);
       if (statusInterval) {
         clearInterval(statusInterval);
       }
@@ -246,10 +226,6 @@ export default function AdminDirectChat({
     }
   };
 
-
-
-
-
   // Função para abrir câmera para foto
   const openCameraForPhoto = async () => {
     try {
@@ -273,7 +249,6 @@ export default function AdminDirectChat({
         await handleSendImage(imageUri);
       }
     } catch (error) {
-      console.error('Erro ao abrir câmera:', error);
       Alert.alert('Erro', 'Não foi possível abrir a câmera');
     }
   };
@@ -301,7 +276,6 @@ export default function AdminDirectChat({
         await handleSendVideo(videoUri);
       }
     } catch (error) {
-      console.error('Erro ao abrir câmera:', error);
       Alert.alert('Erro', 'Não foi possível abrir a câmera');
     }
   };
@@ -402,8 +376,6 @@ export default function AdminDirectChat({
     }
   };
 
-
-
   // Função para selecionar foto da galeria com crop
   const selectPhotoFromGallery = async () => {
     try {
@@ -427,7 +399,6 @@ export default function AdminDirectChat({
         await handleSendImage(imageUri);
       }
     } catch (error) {
-      console.error('Erro ao selecionar foto:', error);
       Alert.alert('Erro', 'Não foi possível selecionar a foto');
     }
   };
@@ -455,7 +426,6 @@ export default function AdminDirectChat({
         await handleSendVideo(videoUri);
       }
     } catch (error) {
-      console.error('Erro ao selecionar vídeo:', error);
       Alert.alert('Erro', 'Não foi possível selecionar o vídeo');
     }
   };
@@ -471,8 +441,6 @@ export default function AdminDirectChat({
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        console.log('Documento selecionado:', asset);
-
         // Verificar tamanho do arquivo (máximo 10MB)
         if (asset.size && asset.size > 10 * 1024 * 1024) {
           Alert.alert('Erro', 'O arquivo é muito grande. Tamanho máximo permitido: 10MB');
@@ -482,7 +450,6 @@ export default function AdminDirectChat({
         await handleSendDocument(asset.uri, asset.name || 'documento', asset.mimeType || 'application/octet-stream');
       }
     } catch (error) {
-      console.error('Erro ao selecionar documento:', error);
       Alert.alert('Erro', 'Não foi possível selecionar o documento');
     }
   };
@@ -700,8 +667,7 @@ export default function AdminDirectChat({
                       style={[styles.fileAttachmentContainer, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.primary + '20' }]}
                       onPress={() => {
                         // Abrir arquivo (implementar se necessário)
-                        console.log('Abrir arquivo:', attachment);
-                      }}
+                        }}
                     >
                       <Paperclip size={16} color={isOwnMessage ? 'white' : colors.primary} />
                       <Text style={[styles.fileAttachmentText, { color: isOwnMessage ? 'white' : colors.primary }]}>Arquivo anexado</Text>
@@ -873,7 +839,6 @@ export default function AdminDirectChat({
           <TouchableOpacity
             style={[styles.mediaButton, { backgroundColor: colors.primary }]}
             onPress={() => {
-              console.log('Attachment button pressed - opening document picker');
               selectDocument();
             }}
             accessibilityLabel="Anexar arquivo"
@@ -998,9 +963,6 @@ export default function AdminDirectChat({
             </View>
           </View>
         </Modal>
-
-
-
 
     </KeyboardAvoidingView>
   );

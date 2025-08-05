@@ -56,14 +56,13 @@ export const EmailService = {
           // O corpo da resposta pode não ser um JSON válido, ignore o erro de parse
         }
         // Log aprimorado para mostrar o erro completo do servidor
-        console.error(`Falha ao enviar e-mail (Status: ${response.status}):`, JSON.stringify(errorData, null, 2));
+        :`, JSON.stringify(errorData, null, 2));
         throw new Error(errorData.error?.message || 'Erro desconhecido ao enviar e-mail.');
       }
 
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error('Erro catastrófico na função sendEmail:', error);
       throw error;
     }
   },
@@ -202,8 +201,7 @@ export const EmailService = {
     // Tratar campos vazios ou undefined
     const userName = user.name || 'Nome não fornecido';
     const userCompany = user.company || 'Não informada';
-    
-    
+
     return this.sendEmail({
       to: user.email,
       subject: "Login Confirmado - Obra Limpa",

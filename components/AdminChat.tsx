@@ -95,8 +95,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         await setupRealtimeListeners();
         AuthService.getCurrentUser().then(setCurrentUser);
       } catch (error) {
-        console.error('❌ Erro ao inicializar AdminChat:', error);
-      }
+        }
     };
 
     initializeComponent();
@@ -107,16 +106,14 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         try {
           unsubscribeMessages.current();
         } catch (error) {
-          console.error('❌ Erro ao desinscrever mensagens:', error);
-        }
+          }
       }
 
       if (unsubscribeNotifications.current) {
         try {
           unsubscribeNotifications.current();
         } catch (error) {
-          console.error('❌ Erro ao desinscrever notificações:', error);
-        }
+          }
       }
     };
   }, [siteId]);
@@ -132,8 +129,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
       setMessages(sortMessages(messagesData));
       setNotifications(notificationsData);
     } catch (error) {
-      console.error(
-        '❌ AdminChat.loadInitialData() - Erro ao carregar dados iniciais:',
+      - Erro ao carregar dados iniciais:',
         error
       );
       Alert.alert('Erro', 'Não foi possível carregar as mensagens');
@@ -160,8 +156,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         });
       unsubscribeNotifications.current = notificationsUnsubscribe;
     } catch (error) {
-      console.error('❌ Erro ao configurar listeners em tempo real:', error);
-    }
+      }
   };
 
   const handleSendMessage = async () => {
@@ -184,14 +179,11 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
       Alert.alert('Erro', 'Não foi possível enviar a mensagem');
     } finally {
       setSending(false);
     }
   };
-
-
 
   // Função para enviar imagem
   const handleSendImage = async (imageUri: string) => {
@@ -305,7 +297,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         await handleSendImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Erro ao abrir câmera:', error);
       Alert.alert('Erro', 'Não foi possível abrir a câmera');
     }
   };
@@ -330,7 +321,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         await handleSendVideo(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Erro ao abrir câmera:', error);
       Alert.alert('Erro', 'Não foi possível abrir a câmera');
     }
   };
@@ -355,7 +345,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         await handleSendImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Erro ao selecionar foto:', error);
       Alert.alert('Erro', 'Não foi possível selecionar a foto');
     }
   };
@@ -380,7 +369,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
         await handleSendVideo(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Erro ao selecionar vídeo:', error);
       Alert.alert('Erro', 'Não foi possível selecionar o vídeo');
     }
   };
@@ -431,8 +419,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
     try {
       await AdminService.markNotificationAsRead(notificationId);
     } catch (error) {
-      console.error('Erro ao marcar notificação como lida:', error);
-    }
+      }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -560,7 +547,6 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
                     key={index}
                     style={[styles.videoAttachmentContainer, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.primary + '20' }]}
                     onPress={() => {
-                          console.log('🎬 Reproduzindo vídeo dentro do app:', attachment);
                           setVideoModalVisible(true);
                           setCurrentVideoUrl(attachment);
                         }}

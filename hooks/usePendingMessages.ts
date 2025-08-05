@@ -54,7 +54,6 @@ export const usePendingMessages = (currentUser: string, otherUserId: string, sit
           setError(null);
         },
         (err) => {
-          console.error('Erro no listener de mensagens pendentes:', err);
           setError(err.message);
           setLoading(false);
         }
@@ -62,7 +61,6 @@ export const usePendingMessages = (currentUser: string, otherUserId: string, sit
 
       return () => unsubscribe();
     } catch (err: any) {
-      console.error('Erro ao configurar listener:', err);
       setError(err.message);
       setLoading(false);
     }
@@ -92,8 +90,7 @@ export const usePendingMessages = (currentUser: string, otherUserId: string, sit
         )
       );
     } catch (error) {
-      console.error('Erro ao marcar mensagem como lida:', error);
-    }
+      }
   };
 
   return { 

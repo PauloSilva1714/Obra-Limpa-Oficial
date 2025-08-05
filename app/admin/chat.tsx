@@ -85,8 +85,6 @@ export default function AdminChatScreen() {
   };
 
   const handleStartNewChat = () => {
-    console.log('[AdminChatScreen] handleStartNewChat - currentSite:', currentSite);
-    console.log('[AdminChatScreen] handleStartNewChat - otherAdmins:', otherAdmins.length, otherAdmins);
     if (otherAdmins.length === 0) {
       Alert.alert('Nenhum administrador', 'Não há outros administradores disponíveis para conversar.');
       return;

@@ -18,7 +18,6 @@ export default function SiteSelectionScreen() {
   useEffect(() => {
     const loadSites = async () => {
       try {
-        console.log('=== DEBUG: SiteSelection - Iniciando carregamento de obras ===');
         setLoading(true);
 
         // Debug: Verificar obras específicas
@@ -27,19 +26,13 @@ export default function SiteSelectionScreen() {
         // Debug: Verificar acesso do usuário
         await AuthService.debugUserAccess();
 
-        console.log('=== DEBUG: SiteSelection - Buscando obras do usuário ===');
         const userSites = await SiteService.getUserSites();
-        console.log('=== DEBUG: SiteSelection - Obras encontradas:', userSites.length);
         setSites(userSites);
 
-        console.log('=== DEBUG: SiteSelection - Buscando dados do usuário ===');
         const userData = await AuthService.getCurrentUser();
-        console.log('=== DEBUG: SiteSelection - Dados do usuário:', userData);
         setUser(userData);
 
-        console.log('=== DEBUG: SiteSelection - Carregamento concluído ===');
-      } catch (error) {
-        console.error('=== DEBUG: SiteSelection - Erro ao carregar dados:', error);
+        } catch (error) {
         Alert.alert('Erro', 'Erro ao carregar obras disponíveis.');
       } finally {
         setLoading(false);
@@ -67,7 +60,6 @@ export default function SiteSelectionScreen() {
         throw new Error('Falha ao salvar canteiro');
       }
     } catch (error) {
-      console.error('Erro ao selecionar canteiro:', error);
       Alert.alert('Erro', 'Erro ao selecionar obra.');
     }
   };
@@ -77,7 +69,6 @@ export default function SiteSelectionScreen() {
       await AuthService.logout();
       router.replace('/(auth)/login');
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
       Alert.alert('Erro', 'Erro ao fazer logout.');
     }
   };
@@ -87,7 +78,6 @@ export default function SiteSelectionScreen() {
       await AuthService.forceUpdateUserSites();
       Alert.alert('Sucesso', 'Obras atualizadas com sucesso. Recarregue a tela.');
     } catch (error) {
-      console.error('Erro ao forçar atualização:', error);
       Alert.alert('Erro', 'Erro ao atualizar obras.');
     }
   };

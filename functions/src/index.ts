@@ -33,13 +33,11 @@ if (gmailConfig && gmailConfig.user && gmailConfig.pass) {
   // Testar a conexão
   transporter.verify(function(error, success) {
     if (error) {
-      console.error('Erro na verificação do transporter Gmail:', error);
-    } else {
+      } else {
     }
   });
 } else {
-  console.warn(
-    'Configuração do Gmail não encontrada em functions.config(). ' +
+  . ' +
     'O serviço de e-mail ficará desativado até que as configurações sejam definidas. ' +
     'Execute: firebase functions:config:set gmail.user="..." gmail.pass="..."'
   );
@@ -71,7 +69,6 @@ export const sendEmailV1 = functions.https.onRequest((req, res) => {
 
     // Validação de entrada
     if (!to || !subject || !html) {
-      console.error("Erro de validação: Faltando campos obrigatórios.", { to, subject, html: !!html });
       res.status(400).json({
         error: {
           message: "Campos 'to', 'subject', e 'html' são obrigatórios.",
@@ -83,7 +80,6 @@ export const sendEmailV1 = functions.https.onRequest((req, res) => {
 
     // Adiciona uma verificação para garantir que o transporter real está configurado
     if (!gmailConfig) {
-      console.error("Erro: O serviço de e-mail não está configurado. Verifique as variáveis de ambiente.");
       res.status(500).json({
         error: {
           message: "O serviço de e-mail não está configurado no servidor.",
@@ -109,7 +105,6 @@ export const sendEmailV1 = functions.https.onRequest((req, res) => {
       // Retorna uma resposta de sucesso clara
       res.status(200).json({ success: true, message: "E-mail enviado com sucesso!" });
     } catch (error) {
-      console.error("Erro ao enviar e-mail:", error);
       // Retorna um erro 500 com detalhes
       const err = error as Error;
       res.status(500).json({
@@ -162,7 +157,6 @@ export const googlePlacesProxy = functions.https.onRequest(async (request, respo
         const data = await apiResponse.json();
         response.status(apiResponse.status).json(data);
       } catch (error) {
-        console.error('Error calling Google Places API:', error);
         response.status(500).send('Internal Server Error');
       }
     });
@@ -184,8 +178,7 @@ export const onUserCreate = functions.auth.user().onCreate(async (user: admin.au
       sites: [],
     });
   } catch (error) {
-    console.error('Error creating user document:', error);
-  }
+    }
 });
 */
 
@@ -195,8 +188,7 @@ export const onUserDelete = functions.auth.user().onDelete(async (user) => {
     const { uid } = user;
     await admin.firestore().collection('users').doc(uid).delete();
   } catch (error) {
-    console.error('Error deleting user document:', error);
-  }
+    }
 });
 
 /**
@@ -228,8 +220,7 @@ export const onInviteCreate = functions.firestore
           }
         }
       } catch (e) {
-        console.error('Erro ao buscar nome do convidador:', e);
-      }
+        }
     }
 
     const subject = '🎯 Convite para Administrador - Obra Limpa';
@@ -321,8 +312,7 @@ export const onInviteCreate = functions.firestore
         html,
       });
     } catch (error) {
-      console.error('Erro ao enviar convite por e-mail:', error);
-    }
+      }
   });
 
 /**

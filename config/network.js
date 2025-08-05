@@ -65,7 +65,6 @@ export const checkConnectivity = async () => {
     });
     return true;
   } catch (error) {
-    console.error('Erro de conectividade:', error);
     return false;
   }
 };

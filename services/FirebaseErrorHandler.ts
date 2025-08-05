@@ -6,8 +6,6 @@ export class FirebaseErrorHandler {
   private static retryDelay = 1000; // 1 segundo
 
   static async handleError(error: any, operation: string) {
-    console.error(`Erro no Firebase durante ${operation}:`, error);
-
     // Verifica se é um erro de rede
     if (this.isNetworkError(error)) {
       return await this.handleNetworkError(operation);
@@ -77,8 +75,6 @@ export class FirebaseErrorHandler {
   }
 
   private static async handleAuthError(error: any, operation: string): Promise<any> {
-    console.error(`Erro de autenticação durante ${operation}:`, error);
-    
     // Redireciona para login se necessário
     if (typeof window !== 'undefined') {
       // Limpa dados de autenticação locais
@@ -92,7 +88,6 @@ export class FirebaseErrorHandler {
   }
 
   private static async handlePermissionError(error: any, operation: string): Promise<any> {
-    console.error(`Erro de permissão durante ${operation}:`, error);
     throw new Error('Você não tem permissão para realizar esta operação.');
   }
 
@@ -132,7 +127,6 @@ export class FirebaseErrorHandler {
       // Reconecta ao Firebase
       return await reconnectFirebase();
     } catch (error) {
-      console.error('Erro ao limpar cache e reconectar:', error);
       return false;
     }
   }

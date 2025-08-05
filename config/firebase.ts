@@ -33,7 +33,6 @@ try {
     app = getApp();
   }
 } catch (error) {
-  console.error('❌ Erro ao inicializar Firebase app:', error);
   throw error;
 }
 
@@ -73,7 +72,6 @@ try {
   }
   
 } catch (error) {
-  console.error('❌ Erro ao inicializar Firestore:', error);
   throw error;
 }
 
@@ -89,7 +87,6 @@ try {
   
   storage = getStorage(app);
 } catch (error) {
-  console.error('❌ Erro ao inicializar serviços Firebase:', error);
   throw error;
 }
 
@@ -109,8 +106,7 @@ export const isFirestoreOnline = async (): Promise<boolean> => {
         return true;
       }
     } catch (error) {
-      console.warn('⚠️ Falha na verificação simples:', error);
-    }
+      }
     
     // Estratégia 2: Tentar uma operação real com timeout curto
     try {
@@ -147,7 +143,6 @@ export const isFirestoreOnline = async (): Promise<boolean> => {
     }
     
   } catch (error: any) {
-    console.error('❌ Erro geral na verificação de online:', error.message);
     return false;
   }
 };
@@ -158,19 +153,16 @@ export const checkFirebaseConnection = async () => {
     
     // Verificar se o Firebase está inicializado corretamente
     if (!app) {
-      console.error('❌ Firebase app não está inicializado');
       return false;
     }
 
     // Verificar se o Firestore está disponível
     if (!db) {
-      console.error('❌ Firestore não está inicializado');
       return false;
     }
 
     // Verificar se há conexão com a internet (verificação básica)
     if (typeof window !== 'undefined' && !navigator.onLine) {
-      console.error('❌ Sem conexão com a internet');
       return false;
     }
 
@@ -186,8 +178,7 @@ export const checkFirebaseConnection = async () => {
     //     });
     //     // console.log removed
     //   } catch (httpError) {
-    //     console.warn('⚠️ Problema de acesso HTTP ao Firebase:', httpError);
-    //     // Não falhar aqui, apenas logar o aviso
+    //     //     // Não falhar aqui, apenas logar o aviso
     //   }
     // }
 
@@ -251,7 +242,6 @@ export const checkFirebaseConnection = async () => {
       return false;
     }
   } catch (error: any) {
-    console.error('❌ Erro geral na verificação de conexão:', error.message);
     return false;
   }
 };
@@ -262,7 +252,6 @@ export const reconnectFirebase = async () => {
     await enableNetwork(db);
     return true;
   } catch (error) {
-    console.error('Error re-enabling Firebase network:', error);
     return false;
   }
 };
@@ -275,8 +264,7 @@ export const forceReconnectAndCheck = async (): Promise<boolean> => {
     try {
       await reconnectFirebase();
     } catch (error) {
-      console.warn('⚠️ Falha na reconexão via enableNetwork:', error);
-    }
+      }
     
     // Estratégia 2: Aguardar um pouco para a reconexão se estabelecer (otimizado)
     await new Promise(resolve => setTimeout(resolve, 1500)); // Reduzido de 3s para 1.5s
@@ -326,7 +314,6 @@ export const forceReconnectAndCheck = async (): Promise<boolean> => {
       return false;
     }
   } catch (error) {
-    console.error('❌ Erro durante reconexão forçada:', error);
     return false;
   }
 };
@@ -372,7 +359,6 @@ export const reinitializeFirestore = async (): Promise<boolean> => {
     }
     
   } catch (error) {
-    console.error('❌ Erro durante reinicialização:', error);
     return false;
   }
 };
@@ -447,7 +433,6 @@ export const tryAlternativeFirestoreConfig = async (): Promise<boolean> => {
     return false;
     
   } catch (error) {
-    console.error('❌ Erro durante tentativa de configuração alternativa:', error);
     return false;
   }
 };
@@ -493,7 +478,6 @@ export const tryFirestoreOperation = async <T>(
   }
   
   // Se chegou aqui, todas as tentativas falharam
-  console.error(`❌ Todas as ${maxAttempts} tentativas falharam`);
   throw lastError;
 };
 
@@ -784,7 +768,6 @@ export const diagnoseAndFixFirestoreIssue = async (): Promise<{
     };
     
   } catch (error) {
-    console.error('❌ Erro no diagnóstico avançado:', error);
     return {
       success: false,
       issue: 'Erro no diagnóstico',
@@ -842,7 +825,6 @@ export const fixClientOfflineIssue = async (): Promise<boolean> => {
     return false;
     
   } catch (error) {
-    console.error('❌ Erro ao tentar resolver problema:', error);
     return false;
   }
 };
@@ -899,7 +881,6 @@ export const tryAlternativeApproach = async (): Promise<boolean> => {
     return false;
     
   } catch (error) {
-    console.error('❌ Erro na abordagem alternativa:', error);
     return false;
   }
 };
@@ -989,7 +970,6 @@ export const fixWebClientOfflineIssue = async (): Promise<boolean> => {
     return false;
     
   } catch (error) {
-    console.error('❌ Erro ao tentar resolver problema web:', error);
     return false;
   }
 };
@@ -1048,7 +1028,6 @@ export const tryWebFirestoreOperation = async <T>(
   }
   
   // Se chegou aqui, todas as tentativas falharam
-  console.error(`❌ Todas as ${maxAttempts} tentativas falharam`);
   throw lastError;
 };
 

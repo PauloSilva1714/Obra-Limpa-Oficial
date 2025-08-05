@@ -20,7 +20,6 @@ export const InviteService = {
     try {
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser || !currentUser.email) {
-        console.warn('Nenhum usuário logado ou e-mail do usuário indisponível.');
         return [];
       }
 
@@ -35,7 +34,6 @@ export const InviteService = {
 
       return invites;
     } catch (error) {
-      console.error('Erro ao buscar convites para o usuário atual:', error);
       throw new Error('Não foi possível buscar os convites.');
     }
   },

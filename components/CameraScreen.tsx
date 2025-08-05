@@ -176,7 +176,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       setAudioPermission(status === 'granted');
       return status === 'granted';
     } catch (error) {
-      console.error('Erro ao solicitar permissão de áudio:', error);
       return false;
     }
   };
@@ -250,7 +249,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         setIsEditing(true);
       }
     } catch (error) {
-      console.error('Erro ao tirar foto:', error);
       Alert.alert('Erro', 'Não foi possível tirar a foto');
     }
   };
@@ -279,9 +277,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       });
 
       if (video?.uri) {
-        console.log('=== DEBUG: Vídeo gravado ===');
-        console.log('URI do vídeo:', video.uri);
-
         // Salvar na galeria
         if (mediaPermission?.granted) {
           await MediaLibrary.saveToLibraryAsync(video.uri);
@@ -295,7 +290,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         // O usuário poderá editar e enviar manualmente
       }
     } catch (error) {
-      console.error('Erro ao gravar vídeo:', error);
       Alert.alert('Erro', 'Não foi possível gravar o vídeo');
     } finally {
       setIsRecording(false);
@@ -309,7 +303,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       await cameraRef.current.stopRecording();
       setIsRecording(false);
     } catch (error) {
-      console.error('Erro ao parar gravação:', error);
       setIsRecording(false);
     }
   };
@@ -329,14 +322,9 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       try {
         let processedImageUri = capturedPhoto;
 
-        console.log('=== DEBUG CROP MELHORADO (SEND) ===');
-        console.log('appliedEdits.crop:', appliedEdits.crop);
-        console.log('Dimensões da tela - width:', width, 'height:', height);
-
+        ===');
         // Se há crop aplicado, processar a imagem
         if (appliedEdits.crop) {
-          console.log('Processando crop...');
-
           // Obter dimensões da imagem original
           const imageInfo = await ImageManipulator.manipulateAsync(
             capturedPhoto,
@@ -346,8 +334,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
           const originalWidth = imageInfo.width;
           const originalHeight = imageInfo.height;
-
-          console.log('Dimensões da imagem original - width:', originalWidth, 'height:', originalHeight);
 
           // NOVO ALGORITMO: Calcular como a imagem é realmente exibida (mesmo do applyCrop)
           const imageAspectRatio = originalWidth / originalHeight;
@@ -372,14 +358,9 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
             imageOffsetY = -(visibleImageHeight - height) / 2; // Offset negativo = parte cortada
           }
 
-          console.log('Imagem visível - width:', visibleImageWidth, 'height:', visibleImageHeight);
-          console.log('Offset da imagem - X:', imageOffsetX, 'Y:', imageOffsetY);
-
           // Calcular as escalas de conversão da tela para a imagem original
           const scaleX = originalWidth / visibleImageWidth;
           const scaleY = originalHeight / visibleImageHeight;
-
-          console.log('Escalas de conversão - scaleX:', scaleX, 'scaleY:', scaleY);
 
           // Converter coordenadas do crop da tela para a imagem original
           // Subtraímos o offset porque queremos a posição relativa à imagem visível
@@ -388,19 +369,11 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
           const cropWidthOnImage = appliedEdits.crop.width * scaleX;
           const cropHeightOnImage = appliedEdits.crop.height * scaleY;
 
-          console.log('Crop na imagem original:');
-          console.log('cropX:', cropXOnImage, 'cropY:', cropYOnImage);
-          console.log('cropWidth:', cropWidthOnImage, 'cropHeight:', cropHeightOnImage);
-
           // Garantir que as coordenadas estão dentro dos limites da imagem
           const finalCropX = Math.max(0, Math.min(Math.round(cropXOnImage), originalWidth - 1));
           const finalCropY = Math.max(0, Math.min(Math.round(cropYOnImage), originalHeight - 1));
           const finalCropWidth = Math.min(Math.round(cropWidthOnImage), originalWidth - finalCropX);
           const finalCropHeight = Math.min(Math.round(cropHeightOnImage), originalHeight - finalCropY);
-
-          console.log('Coordenadas finais do crop:');
-          console.log('cropX:', finalCropX, 'cropY:', finalCropY);
-          console.log('cropWidth:', finalCropWidth, 'cropHeight:', finalCropHeight);
 
           // Aplicar o crop
           const croppedImage = await ImageManipulator.manipulateAsync(
@@ -421,21 +394,14 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
             }
           );
 
-          console.log('Imagem cortada - width:', croppedImage.width, 'height:', croppedImage.height);
           processedImageUri = croppedImage.uri;
         } else {
-          console.log('Nenhum crop aplicado');
-        }
+          }
 
         // Detectar se é vídeo pela URI
         const isVideoFile = capturedPhoto.toLowerCase().includes('.mp4') ||
                            capturedPhoto.toLowerCase().includes('.mov') ||
                            capturedPhoto.toLowerCase().includes('video');
-
-        console.log('=== DEBUG: Enviando mídia ===');
-        console.log('É vídeo?', isVideoFile);
-        console.log('URI original:', capturedPhoto);
-        console.log('URI processada:', processedImageUri);
 
         // Criar um objeto com a mídia processada
         const editedMedia = {
@@ -464,7 +430,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         });
         handleClose();
       } catch (error) {
-        console.error('Erro ao processar imagem:', error);
         Alert.alert('Erro', 'Não foi possível processar a imagem');
       }
     }
@@ -498,8 +463,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
   const toggleHDMode = () => {
     setIsHDMode(!isHDMode);
   };
-
-
 
   const rotateImage = () => {
     setAppliedEdits(prev => ({
@@ -548,10 +511,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
   const applyCrop = async () => {
     try {
-      console.log('=== DEBUG CROP MELHORADO ===');
-      console.log('Área de crop na tela:', JSON.stringify(cropArea));
-      console.log('Dimensões da tela - width:', width, 'height:', height);
-
+      );
       // Aplicar o corte
       setAppliedEdits(prev => ({
         ...prev,
@@ -560,8 +520,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
       // Gerar prévia da imagem cortada
       if (capturedPhoto) {
-        console.log('Processando crop...');
-
         // Obter dimensões da imagem original
         const imageInfo = await ImageManipulator.manipulateAsync(
           capturedPhoto,
@@ -571,8 +529,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
         const originalWidth = imageInfo.width;
         const originalHeight = imageInfo.height;
-        console.log('Dimensões da imagem original - width:', originalWidth, 'height:', originalHeight);
-
         // NOVO ALGORITMO: Calcular como a imagem é realmente exibida
         const imageAspectRatio = originalWidth / originalHeight;
         const containerAspectRatio = width / height;
@@ -596,14 +552,9 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
           imageOffsetY = -(visibleImageHeight - height) / 2; // Offset negativo = parte cortada
         }
 
-        console.log('Imagem visível - width:', visibleImageWidth, 'height:', visibleImageHeight);
-        console.log('Offset da imagem - X:', imageOffsetX, 'Y:', imageOffsetY);
-
         // Calcular as escalas de conversão da tela para a imagem original
         const scaleX = originalWidth / visibleImageWidth;
         const scaleY = originalHeight / visibleImageHeight;
-
-        console.log('Escalas de conversão - scaleX:', scaleX, 'scaleY:', scaleY);
 
         // Converter coordenadas do crop da tela para a imagem original
         // Subtraímos o offset porque queremos a posição relativa à imagem visível
@@ -612,19 +563,11 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         const cropWidthOnImage = cropArea.width * scaleX;
         const cropHeightOnImage = cropArea.height * scaleY;
 
-        console.log('Crop na imagem original:');
-        console.log('cropX:', cropXOnImage, 'cropY:', cropYOnImage);
-        console.log('cropWidth:', cropWidthOnImage, 'cropHeight:', cropHeightOnImage);
-
         // Garantir que as coordenadas estão dentro dos limites da imagem
         const finalCropX = Math.max(0, Math.min(Math.round(cropXOnImage), originalWidth - 1));
         const finalCropY = Math.max(0, Math.min(Math.round(cropYOnImage), originalHeight - 1));
         const finalCropWidth = Math.min(Math.round(cropWidthOnImage), originalWidth - finalCropX);
         const finalCropHeight = Math.min(Math.round(cropHeightOnImage), originalHeight - finalCropY);
-
-        console.log('Coordenadas finais do crop:');
-        console.log('finalCropX:', finalCropX, 'finalCropY:', finalCropY);
-        console.log('finalCropWidth:', finalCropWidth, 'finalCropHeight:', finalCropHeight);
 
         // Gerar prévia cortada
         const croppedPreview = await ImageManipulator.manipulateAsync(
@@ -645,13 +588,11 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
           }
         );
 
-        console.log('Imagem cortada - width:', croppedPreview.width, 'height:', croppedPreview.height);
         setCroppedPreviewUri(croppedPreview.uri);
       }
 
       setIsCropping(false);
     } catch (error) {
-      console.error('Erro ao gerar prévia do crop:', error);
       // Em caso de erro, apenas aplicar o crop sem prévia
       setAppliedEdits(prev => ({
         ...prev,
@@ -661,10 +602,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       setIsCropping(false);
     }
   };
-
-
-
-
 
   const openGallery = async () => {
     try {
@@ -685,7 +622,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
         handleClose();
       }
     } catch (error) {
-      console.error('Erro ao abrir galeria:', error);
       Alert.alert('Erro', 'Não foi possível abrir a galeria');
     }
   };
@@ -790,11 +726,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                   />
                 )}
 
-
-
               </View>
-
-
 
               {/* Interface de corte livre - estilo WhatsApp */}
               {isCropping && (
@@ -995,10 +927,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
                 </View>
               )}
             </View>
-
-
-
-
 
             {/* Footer com envio */}
             <View style={styles.editFooter} pointerEvents="box-none">
@@ -1353,7 +1281,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
-
   editFooter: {
     position: 'absolute',
     bottom: 20,
@@ -1387,8 +1314,6 @@ const styles = StyleSheet.create({
    activeText: {
      color: '#007AFF',
    },
-
-
 
    // Estilos para corte livre - estilo WhatsApp
    cropOverlay: {

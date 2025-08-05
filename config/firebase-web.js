@@ -66,11 +66,9 @@ if (Platform.OS === 'web') {
     // Registrar service worker para melhorar cache
     window.navigator.serviceWorker.register('/firebase-messaging-sw.js')
       .then(() => {
-        // console.log('Service worker registrado');
-      })
+        // })
       .catch(() => {
-        // console.log('Falha ao registrar service worker');
-      });
+        // });
   }
 } // Fecha o if (Platform.OS === 'web')
 

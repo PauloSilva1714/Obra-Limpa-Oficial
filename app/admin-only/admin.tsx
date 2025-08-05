@@ -41,7 +41,6 @@ import { useSite } from '../../contexts/SiteContext';
 import { t } from '../../config/i18n';
 import logo from '../(auth)/obra-limpa-logo.png';
 
-
 interface AdminStats {
   totalSites: number;
   totalWorkers: number;
@@ -110,7 +109,6 @@ export default function AdminScreen() {
       await loadAdminStats();
       await updateTotalWorkers();
     } catch (error) {
-      console.error('Erro ao verificar usuário:', error);
       router.replace('/(worker-tabs)');
     }
     };
@@ -129,20 +127,11 @@ export default function AdminScreen() {
         // Buscar tarefas da obra atual
         tasks = await TaskService.getTasksBySite(currentSite.id);
         completedTasks = tasks.filter(task => task.status === 'completed');
-        console.log('[loadAdminStats] Tarefas da obra atual:', {
-          obra: currentSite.name,
-          totalTarefas: tasks.length,
-          tarefasConcluidas: completedTasks.length
-        });
-      } else {
+        } else {
         // Se não há obra selecionada, buscar todas as tarefas
         tasks = await TaskService.getAllTasks();
         completedTasks = tasks.filter(task => task.status === 'completed');
-        console.log('[loadAdminStats] Nenhuma obra selecionada. Buscando todas as tarefas:', {
-          totalTarefas: tasks.length,
-          tarefasConcluidas: completedTasks.length
-        });
-      }
+        }
 
       setStats({
         totalSites: sites.length,
@@ -151,8 +140,7 @@ export default function AdminScreen() {
         completedTasks: completedTasks.length,
       });
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };
@@ -163,8 +151,7 @@ export default function AdminScreen() {
       setTotalWorkers(allUsers.length);
       setStats(prev => ({ ...prev, totalWorkers: allUsers.length }));
     } catch (error) {
-      console.error('Erro ao carregar colaboradores:', error);
-    }
+      }
   };
 
     const openWorkersModal = async () => {
@@ -183,8 +170,7 @@ export default function AdminScreen() {
       setModalUsers(usersWithHighlight);
       setModalVisible(true);
     } catch (error) {
-      console.error('Erro ao abrir modal de colaboradores:', error);
-    }
+      }
   };
 
   const openSitesModal = async () => {
@@ -202,8 +188,7 @@ export default function AdminScreen() {
       })));
       setModalVisible(true);
     } catch (error) {
-      console.error('Erro ao abrir modal de obras:', error);
-    }
+      }
   };
 
   const handleSiteSelection = async (siteId: string) => {
@@ -220,8 +205,7 @@ export default function AdminScreen() {
         await updateTotalWorkers();
       }
     } catch (error) {
-      console.error('Erro ao selecionar obra:', error);
-    }
+      }
   };
 
   const getStatusColor = (status: string) => {
@@ -277,41 +261,26 @@ export default function AdminScreen() {
 
   const getAllResponsiblesFromTask = async (task: any): Promise<string[]> => {
     try {
-      console.log('[getAllResponsiblesFromTask] Processando tarefa:', {
-        id: task.id,
-        title: task.title,
-        assignedTo: task.assignedTo,
-        userId: task.userId,
-        status: task.status
-      });
-
       // Log completo da tarefa para debug
-      console.log('[getAllResponsiblesFromTask] Tarefa completa:', JSON.stringify(task, null, 2));
+      );
 
       const responsibles: string[] = [];
 
       // Verificar se tem userId (usuário cadastrado na obra)
       if (task.userId) {
-        console.log('[getAllResponsiblesFromTask] Usando userId:', task.userId);
         const user = await AuthService.getUserById(task.userId);
         if (user) {
           const responsibleText = user.company ? `${user.name} (${user.company})` : user.name;
           responsibles.push(responsibleText);
-          console.log('[getAllResponsiblesFromTask] Usuário cadastrado adicionado:', responsibleText);
-        } else {
-          console.log('[getAllResponsiblesFromTask] Usuário não encontrado para userId:', task.userId);
-        }
+          } else {
+          }
       }
 
             // Verificar se tem userId nos comentários (usuário cadastrado na obra)
       if (task.comments && Array.isArray(task.comments) && task.comments.length > 0) {
-        console.log('[getAllResponsiblesFromTask] Verificando comentários para userId');
-
         // Pegar o primeiro comentário que tem userId
         const commentWithUserId = task.comments.find(comment => comment.userId);
         if (commentWithUserId && commentWithUserId.userId) {
-          console.log('[getAllResponsiblesFromTask] Encontrado userId nos comentários:', commentWithUserId.userId);
-
           const user = await AuthService.getUserById(commentWithUserId.userId);
           if (user) {
             const responsibleText = user.company ? `${user.name} (${user.company})` : user.name;
@@ -319,35 +288,25 @@ export default function AdminScreen() {
             const existingUser = responsibles.find(resp => resp === responsibleText);
             if (!existingUser) {
               responsibles.push(responsibleText);
-              console.log('[getAllResponsiblesFromTask] Usuário dos comentários adicionado:', responsibleText);
-            } else {
-              console.log('[getAllResponsiblesFromTask] Usuário já existe na lista:', responsibleText);
-            }
+              } else {
+              }
           } else if (commentWithUserId.userName) {
             // Verificar se já não existe este nome na lista
             const existingUser = responsibles.find(resp => resp === commentWithUserId.userName);
             if (!existingUser) {
               responsibles.push(commentWithUserId.userName);
-              console.log('[getAllResponsiblesFromTask] Usando userName do comentário:', commentWithUserId.userName);
-            } else {
-              console.log('[getAllResponsiblesFromTask] Nome já existe na lista:', commentWithUserId.userName);
-            }
+              } else {
+              }
           }
         }
       }
 
       // Verificar se tem assignedTo (usuário não cadastrado na obra)
       if (task.assignedTo) {
-        console.log('[getAllResponsiblesFromTask] Usando assignedTo:', task.assignedTo);
-
         if (Array.isArray(task.assignedTo)) {
-          console.log('[getAllResponsiblesFromTask] assignedTo é array com', task.assignedTo.length, 'elementos');
-
           // Processar todos os elementos do array
           for (let i = 0; i < task.assignedTo.length; i++) {
             const element = task.assignedTo[i];
-            console.log(`[getAllResponsiblesFromTask] Processando elemento ${i}:`, element);
-
             if (typeof element === 'string') {
               // Se for o primeiro elemento, pode ser ID
               if (i === 0) {
@@ -359,29 +318,23 @@ export default function AdminScreen() {
                   const existingUser = responsibles.find(resp => resp === responsibleText);
                   if (!existingUser) {
                     responsibles.push(responsibleText);
-                    console.log('[getAllResponsiblesFromTask] Usuário encontrado via ID:', responsibleText);
-                  } else {
-                    console.log('[getAllResponsiblesFromTask] Usuário já existe na lista:', responsibleText);
-                  }
+                    } else {
+                    }
                 } else {
                   // Se não encontrou, usar como nome
                   const existingUser = responsibles.find(resp => resp === element);
                   if (!existingUser) {
                     responsibles.push(element);
-                    console.log('[getAllResponsiblesFromTask] Usando como nome:', element);
-                  } else {
-                    console.log('[getAllResponsiblesFromTask] Nome já existe na lista:', element);
-                  }
+                    } else {
+                    }
                 }
               } else {
                 // Elementos subsequentes são nomes
                 const existingUser = responsibles.find(resp => resp === element);
                 if (!existingUser) {
                   responsibles.push(element);
-                  console.log('[getAllResponsiblesFromTask] Adicionando nome:', element);
-                } else {
-                  console.log('[getAllResponsiblesFromTask] Nome já existe na lista:', element);
-                }
+                  } else {
+                  }
               }
             }
           }
@@ -390,8 +343,7 @@ export default function AdminScreen() {
           if (user) {
             const responsibleText = user.company ? `${user.name} (${user.company})` : user.name;
             responsibles.push(responsibleText);
-            console.log('[getAllResponsiblesFromTask] Usuário encontrado via assignedTo string:', responsibleText);
-          }
+            }
         }
       }
 
@@ -401,29 +353,16 @@ export default function AdminScreen() {
       }
 
       const result = responsibles.join(', ');
-      console.log('[getAllResponsiblesFromTask] Resultado final:', result);
-
       return responsibles;
     } catch (error) {
-      console.error('[getAllResponsiblesFromTask] Erro ao buscar informações dos usuários:', error);
       return ['Erro ao buscar usuários'];
     }
   };
 
   const getTasksWithUserNames = async (tasks: any[]) => {
     try {
-      console.log('[getTasksWithUserNames] Processando', tasks.length, 'tarefas');
-
       const tasksWithNames = await Promise.all(
         tasks.map(async (task, index) => {
-          console.log(`[getTasksWithUserNames] Tarefa ${index + 1}:`, {
-            id: task.id,
-            title: task.title,
-            assignedTo: task.assignedTo,
-            userId: task.userId,
-            status: task.status
-          });
-
           const responsibles = await getAllResponsiblesFromTask(task);
           const responsibleText = responsibles.join(', ');
 
@@ -436,19 +375,12 @@ export default function AdminScreen() {
             company: responsibleText
           };
 
-          console.log(`[getTasksWithUserNames] Resultado tarefa ${index + 1}:`, {
-            title: result.name,
-            responsible: result.company
-          });
-
           return result;
         })
       );
 
-      console.log('[getTasksWithUserNames] Processamento concluído');
       return tasksWithNames;
     } catch (error) {
-      console.error('[getTasksWithUserNames] Erro ao buscar nomes dos usuários:', error);
       return tasks.map(task => ({
         id: task.id,
         name: task.title,
@@ -472,17 +404,10 @@ export default function AdminScreen() {
       if (currentSite) {
         // Buscar tarefas da obra atual
         tasks = await TaskService.getTasksBySite(currentSite.id);
-        console.log('[openCompletedTasksModal] Tarefas da obra atual:', {
-          obra: currentSite.name,
-          totalTarefas: tasks.length
-        });
-      } else {
+        } else {
         // Se não há obra selecionada, buscar todas as tarefas
         tasks = await TaskService.getAllTasks();
-        console.log('[openCompletedTasksModal] Nenhuma obra selecionada. Buscando todas as tarefas:', {
-          totalTarefas: tasks.length
-        });
-      }
+        }
 
       const completedTasks = tasks.filter(task => task.status === 'completed');
 
@@ -503,8 +428,7 @@ export default function AdminScreen() {
 
       setModalVisible(true);
     } catch (error) {
-      console.error('Erro ao abrir modal de tarefas concluídas:', error);
-    }
+      }
   };
 
     const openAllTasksModal = async () => {
@@ -519,17 +443,10 @@ export default function AdminScreen() {
       if (currentSite) {
         // Buscar tarefas da obra atual
         tasks = await TaskService.getTasksBySite(currentSite.id);
-        console.log('[openAllTasksModal] Tarefas da obra atual:', {
-          obra: currentSite.name,
-          totalTarefas: tasks.length
-        });
-      } else {
+        } else {
         // Se não há obra selecionada, buscar todas as tarefas
         tasks = await TaskService.getAllTasks();
-        console.log('[openAllTasksModal] Nenhuma obra selecionada. Buscando todas as tarefas:', {
-          totalTarefas: tasks.length
-        });
-      }
+        }
 
       if (tasks.length === 0) {
         // Se não há tarefas, mostrar mensagem
@@ -548,8 +465,7 @@ export default function AdminScreen() {
 
       setModalVisible(true);
     } catch (error) {
-      console.error('Erro ao abrir modal de tarefas:', error);
-    }
+      }
   };
 
   const StatCard = ({

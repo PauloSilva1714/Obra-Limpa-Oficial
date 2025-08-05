@@ -77,8 +77,7 @@ export const useAdminRealTimeSync = (siteId: string) => {
             try {
               unsubscribe();
             } catch (error) {
-              console.error('Erro ao limpar listener:', error);
-            }
+              }
           }
         });
 
@@ -106,7 +105,6 @@ export const useAdminRealTimeSync = (siteId: string) => {
             
             return await Promise.race([setupFunction(), timeoutPromise]);
           } catch (error) {
-            console.warn(`⚠️ Falha ao configurar listener ${name}:`, error);
             return () => {}; // Retorna função vazia em caso de erro
           }
         };
@@ -177,7 +175,6 @@ export const useAdminRealTimeSync = (siteId: string) => {
         setLoading(false);
 
       } catch (error) {
-        console.error('❌ Erro ao configurar listeners:', error);
         setError(error instanceof Error ? error.message : 'Erro desconhecido');
         setLoading(false);
       }
@@ -196,8 +193,7 @@ export const useAdminRealTimeSync = (siteId: string) => {
           try {
             unsubscribe();
           } catch (error) {
-            console.error('Erro ao limpar listener:', error);
-          }
+            }
         }
       });
     };
@@ -232,7 +228,6 @@ export const useAdminRealTimeSync = (siteId: string) => {
 
       setLoading(false);
     } catch (error) {
-      console.error('Erro ao atualizar dados:', error);
       setError(error instanceof Error ? error.message : 'Erro ao atualizar dados');
       setLoading(false);
     }

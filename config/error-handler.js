@@ -1,8 +1,6 @@
 // Handler de erros para resolver problemas de rede e requisições
 export class ErrorHandler {
   static handleNetworkError(error) {
-    console.error('[ErrorHandler] Erro de rede detectado:', error);
-    
     // Verificar se o erro existe e tem propriedades
     if (!error) {
       return {
@@ -55,8 +53,7 @@ export class ErrorHandler {
         
       }
     } catch (error) {
-      console.error('[ErrorHandler] Erro ao limpar cache:', error);
-    }
+      }
   }
   
   static reconnectFirebase() {
@@ -68,8 +65,7 @@ export class ErrorHandler {
         }, 2000);
       }
     } catch (error) {
-      console.error('[ErrorHandler] Erro ao reconectar:', error);
-    }
+      }
   }
   
   static async retryRequest(requestFn, maxRetries = 3) {
@@ -77,8 +73,6 @@ export class ErrorHandler {
       try {
         return await requestFn();
       } catch (error) {
-        console.error(`[ErrorHandler] Tentativa ${i + 1} falhou:`, error);
-        
         if (i === maxRetries - 1) {
           throw error;
         }
@@ -95,13 +89,11 @@ export const setupGlobalErrorHandler = () => {
   if (typeof window !== 'undefined' && window.addEventListener) {
     // Interceptar erros não capturados
     window.addEventListener('error', (event) => {
-      console.error('[GlobalErrorHandler] Erro capturado:', event.error);
       ErrorHandler.handleNetworkError(event.error);
     });
     
     // Interceptar promessas rejeitadas
     window.addEventListener('unhandledrejection', (event) => {
-      console.error('[GlobalErrorHandler] Promessa rejeitada:', event.reason);
       ErrorHandler.handleNetworkError(event.reason);
     });
     

@@ -95,7 +95,6 @@ export class TaskService {
 
       return tasks;
     } catch (error) {
-      console.error('[TaskService] Erro ao obter tarefas:', error);
       throw error;
     }
   }
@@ -145,7 +144,6 @@ export class TaskService {
         ...newTask,
       };
     } catch (error) {
-      console.error('[TaskService] Erro ao criar tarefa:', error);
       throw error;
     }
   }
@@ -175,7 +173,6 @@ export class TaskService {
       });
       await updateDoc(doc(db, 'tasks', taskId), updateData);
     } catch (error) {
-      console.error('Erro ao atualizar tarefa:', error);
       throw error;
     }
   }
@@ -185,7 +182,6 @@ export class TaskService {
       const taskRef = doc(db, 'tasks', taskId);
       await deleteDoc(taskRef);
     } catch (error) {
-      console.error('TaskService: Erro ao deletar tarefa:', error);
       throw error;
     }
   }
@@ -211,7 +207,6 @@ export class TaskService {
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
-      console.error('Erro ao completar tarefa:', error);
       throw error;
     }
   }
@@ -227,7 +222,6 @@ export class TaskService {
         ...taskDoc.data(),
       } as Task;
     } catch (error) {
-      console.error('Erro ao obter tarefa:', error);
       throw error;
     }
   }
@@ -254,7 +248,6 @@ export class TaskService {
           } as Task)
       );
     } catch (error) {
-      console.error('Erro ao obter tarefas por status:', error);
       throw error;
     }
   }
@@ -281,7 +274,6 @@ export class TaskService {
           } as Task)
       );
     } catch (error) {
-      console.error('Erro ao obter tarefas da obra por colaborador:', error);
       throw error;
     }
   }
@@ -308,7 +300,6 @@ export class TaskService {
           } as Task)
       );
     } catch (error) {
-      console.error('Erro ao obter tarefas por prioridade:', error);
       throw error;
     }
   }
@@ -329,7 +320,6 @@ export class TaskService {
           } as Task)
       );
     } catch (error) {
-      console.error('Erro ao obter tarefas da obra:', error);
       throw error;
     }
   }
@@ -354,7 +344,6 @@ export class TaskService {
           } as Task)
       );
     } catch (error) {
-      console.error('Erro ao obter tarefas da obra por status:', error);
       throw error;
     }
   }
@@ -379,7 +368,6 @@ export class TaskService {
           } as Task)
       );
     } catch (error) {
-      console.error('Erro ao obter tarefas da obra por colaborador:', error);
       throw error;
     }
   }
@@ -404,7 +392,6 @@ export class TaskService {
           } as Task)
       );
     } catch (error) {
-      console.error('Erro ao obter tarefas da obra por prioridade:', error);
       throw error;
     }
   }
@@ -447,7 +434,6 @@ export class TaskService {
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
-      console.error('[TaskService] Erro ao adicionar comentário:', error);
       throw error;
     }
   }
@@ -456,7 +442,6 @@ export class TaskService {
     try {
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser) {
-        console.warn('Usuário não autenticado');
         return [];
       }
 
@@ -490,7 +475,6 @@ export class TaskService {
 
       return tasks;
     } catch (error) {
-      console.error('[TaskService] Erro ao obter todas as tarefas:', error);
       return [];
     }
   }

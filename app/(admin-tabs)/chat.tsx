@@ -49,8 +49,7 @@ const VideoPlayer = ({ source, style, filter, getFilterStyle }: {
           setIsPlaying(true);
         }
       } catch (error) {
-        console.error('Erro ao controlar vídeo:', error);
-      }
+        }
     }
   };
 
@@ -208,16 +207,10 @@ export default function ChatScreen() {
         const user = await AuthService.getCurrentUser();
         const role = await AuthService.getUserRole();
 
-        console.log('=== DEBUG: initializeChat - Usuário carregado:', user?.id, user?.name);
-        console.log('=== DEBUG: initializeChat - Role do usuário:', role);
-
         setIsAdmin(role === 'admin');
         setCurrentUser(user);
 
-        console.log('=== DEBUG: ChatScreen - isAdmin definido como:', role === 'admin');
-
         if (role !== 'admin') {
-          console.log('=== DEBUG: ChatScreen - Redirecionando usuário não-admin');
           router.replace('/(worker-tabs)');
           return;
         }
@@ -230,7 +223,6 @@ export default function ChatScreen() {
 
         setLoading(false);
       } catch (error) {
-        console.error('Erro ao inicializar chat:', error);
         setLoading(false);
       }
     };
@@ -255,8 +247,7 @@ export default function ChatScreen() {
             await loadLastMessages(currentSite.id, admins);
           }
         } catch (error) {
-          console.error('Erro ao carregar mensagens para aba novo:', error);
-        }
+          }
       }
     };
 
@@ -296,28 +287,23 @@ export default function ChatScreen() {
       if (currentSite) {
         const allAdmins = await AuthService.getAdminsBySite(currentSite.id);
 
-        console.log('=== DEBUG: loadAdmins - Todos os administradores encontrados:', allAdmins.length);
-        console.log('=== DEBUG: loadAdmins - Usuário atual:', user?.id, user?.name);
-
         // Filtrar o usuário atual da lista - versão mais robusta
         let filteredAdmins = allAdmins;
         if (user && user.id) {
           filteredAdmins = allAdmins.filter(admin => {
             const shouldInclude = admin.id !== user.id;
-            console.log(`=== DEBUG: loadAdmins - Admin ${admin.name} (${admin.id}): ${shouldInclude ? 'INCLUÍDO' : 'FILTRADO'}`);
+            : ${shouldInclude ? 'INCLUÍDO' : 'FILTRADO'}`);
             return shouldInclude;
           });
 
           // Verificação adicional para garantir que o usuário atual não está na lista
           const currentUserInList = filteredAdmins.find(admin => admin.id === user.id);
           if (currentUserInList) {
-            console.log('=== DEBUG: loadAdmins - ATENÇÃO: Usuário atual ainda está na lista após filtragem!');
             filteredAdmins = filteredAdmins.filter(admin => admin.id !== user.id);
           }
         }
 
-        console.log('=== DEBUG: loadAdmins - Administradores após filtragem:', filteredAdmins.length);
-        console.log('=== DEBUG: loadAdmins - Lista final:', filteredAdmins.map(a => ({ id: a.id, name: a.name })));
+        ));
 
         setAdmins(filteredAdmins);
         setFilteredAdmins(filteredAdmins);
@@ -329,8 +315,7 @@ export default function ChatScreen() {
         await loadAdminOnlineStatus(filteredAdmins);
       }
     } catch (error) {
-      console.error('Erro ao carregar administradores:', error);
-    }
+      }
   };
 
   const loadLastMessages = async (siteId: string, adminsList: Admin[]) => {
@@ -357,14 +342,11 @@ export default function ChatScreen() {
 
       setLastMessages(messagesMap);
     } catch (error) {
-      console.error('Erro ao carregar últimas mensagens:', error);
-    }
+      }
   };
 
   const loadAdminOnlineStatus = async (adminsList: Admin[]) => {
     try {
-      console.log('=== DEBUG: loadAdminOnlineStatus - Carregando status online para', adminsList.length, 'administradores');
-
       const statusMap: {[key: string]: {isOnline: boolean, lastSeen?: string, lastActivity?: string}} = {};
 
       for (const admin of adminsList) {
@@ -372,19 +354,16 @@ export default function ChatScreen() {
           try {
             const status = await AuthService.getUserOnlineStatus(admin.id);
             statusMap[admin.id] = status;
-            console.log(`=== DEBUG: loadAdminOnlineStatus - ${admin.name}: ${status.isOnline ? 'Online' : 'Offline'}`);
-          } catch (error) {
-            console.error(`=== DEBUG: loadAdminOnlineStatus - Erro ao buscar status de ${admin.name}:`, error);
+            } catch (error) {
             statusMap[admin.id] = { isOnline: false };
           }
         }
       }
 
       setAdminOnlineStatus(statusMap);
-      console.log('=== DEBUG: loadAdminOnlineStatus - Status carregados:', Object.keys(statusMap).length);
+      .length);
     } catch (error) {
-      console.error('Erro ao carregar status online dos administradores:', error);
-    }
+      }
   };
 
   const loadChatSessions = async () => {
@@ -403,7 +382,6 @@ export default function ChatScreen() {
                 const user = await AuthService.getUserById(participantId);
                 participantPhotos.push(user?.photoURL || '');
               } catch (error) {
-                console.error('Erro ao buscar usuário:', participantId, error);
                 participantPhotos.push('');
               }
             }
@@ -418,8 +396,7 @@ export default function ChatScreen() {
         setChatSessions(sessionsWithPhotos);
       }
     } catch (error) {
-      console.error('Erro ao carregar sessões de chat:', error);
-    }
+      }
   };
 
   // Funções para chat em grupo
@@ -428,20 +405,10 @@ export default function ChatScreen() {
       setLoadingGroupMessages(true);
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
-        console.log('📋 [loadGroupMessages] Carregando mensagens para o site:', currentSite.id);
         const messages = await AdminService.getMessages(currentSite.id);
-        console.log('📋 [loadGroupMessages] Mensagens recebidas do AdminService:', messages.length);
-
         // Log detalhado das mensagens
         messages.forEach((msg, index) => {
-          console.log(`📋 [loadGroupMessages] Mensagem ${index + 1}:`, {
-            id: msg.id,
-            content: msg.content,
-            type: msg.type,
-            attachments: msg.attachments?.length || 0,
-            senderName: msg.senderName
           });
-        });
 
         // Ordenar mensagens por data (mais recentes primeiro)
         const sortedMessages = messages.sort((a, b) => {
@@ -450,14 +417,11 @@ export default function ChatScreen() {
           return dateA.getTime() - dateB.getTime();
         });
 
-        console.log('📋 [loadGroupMessages] Mensagens ordenadas:', sortedMessages.length);
         setGroupMessages(sortedMessages);
       } else {
-        console.log('❌ [loadGroupMessages] Site não encontrado');
-      }
+        }
     } catch (error) {
-      console.error('❌ [loadGroupMessages] Erro ao carregar mensagens do grupo:', error);
-    } finally {
+      } finally {
       setLoadingGroupMessages(false);
     }
   };
@@ -465,13 +429,11 @@ export default function ChatScreen() {
   const sendGroupMessage = async () => {
     if (!groupMessageText.trim()) return;
 
-    console.log('=== DEBUG: Enviando mensagem do grupo:', groupMessageText.trim());
+    );
 
     try {
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
-        console.log('=== DEBUG: Site encontrado para envio:', currentSite.id);
-
         const result = await AdminService.sendMessage(
           currentSite.id,
           groupMessageText.trim(),
@@ -479,16 +441,12 @@ export default function ChatScreen() {
           'medium'
         );
 
-        console.log('=== DEBUG: Mensagem enviada com sucesso:', result);
         setGroupMessageText('');
         // Recarregar mensagens após enviar
         await loadGroupMessages();
-        console.log('=== DEBUG: Mensagens recarregadas após envio');
-      } else {
-        console.log('=== DEBUG: Site não encontrado para envio');
-      }
+        } else {
+        }
     } catch (error) {
-      console.error('Erro ao enviar mensagem do grupo:', error);
       Alert.alert('Erro', 'Não foi possível enviar a mensagem. Tente novamente.');
     }
   };
@@ -496,8 +454,6 @@ export default function ChatScreen() {
   // Função para enviar imagem no chat de grupo
   const handleSendGroupImage = async (imageUrl: string) => {
     try {
-      console.log('🖼️ [handleSendGroupImage] Iniciando envio de imagem:', imageUrl);
-
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
         await AdminService.sendMessage(
@@ -511,7 +467,6 @@ export default function ChatScreen() {
         await loadGroupMessages();
       }
     } catch (error) {
-      console.error('❌ [handleSendGroupImage] Erro ao enviar imagem no grupo:', error);
       Alert.alert('Erro', 'Não foi possível enviar a imagem.');
     }
   };
@@ -519,8 +474,6 @@ export default function ChatScreen() {
   // Função para enviar vídeo no chat de grupo
   const handleSendGroupVideo = async (videoUrl: string) => {
     try {
-      console.log('🎬 [handleSendGroupVideo] Iniciando envio de vídeo:', videoUrl);
-
       const currentSite = await AuthService.getCurrentSite();
       if (currentSite) {
         await AdminService.sendMessage(
@@ -534,18 +487,13 @@ export default function ChatScreen() {
         await loadGroupMessages();
       }
     } catch (error) {
-      console.error('❌ [handleSendGroupVideo] Erro ao enviar vídeo no grupo:', error);
       Alert.alert('Erro', 'Não foi possível enviar o vídeo.');
     }
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    console.log('=== DEBUG: handleSearch - Query:', query);
-    console.log('=== DEBUG: handleSearch - Usuário atual:', currentUser?.id, currentUser?.name);
-
     if (query.trim() === '') {
-      console.log('=== DEBUG: handleSearch - Busca vazia, usando admins completos');
       setFilteredAdmins(admins);
     } else {
       const filtered = admins.filter(admin =>
@@ -553,13 +501,11 @@ export default function ChatScreen() {
         admin.email.toLowerCase().includes(query.toLowerCase())
       );
 
-      console.log('=== DEBUG: handleSearch - Resultados da busca:', filtered.length);
-      console.log('=== DEBUG: handleSearch - Resultados:', filtered.map(a => ({ id: a.id, name: a.name })));
+      ));
 
       // Garantir que o usuário atual não está na lista de busca
       const finalFiltered = filtered.filter(admin => admin.id !== currentUser?.id);
-      console.log('=== DEBUG: handleSearch - Após filtragem do usuário atual:', finalFiltered.length);
-      console.log('=== DEBUG: handleSearch - Lista final:', finalFiltered.map(a => ({ id: a.id, name: a.name })));
+      ));
 
       setFilteredAdmins(finalFiltered);
     }
@@ -706,22 +652,16 @@ export default function ChatScreen() {
 
   const openCameraDirectly = async () => {
     try {
-      console.log('=== DEBUG: openCameraDirectly iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.All, // Sintaxe correta
         allowsEditing: false,
         quality: 1.0, // Qualidade máxima
       });
 
-      console.log('=== DEBUG: Resultado da câmera:', result);
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
-        console.log('=== DEBUG: Mídia capturada:', asset.uri);
-
         // Determinar tipo de mídia
         const isVideo = asset.type === 'video';
-        console.log('=== DEBUG: Tipo de mídia:', isVideo ? 'video' : 'photo');
-
         // Enviar mídia diretamente sem abrir modal
         const mediaMessage: Message = {
           id: Date.now().toString(),
@@ -736,28 +676,22 @@ export default function ChatScreen() {
 
         setMessages([...messages, mediaMessage]);
       } else {
-        console.log('=== DEBUG: Câmera cancelada ou sem assets ===');
-      }
+        }
     } catch (error) {
-      console.error('Erro ao abrir câmera:', error);
       Alert.alert('Erro', 'Não foi possível abrir a câmera.');
     }
   };
 
   const takePhotoComplete = async () => {
     try {
-      console.log('=== DEBUG: takePhotoComplete iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images, // Sintaxe correta
         allowsEditing: false, // Sem crop intermediário
         quality: 0.8,
       });
 
-      console.log('=== DEBUG: Resultado da câmera:', result);
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
-        console.log('=== DEBUG: Foto capturada:', asset.uri);
-
         // Enviar foto diretamente sem abrir modal
         const mediaMessage: Message = {
           id: Date.now().toString(),
@@ -772,17 +706,14 @@ export default function ChatScreen() {
 
         setMessages([...messages, mediaMessage]);
       } else {
-        console.log('=== DEBUG: Câmera cancelada ou sem assets ===');
-      }
+        }
     } catch (error) {
-      console.error('Erro ao tirar foto:', error);
       Alert.alert('Erro', 'Não foi possível tirar a foto.');
     }
   };
 
   const recordVideo = async () => {
     try {
-      console.log('=== DEBUG: recordVideo iniciada ===');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos, // Sintaxe correta
         allowsEditing: false, // Sem crop intermediário
@@ -790,11 +721,8 @@ export default function ChatScreen() {
         videoMaxDuration: 30,
       });
 
-      console.log('=== DEBUG: Resultado do vídeo:', result);
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
-        console.log('=== DEBUG: Vídeo gravado:', asset.uri);
-
         // Enviar vídeo diretamente sem abrir modal
         const mediaMessage: Message = {
           id: Date.now().toString(),
@@ -809,18 +737,14 @@ export default function ChatScreen() {
 
         setMessages([...messages, mediaMessage]);
       } else {
-        console.log('=== DEBUG: Vídeo cancelado ou sem assets ===');
-      }
+        }
     } catch (error) {
-      console.error('Erro ao gravar vídeo:', error);
       Alert.alert('Erro', 'Não foi possível gravar o vídeo.');
     }
   };
 
   const selectMediaComplete = async () => {
     try {
-      console.log('📱 [selectMediaComplete] Abrindo galeria...');
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsEditing: false,
@@ -829,27 +753,17 @@ export default function ChatScreen() {
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
-        console.log('📱 [selectMediaComplete] Mídia selecionada:', {
-          uri: asset.uri,
-          type: asset.type,
-          fileName: asset.fileName
-        });
-
         // Enviar mídia diretamente sem abrir modal
         const isVideo = asset.type === 'video';
         if (isVideo) {
-          console.log('🎬 [selectMediaComplete] Vídeo selecionado - implementar se necessário');
           // (mantém lógica de vídeo se necessário)
         } else {
-          console.log('🖼️ [selectMediaComplete] Imagem selecionada - enviando para o grupo');
           // Enviar imagem corretamente para o grupo
           await handleSendGroupImage(asset.uri);
         }
       } else {
-        console.log('📱 [selectMediaComplete] Nenhuma mídia selecionada');
-      }
+        }
     } catch (error) {
-      console.error('❌ [selectMediaComplete] Erro ao selecionar mídia:', error);
       Alert.alert('Erro', 'Não foi possível selecionar a mídia.');
     }
   };
@@ -878,7 +792,6 @@ export default function ChatScreen() {
 
     // Verificar se a data é válida
     if (isNaN(date.getTime())) {
-      console.warn('Data inválida recebida:', dateString);
       return 'Agora';
     }
 
@@ -952,7 +865,7 @@ export default function ChatScreen() {
     const onlineStatus = adminOnlineStatus[item.id];
 
     // Log de debug para verificar se está renderizando o usuário atual
-    console.log(`=== DEBUG: renderAdminItem - Renderizando admin: ${item.name} (${item.id}) - É usuário atual? ${item.id === currentUser?.id}`);
+    - É usuário atual? ${item.id === currentUser?.id}`);
 
     // Formatar status online
     const getOnlineStatusText = () => {
@@ -1030,17 +943,6 @@ export default function ChatScreen() {
   const renderGroupMessage = ({ item }: { item: any }) => {
     const isOwnMessage = item.senderId === currentUser?.id;
 
-    console.log('🎨 [renderGroupMessage] Renderizando mensagem do grupo:', {
-      id: item.id,
-      content: item.content,
-      type: item.type,
-      senderId: item.senderId,
-      senderName: item.senderName,
-      isOwnMessage,
-      attachments: item.attachments?.length || 0,
-      createdAt: item.createdAt
-    });
-
     return (
       <View style={[styles.messageContainer, isOwnMessage ? styles.ownMessage : styles.otherMessage]}>
         {!isOwnMessage && (
@@ -1061,7 +963,6 @@ export default function ChatScreen() {
                     key={index}
                     style={{ marginBottom: 8 }}
                     onPress={() => {
-                      console.log('🖼️ Abrindo imagem em tela cheia:', attachment);
                       setCurrentImageUrl(attachment);
                       setImageModalVisible(true);
                     }}
@@ -1079,7 +980,6 @@ export default function ChatScreen() {
                     key={index}
                     style={styles.videoAttachmentContainer}
                     onPress={() => {
-                      console.log('🎬 Reproduzindo vídeo do grupo:', attachment);
                       setCurrentVideoUrl(attachment);
                       setVideoModalVisible(true);
                     }}
@@ -1235,8 +1135,7 @@ export default function ChatScreen() {
                      await loadLastMessages(currentSite.id, admins);
                    }
                  } catch (error) {
-                   console.error('Erro ao recarregar mensagens:', error);
-                 }
+                   }
                }
              }}
           >
@@ -1326,7 +1225,6 @@ export default function ChatScreen() {
                                     await handleSendGroupImage(result.assets[0].uri);
                                   }
                                 } catch (error) {
-                                  console.error('Erro ao tirar foto:', error);
                                   Alert.alert('Erro', 'Não foi possível tirar a foto.');
                                 }
                               },
@@ -1353,7 +1251,6 @@ export default function ChatScreen() {
                                     await handleSendGroupVideo(result.assets[0].uri);
                                   }
                                 } catch (error) {
-                                  console.error('Erro ao gravar vídeo:', error);
                                   Alert.alert('Erro', 'Não foi possível gravar o vídeo.');
                                 }
                               },

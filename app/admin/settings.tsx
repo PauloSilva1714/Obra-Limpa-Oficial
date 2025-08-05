@@ -124,8 +124,7 @@ export default function SettingsScreen() {
       const { status: locationStatus } = await Location.getForegroundPermissionsAsync();
       setLocationPermission(locationStatus === 'granted');
     } catch (error) {
-      console.log('Erro ao verificar permissões:', error);
-    }
+      }
   };
 
   const handleNotificationToggle = async (value: boolean) => {
@@ -296,7 +295,6 @@ export default function SettingsScreen() {
         Alert.alert(t('error'), t('passwordChangeFailed'));
       }
     } catch (error: any) {
-      console.error('Erro ao alterar senha:', error);
       setIsChangingPassword(false);
       setShowPasswordConfirmModal(false);
       

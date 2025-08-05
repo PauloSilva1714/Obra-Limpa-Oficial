@@ -95,8 +95,7 @@ export const TaskFeedCard: React.FC<TaskFeedCardProps> = ({
           }
         }
       } catch (error) {
-        console.error('Erro ao buscar empresa do criador:', error);
-      }
+        }
     };
 
     fetchCreatorCompany();

@@ -64,7 +64,6 @@ class AddressService {
       
       return data;
     } catch (error) {
-      console.error('Erro no teste da API:', error);
       return null;
     }
   }
@@ -74,7 +73,6 @@ class AddressService {
    */
   async searchAddresses(query: string): Promise<AddressResult[]> {
     if (!isApiKeyConfigured()) {
-      console.warn('Google Places API key não configurada, usando dados simulados');
       return this.getMockSearchResults(query);
     }
 
@@ -92,16 +90,14 @@ class AddressService {
       };
 
       let url = getPlacesApiUrl('autocomplete', params);
-      
-      
+
       let response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
         },
       });
-      
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -135,8 +131,7 @@ class AddressService {
           'Accept': 'application/json',
         },
       });
-      
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -156,12 +151,7 @@ class AddressService {
 
       return [];
     } catch (error) {
-      console.error('Erro ao buscar endereços:', error);
-      console.error('Detalhes do erro:', {
-        message: error instanceof Error ? error.message : 'Erro desconhecido',
-        stack: error instanceof Error ? error.stack : undefined,
-        query,
-        isApiKeyConfigured: isApiKeyConfigured(),
+      ,
         apiKey: getApiKey() ? 'Configurada' : 'Não configurada'
       });
       // Fallback para dados simulados em caso de erro
@@ -174,7 +164,6 @@ class AddressService {
    */
   async getAddressDetails(placeId: string): Promise<AddressResult | null> {
     if (!isApiKeyConfigured()) {
-      console.warn('Google Places API key não configurada');
       return null;
     }
 
@@ -206,7 +195,6 @@ class AddressService {
 
       return null;
     } catch (error) {
-      console.error('Erro ao obter detalhes do endereço:', error);
       return null;
     }
   }
@@ -249,7 +237,6 @@ class AddressService {
 
       return null;
     } catch (error) {
-      console.error('Erro ao obter localização atual:', error);
       return null;
     }
   }
@@ -259,7 +246,6 @@ class AddressService {
    */
   async reverseGeocode(lat: number, lng: number): Promise<string | null> {
     if (!isApiKeyConfigured()) {
-      console.warn('Google Places API key não configurada, usando endereço simulado');
       return `Localização: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     }
 
@@ -299,7 +285,6 @@ class AddressService {
 
       return null;
     } catch (error) {
-      console.error('Erro na geocodificação reversa:', error);
       return null;
     }
   }
@@ -328,8 +313,7 @@ class AddressService {
       
       await AsyncStorage.setItem(this.RECENT_ADDRESSES_KEY, JSON.stringify(updated));
     } catch (error) {
-      console.error('Erro ao salvar endereço recente:', error);
-    }
+      }
   }
 
   /**
@@ -346,7 +330,6 @@ class AddressService {
       }
       return [];
     } catch (error) {
-      console.error('Erro ao obter endereços recentes:', error);
       return [];
     }
   }
@@ -374,8 +357,7 @@ class AddressService {
       const updated = [newFavorite, ...favorites];
       await AsyncStorage.setItem(this.FAVORITE_ADDRESSES_KEY, JSON.stringify(updated));
     } catch (error) {
-      console.error('Erro ao adicionar aos favoritos:', error);
-    }
+      }
   }
 
   /**
@@ -387,8 +369,7 @@ class AddressService {
       const updated = favorites.filter(fav => fav.id !== addressId);
       await AsyncStorage.setItem(this.FAVORITE_ADDRESSES_KEY, JSON.stringify(updated));
     } catch (error) {
-      console.error('Erro ao remover dos favoritos:', error);
-    }
+      }
   }
 
   /**
@@ -402,7 +383,6 @@ class AddressService {
       }
       return [];
     } catch (error) {
-      console.error('Erro ao obter endereços favoritos:', error);
       return [];
     }
   }
@@ -415,7 +395,6 @@ class AddressService {
       const favorites = await this.getFavoriteAddresses();
       return favorites.some(fav => fav.address === address);
     } catch (error) {
-      console.error('Erro ao verificar favorito:', error);
       return false;
     }
   }
@@ -427,8 +406,7 @@ class AddressService {
     try {
       await AsyncStorage.multiRemove([this.RECENT_ADDRESSES_KEY, this.FAVORITE_ADDRESSES_KEY]);
     } catch (error) {
-      console.error('Erro ao limpar dados:', error);
-    }
+      }
   }
 
   // ===== DADOS SIMULADOS (FALLBACK) =====

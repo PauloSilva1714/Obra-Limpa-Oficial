@@ -381,7 +381,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         }));
       }
     } catch (error) {
-      console.error('❌ Erro ao selecionar imagem:', error);
       Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
     }
   };
@@ -434,7 +433,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         }));
       }
     } catch (error) {
-      console.error('Erro ao selecionar vídeo:', error);
       Alert.alert('Erro', 'Não foi possível selecionar o vídeo.');
     }
   };
@@ -541,7 +539,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       
       return date.toLocaleDateString('pt-BR');
     } catch (error) {
-      console.error('Erro ao formatar data:', error);
       return '';
     }
   };
@@ -562,7 +559,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       
       return date.toISOString().split('T')[0];
     } catch (error) {
-      console.error('Erro ao formatar data para armazenamento:', error);
       return '';
     }
   };
@@ -571,12 +567,10 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
   const handleAddComment = async () => {
     
     if (!commentText.trim()) {
-      console.error('[TaskModal] commentText vazio');
       return;
     }
     
     if (!task) {
-      console.error('[TaskModal] task é null');
       Alert.alert('Erro', 'Tarefa não encontrada');
       return;
     }
@@ -585,7 +579,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       setIsAddingComment(true);
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser) {
-        console.error('[TaskModal] Usuário não encontrado');
         Alert.alert('Erro', 'Usuário não encontrado.');
         return;
       }
@@ -696,7 +689,6 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
       // Video component removido temporariamente devido a problemas de importação
       return null;
     } catch (error) {
-      console.error('Erro ao renderizar mídia:', error);
       return null;
     }
   }

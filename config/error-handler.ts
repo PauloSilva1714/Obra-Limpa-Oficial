@@ -110,8 +110,7 @@ async function saveErrorLog(errorLog: ErrorLog): Promise<void> {
     
     await AsyncStorage.setItem(ERROR_STORAGE_KEY, JSON.stringify(trimmedLogs));
   } catch (storageError) {
-    console.warn('Erro ao salvar log de erro:', storageError);
-  }
+    }
 }
 
 function createErrorLog(
@@ -169,10 +168,8 @@ export const setupGlobalErrorHandler = () => {
         
         // Apenas mostrar alertas para erros críticos
         if (errorLog.severity === 'critical') {
-          console.error('[ErrorHandler] Erro JavaScript crítico:', event.message);
-        } else {
-          console.warn('[ErrorHandler] Erro JavaScript:', event.message);
-        }
+          } else {
+          }
       });
 
       window.addEventListener('unhandledrejection', (event) => {
@@ -199,17 +196,14 @@ export const setupGlobalErrorHandler = () => {
         
         // Para timeouts, apenas logar sem alertas
         if (type === 'timeout') {
-          console.warn('[ErrorHandler] Timeout detectado:', error.message);
           event.preventDefault(); // Previne o log padrão do navegador
           return;
         }
         
         // Para outros erros, usar severidade para decidir o log
         if (errorLog.severity === 'critical' || errorLog.severity === 'high') {
-          console.error('[ErrorHandler] Promise rejeitada:', error.message);
-        } else {
-          console.warn('[ErrorHandler] Promise rejeitada:', error.message);
-        }
+          } else {
+          }
         
         // Prevenir o log padrão do navegador para erros de baixa severidade
         if (errorLog.severity === 'low') {
@@ -226,24 +220,15 @@ export const setupGlobalErrorHandler = () => {
         const originalHandler = ErrorUtils.getGlobalHandler();
         
         ErrorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
-          console.error('[ErrorHandler] Erro global mobile:', {
-            message: error?.message,
-            stack: error?.stack,
-            name: error?.name,
-            isFatal: isFatal
-          });
-          
           // Log adicional para erros fatais
           if (isFatal) {
-            console.error('[ErrorHandler] ERRO FATAL detectado - app pode crashar');
-          }
+            }
           
           // Log para erros específicos do React Native
           if (error?.message?.includes('ReferenceError') ||
               error?.message?.includes('TypeError') ||
               error?.message?.includes('Cannot read property')) {
-            console.error('[ErrorHandler] Erro de referência/tipo detectado');
-          }
+            }
           
           // Chamar o handler original se existir
           if (originalHandler) {
@@ -252,18 +237,16 @@ export const setupGlobalErrorHandler = () => {
         });
         
       } else {
-        console.warn('[ErrorHandler] ErrorUtils não disponível');
-      }
+        }
     } catch (error) {
-      console.warn('[ErrorHandler] Não foi possível configurar ErrorUtils:', error);
-    }
+      }
 
     // Capturar promises rejeitadas
     if (typeof global.Promise !== 'undefined') {
       // Não sobrescrever o comportamento padrão, apenas logar
       if (typeof process !== 'undefined' && process.on) {
         process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-          console.error('[ErrorHandler] Promise rejeitada não tratada (mobile):', {
+          :', {
             reason: reason,
             stack: reason?.stack,
             promise: promise
@@ -273,8 +256,7 @@ export const setupGlobalErrorHandler = () => {
           if (reason?.code === 'auth/network-request-failed' ||
               reason?.message?.includes('Firebase') ||
               reason?.message?.includes('Firestore')) {
-            console.error('[ErrorHandler] Erro do Firebase/Firestore detectado');
-          }
+            }
         });
         
       }
@@ -289,8 +271,7 @@ export const setupGlobalErrorHandler = () => {
       if (args[0]?.includes?.('Warning:') || 
           args[0]?.includes?.('Error:') ||
           args[0]?.includes?.('React')) {
-        // console.log('[ErrorHandler] Erro/Warning do React detectado:', args[0]);
-      }
+        // }
       
       // Chamar o console.error original
       originalConsoleError(...args);

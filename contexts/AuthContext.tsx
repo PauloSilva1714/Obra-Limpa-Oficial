@@ -54,8 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             await AuthService.syncPhotoURLToFirebaseAuth(userData.photoURL);
           } catch (error) {
-            console.error('[AuthContext] Erro ao sincronizar photoURL para Firebase Auth:', error);
-          }
+            }
         } else {
         }
         
@@ -66,7 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
       }
     } catch (error) {
-      console.error('[AuthContext] Erro ao carregar usuário:', error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -81,8 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return success;
     } catch (error) {
-      // console.error('Erro ao fazer login:', error);
-      return false;
+      // return false;
     }
   }
 
@@ -91,8 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AuthService.logout(); // Corrigido!
       setUser(null);
     } catch (error) {
-      // console.error('Erro ao fazer logout:', error);
-    }
+      // }
   }
 
   return (

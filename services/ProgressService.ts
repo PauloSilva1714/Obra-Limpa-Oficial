@@ -103,7 +103,6 @@ export class ProgressService {
             
             return taskDate.toDateString() === date.toDateString() && task.status === 'completed';
           } catch (error) {
-            console.error('[ProgressService] Erro ao processar data da tarefa:', error);
             return false;
           }
         }).length;
@@ -139,7 +138,6 @@ export class ProgressService {
 
       return result;
     } catch (error) {
-      console.error('[ProgressService] Erro ao carregar dados de progresso:', error);
       throw error;
     }
   }

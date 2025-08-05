@@ -11,7 +11,6 @@ import { TextInput as RNTextInput } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { AboutAppModal } from '@/components/AboutAppModal';
 
-
 interface UserProfile {
   name: string;
   email: string;

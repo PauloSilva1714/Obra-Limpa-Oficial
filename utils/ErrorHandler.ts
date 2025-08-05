@@ -28,8 +28,6 @@ class ErrorHandler {
       const originalHandler = (global as any).ErrorUtils?.getGlobalHandler?.();
       
       (global as any).ErrorUtils?.setGlobalHandler?.((error: Error, isFatal: boolean) => {
-        console.error('[ErrorHandler] Erro global capturado:', error);
-        
         this.saveErrorLog(
           error.message || 'Erro desconhecido',
           isFatal ? 'fatal_error' : 'non_fatal_error',
@@ -45,8 +43,7 @@ class ErrorHandler {
               [{ text: 'OK' }]
             );
           } catch (alertError) {
-            console.error('[ErrorHandler] Erro ao mostrar alerta:', alertError);
-          }
+            }
         }
 
         // Chamar o handler original se existir
@@ -58,7 +55,6 @@ class ErrorHandler {
       // Capturar promises rejeitadas
       if (typeof window !== 'undefined' && window.addEventListener) {
         window.addEventListener('unhandledrejection', (event) => {
-          console.error('[ErrorHandler] Promise rejeitada:', event.reason);
           this.saveErrorLog(
             event.reason?.message || String(event.reason),
             'unhandled_promise_rejection',
@@ -70,8 +66,7 @@ class ErrorHandler {
       this.isInitialized = true;
       
     } catch (initError) {
-      console.error('[ErrorHandler] Erro ao inicializar captura de erros:', initError);
-    }
+      }
   }
 
   async saveErrorLog(error: string, context: string, stack?: string): Promise<void> {
@@ -97,8 +92,7 @@ class ErrorHandler {
       await AsyncStorage.setItem('errorLogs', JSON.stringify(logs));
       
     } catch (logError) {
-      console.error('[ErrorHandler] Erro ao salvar log:', logError);
-    }
+      }
   }
 
   async getErrorLogs(): Promise<ErrorLog[]> {
@@ -106,7 +100,6 @@ class ErrorHandler {
       const logs = await AsyncStorage.getItem('errorLogs');
       return logs ? JSON.parse(logs) : [];
     } catch (error) {
-      console.error('[ErrorHandler] Erro ao recuperar logs:', error);
       return [];
     }
   }
@@ -116,8 +109,7 @@ class ErrorHandler {
       await AsyncStorage.removeItem('errorLogs');
       
     } catch (error) {
-      console.error('[ErrorHandler] Erro ao limpar logs:', error);
-    }
+      }
   }
 
   async getFormattedLogs(): Promise<string> {

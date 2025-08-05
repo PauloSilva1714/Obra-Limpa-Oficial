@@ -53,7 +53,6 @@ export default function AdminsScreen() {
         setAdmins(siteAdmins);
       }
     } catch (error) {
-      console.error('Erro ao carregar administradores:', error);
       Alert.alert('Erro', 'Não foi possível carregar os administradores');
     } finally {
       setLoading(false);
@@ -88,7 +87,6 @@ export default function AdminsScreen() {
       Alert.alert('Sucesso', 'Administrador removido com sucesso!');
       loadAdmins();
     } catch (error) {
-      console.error('Erro ao remover admin:', error);
       Alert.alert('Erro', 'Não foi possível remover o administrador.');
     } finally {
       setRemoving(false);

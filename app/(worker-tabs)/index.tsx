@@ -55,7 +55,6 @@ import { ConnectionStatus } from '../../components/ConnectionStatus';
 import { useSite } from '../../contexts/SiteContext';
 import { useLocalSearchParams } from 'expo-router';
 
-
 // Conditional import for Video and ResizeMode to avoid import errors
 let Video: any, ResizeMode: any;
 try {
@@ -133,7 +132,6 @@ export default function TasksScreen() {
         
         setIsInitialized(true);
       } catch (error) {
-        console.error('[DEBUG] Erro ao inicializar tela:', error);
         Alert.alert(t('error'), 'Erro ao inicializar tela de tarefas.');
       } finally {
         setLoading(false);
@@ -164,7 +162,6 @@ export default function TasksScreen() {
         const user = await AuthService.getCurrentUser();
         setCurrentUser(user);
       } catch (error) {
-        console.error('[DEBUG] Erro ao carregar usuário:', error);
         setCurrentUser(null);
       }
     };
@@ -219,7 +216,6 @@ export default function TasksScreen() {
       setFilteredTasks(siteTasks);
       setWorkers(siteWorkers);
     } catch (error) {
-      console.error('[DEBUG] Erro ao carregar tarefas:', error);
       Alert.alert(t('error'), 'Erro ao carregar tarefas.');
     } finally {
       setLoading(false);
@@ -478,18 +474,15 @@ export default function TasksScreen() {
   const handleAddComment = async () => {
     
     if (!newComment.trim()) {
-      console.error('[DEBUG] newComment vazio');
       return;
     }
     
     if (!selectedTaskForComments) {
-      console.error('[DEBUG] selectedTaskForComments é null');
       Alert.alert('Erro', 'Tarefa não encontrada');
       return;
     }
     
     if (!currentUser) {
-      console.error('[DEBUG] currentUser é null');
       Alert.alert('Erro', 'Usuário não autenticado');
       return;
     }
@@ -510,7 +503,6 @@ export default function TasksScreen() {
       setNewComment('');
       Alert.alert('Sucesso', 'Comentário adicionado!');
     } catch (error) {
-      console.error('[DEBUG] Erro ao adicionar comentário:', error);
       Alert.alert('Erro', `Erro ao adicionar comentário: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
@@ -592,19 +584,16 @@ export default function TasksScreen() {
   const handleQuickAddComment = async (text: string) => {
     
     if (!quickViewTask) {
-      console.error('[DEBUG] quickViewTask é null');
       Alert.alert('Erro', 'Tarefa não encontrada');
       return;
     }
     
     if (!currentUser) {
-      console.error('[DEBUG] currentUser é null');
       Alert.alert('Erro', 'Usuário não autenticado');
       return;
     }
     
     if (!text.trim()) {
-      console.error('[DEBUG] texto vazio');
       return;
     }
     
@@ -623,7 +612,6 @@ export default function TasksScreen() {
       
       Alert.alert('Sucesso', 'Comentário adicionado!');
     } catch (error) {
-      console.error('[DEBUG] Erro ao adicionar comentário:', error);
       Alert.alert('Erro', `Erro ao adicionar comentário: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
@@ -726,7 +714,6 @@ export default function TasksScreen() {
                   </View>
                 )}
               </View>
-              
 
             </View>
             <Text style={[styles.headerTitle, { color: colors.text, marginTop: 16, marginBottom: 8, paddingHorizontal: 16 }]}>Tarefas</Text>

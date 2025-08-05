@@ -11,7 +11,6 @@ class PhotoManagementService {
       const updatedPhotos = [photoUri, ...existingPhotos.slice(0, 9)]; // Keep last 10 photos
       await AsyncStorage.setItem(this.PHOTOS_KEY, JSON.stringify(updatedPhotos));
     } catch (error) {
-      console.error('Error saving photo:', error);
       throw error;
     }
   }
@@ -21,7 +20,6 @@ class PhotoManagementService {
       const photosData = await AsyncStorage.getItem(this.PHOTOS_KEY);
       return photosData ? JSON.parse(photosData) : [];
     } catch (error) {
-      console.error('Error loading recent photos:', error);
       return [];
     }
   }
@@ -32,7 +30,6 @@ class PhotoManagementService {
       const updatedPhotos = existingPhotos.filter(uri => uri !== photoUri);
       await AsyncStorage.setItem(this.PHOTOS_KEY, JSON.stringify(updatedPhotos));
     } catch (error) {
-      console.error('Error deleting photo:', error);
       throw error;
     }
   }
@@ -41,7 +38,6 @@ class PhotoManagementService {
     try {
       await AsyncStorage.removeItem(this.PHOTOS_KEY);
     } catch (error) {
-      console.error('Error clearing photos:', error);
       throw error;
     }
   }
@@ -63,7 +59,6 @@ export async function uploadImageAsync(
       // Mobile: uri
       const response = await fetch(uriOrFile);
       if (!response.ok) {
-        console.error('[PhotoService] Erro na resposta fetch:', response.status);
         throw new Error(`Erro ao buscar imagem: ${response.status}`);
       }
       blob = await response.blob();
@@ -82,7 +77,6 @@ export async function uploadImageAsync(
     
     return downloadURL;
   } catch (error) {
-    console.error('[PhotoService] Erro no upload de imagem:', error);
     return typeof uriOrFile === 'string' ? uriOrFile : '';
   }
 }
@@ -101,7 +95,6 @@ export async function uploadVideoAsync(
       // Mobile: uri
       const response = await fetch(uriOrFile);
       if (!response.ok) {
-        console.error('[PhotoService] Erro na resposta fetch:', response.status);
         throw new Error(`Erro ao buscar vídeo: ${response.status}`);
       }
       blob = await response.blob();
@@ -121,7 +114,6 @@ export async function uploadVideoAsync(
     
     return downloadURL;
   } catch (error) {
-    console.error('[PhotoService] Erro no upload de vídeo:', error);
     return typeof uriOrFile === 'string' ? uriOrFile : '';
   }
 }
@@ -147,7 +139,6 @@ export async function uploadProfilePhoto(userId: string, uriOrFile: string | Fil
     const downloadURL = await getDownloadURL(fileRef);
     return downloadURL;
   } catch (error) {
-    console.error('❌ Erro no upload de foto de perfil:', error);
     return typeof uriOrFile === 'string' ? uriOrFile : '';
   }
 }

@@ -139,10 +139,6 @@ export class AdminService {
         throw new Error('Você não tem acesso a esta obra');
       }
 
-      console.log('=== DEBUG: Enviando mensagem para o site:', siteId);
-      console.log('=== DEBUG: Conteúdo da mensagem:', message);
-      console.log('=== DEBUG: Usuário remetente:', currentUser.id, currentUser.name);
-
       const messageData: Omit<AdminMessage, 'id'> = {
         siteId,
         senderId: currentUser.id,
@@ -156,11 +152,7 @@ export class AdminService {
         attachments: attachments || [],
       };
 
-      console.log('=== DEBUG: Dados da mensagem a serem salvos:', messageData);
-
       const docRef = await addDoc(collection(db, 'adminMessages'), messageData);
-      console.log('=== DEBUG: Mensagem salva com ID:', docRef.id);
-
       // Enviar notificações para outros administradores
       await this.notifyOtherAdmins(
         siteId,
@@ -175,10 +167,8 @@ export class AdminService {
         ...messageData,
       };
 
-      console.log('=== DEBUG: Mensagem enviada com sucesso:', result);
       return result;
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
       throw error;
     }
   }
@@ -193,8 +183,7 @@ export class AdminService {
     const limitCount = options?.limitCount ?? 50;
     try {
       if (!siteId) {
-        console.warn(
-          '❌ AdminService.getMessages() - siteId é undefined, retornando array vazio'
+        - siteId é undefined, retornando array vazio'
         );
         return [];
       }
@@ -202,22 +191,17 @@ export class AdminService {
       const currentUser = await AuthService.getCurrentUser();
 
       if (!currentUser || currentUser.role !== 'admin') {
-        console.warn(
-          '❌ AdminService.getMessages() - Usuário não é admin, retornando array vazio'
+        - Usuário não é admin, retornando array vazio'
         );
         return [];
       }
 
       if (!currentUser.sites?.includes(siteId)) {
-        console.warn(
-          '❌ AdminService.getMessages() - Usuário não tem acesso ao site:',
+        - Usuário não tem acesso ao site:',
           siteId
         );
         return [];
       }
-
-      console.log('=== DEBUG: Buscando mensagens para siteId:', siteId);
-      console.log('=== DEBUG: Usuário atual:', currentUser.id, currentUser.name);
 
       const q = query(
         collection(db, 'adminMessages'),
@@ -227,21 +211,9 @@ export class AdminService {
       );
 
       const querySnapshot = await getDocs(q);
-      console.log('=== DEBUG: QuerySnapshot size:', querySnapshot.size);
-
       const messages = querySnapshot.docs.map(
         (doc) => {
           const data = doc.data();
-          console.log('=== DEBUG: Documento encontrado:', {
-            id: doc.id,
-            siteId: data.siteId,
-            senderId: data.senderId,
-            senderName: data.senderName,
-            content: data.content,
-            message: data.message, // Campo antigo
-            createdAt: data.createdAt
-          });
-
           // Lidar com mensagens antigas que usam 'message' em vez de 'content'
           const messageContent = data.content || data.message || '';
 
@@ -253,15 +225,12 @@ export class AdminService {
         }
       );
 
-      console.log('=== DEBUG: Total de mensagens retornadas:', messages.length);
       return messages;
     } catch (error) {
-      console.error(
-        '❌ AdminService.getMessages() - Erro ao buscar mensagens:',
+      - Erro ao buscar mensagens:',
         error
       );
-      console.error(
-        '❌ AdminService.getMessages() - Stack trace:',
+      - Stack trace:',
         error instanceof Error ? error.stack : 'N/A'
       );
       return [];
@@ -300,7 +269,6 @@ export class AdminService {
         await updateDoc(messageRef, updateData);
       }
     } catch (error) {
-      console.error('Erro ao marcar mensagem como lida:', error);
       throw error;
     }
   }
@@ -315,15 +283,13 @@ export class AdminService {
       const currentUser = await AuthService.getCurrentUser();
 
       if (!currentUser) {
-        console.warn(
-          '❌ AdminService.getNotifications() - Usuário não autenticado, retornando array vazio'
+        - Usuário não autenticado, retornando array vazio'
         );
         return [];
       }
 
       if (currentUser.role !== 'admin') {
-        console.warn(
-          '❌ AdminService.getNotifications() - Usuário não é admin, retornando array vazio'
+        - Usuário não é admin, retornando array vazio'
         );
         return [];
       }
@@ -349,18 +315,15 @@ export class AdminService {
     } catch (error: any) {
       // Verificar se é erro de permissão específico
       if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
-        console.warn(
-          '⚠️ AdminService.getNotifications() - Permissões insuficientes para acessar notificações. Verifique as regras do Firestore.'
+        - Permissões insuficientes para acessar notificações. Verifique as regras do Firestore.'
         );
         return [];
       }
 
-      console.error(
-        '❌ AdminService.getNotifications() - Erro ao buscar notificações:',
+      - Erro ao buscar notificações:',
         error
       );
-      console.error(
-        '❌ AdminService.getNotifications() - Stack trace:',
+      - Stack trace:',
         error instanceof Error ? error.stack : 'N/A'
       );
       return [];
@@ -377,8 +340,7 @@ export class AdminService {
         read: true,
       });
     } catch (error) {
-      console.error('Erro ao marcar notificação como lida:', error);
-    }
+      }
   }
 
   /**
@@ -414,7 +376,6 @@ export class AdminService {
           } as AdminActivity)
       );
     } catch (error) {
-      console.error('Erro ao buscar atividades:', error);
       return [];
     }
   }
@@ -442,8 +403,7 @@ export class AdminService {
 
       await addDoc(collection(db, 'adminActivities'), activityData);
     } catch (error) {
-      console.error('Erro ao registrar atividade:', error);
-    }
+      }
   }
 
   /**
@@ -451,23 +411,17 @@ export class AdminService {
    */
   static async getOtherAdmins(siteId: string): Promise<User[]> {
     try {
-      console.log('[AdminService] getOtherAdmins - Buscando administradores para siteId:', siteId);
       if (!siteId) {
-        console.warn('[AdminService] getOtherAdmins - siteId é undefined, retornando array vazio');
         return [];
       }
 
       const currentUser = await AuthService.getCurrentUser();
-      console.log('[AdminService] getOtherAdmins - Usuário atual:', currentUser?.id, currentUser?.name);
       if (!currentUser) return [];
 
       const admins = await AuthService.getSiteAdmins(siteId);
-      console.log('[AdminService] getOtherAdmins - Todos os administradores:', admins.length, admins);
       const filteredAdmins = admins.filter((admin) => admin.id !== currentUser.id);
-      console.log('[AdminService] getOtherAdmins - Administradores filtrados:', filteredAdmins.length, filteredAdmins);
       return filteredAdmins;
     } catch (error) {
-      console.error('[AdminService] getOtherAdmins - Erro ao buscar outros administradores:', error);
       return [];
     }
   }
@@ -485,7 +439,6 @@ export class AdminService {
   ): Promise<void> {
     try {
       if (!siteId) {
-        console.warn('siteId é undefined, não é possível enviar notificações');
         return;
       }
 
@@ -522,8 +475,7 @@ export class AdminService {
 
       await Promise.all(batch);
     } catch (error) {
-      console.error('Erro ao enviar notificações:', error);
-    }
+      }
   }
 
   /**
@@ -536,26 +488,16 @@ export class AdminService {
     try {
 
       if (!siteId) {
-        console.warn(
-          '❌ AdminService.subscribeToMessages - siteId é undefined, retornando função vazia'
-        );
         return () => {};
       }
 
       const currentUser = await AuthService.getCurrentUser();
 
       if (!currentUser || currentUser.role !== 'admin') {
-        console.warn(
-          '❌ AdminService.subscribeToMessages - Usuário não é admin, retornando função vazia'
-        );
         return () => {};
       }
 
       if (!currentUser.sites?.includes(siteId)) {
-        console.warn(
-          '❌ AdminService.subscribeToMessages - Usuário não tem acesso ao site:',
-          siteId
-        );
         return () => {};
       }
 
@@ -579,19 +521,11 @@ export class AdminService {
           callback(messages);
         },
         (error) => {
-          console.error(
-            '❌ AdminService.subscribeToMessages - Erro no listener:',
-            error
-          );
-        }
+          }
       );
 
       return unsubscribe;
     } catch (error) {
-      console.error(
-        '❌ AdminService.subscribeToMessages - Erro ao configurar listener:',
-        error
-      );
       return () => {};
     }
   }
@@ -648,7 +582,6 @@ export class AdminService {
 
       await deleteDoc(messageRef);
     } catch (error) {
-      console.error('Erro ao deletar mensagem:', error);
       throw error;
     }
   }
@@ -665,7 +598,6 @@ export class AdminService {
   }> {
     try {
       if (!siteId) {
-        console.warn('siteId é undefined, retornando estatísticas vazias');
         return {
           totalMessages: 0,
           unreadMessages: 0,
@@ -725,7 +657,6 @@ export class AdminService {
         activeAdmins: admins.length + 1, // +1 para incluir o usuário atual
       };
     } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
       return {
         totalMessages: 0,
         unreadMessages: 0,
@@ -829,7 +760,6 @@ export class AdminService {
 
       return result;
     } catch (error) {
-      console.error('❌ Erro no debug de comunicação:', error);
       return {
         success: false,
         currentUser: null,
@@ -864,10 +794,7 @@ export class AdminService {
 
       // Buscar tarefas do site atual
       const currentSite = await AuthService.getCurrentSite();
-      console.log('[AdminService] Obra atual para estatísticas:', currentSite?.name || 'Nenhuma');
-
       if (!currentSite) {
-        console.log('[AdminService] Nenhuma obra selecionada, retornando estatísticas básicas');
         return {
           totalSites,
           totalWorkers: activeWorkers.length,
@@ -876,7 +803,6 @@ export class AdminService {
         };
       }
 
-      console.log('[AdminService] Buscando tarefas para obra:', currentSite.id);
       const tasksQuery = query(
         collection(db, 'tasks'),
         where('siteId', '==', currentSite.id)
@@ -897,10 +823,8 @@ export class AdminService {
         completedTasks: completedTasksSnapshot.size,
       };
 
-      console.log('[AdminService] Estatísticas calculadas:', stats);
       return stats;
     } catch (error) {
-      console.error('Error fetching admin stats:', error);
       return {
         totalSites: 0,
         totalWorkers: 0,
@@ -918,7 +842,6 @@ export class AdminService {
     callback: (tasks: any[]) => void
   ) {
     if (!siteId) {
-      console.warn('siteId é undefined, retornando função vazia');
       return () => {};
     }
 
@@ -951,7 +874,6 @@ export class AdminService {
     callback: (progress: any) => void
   ) {
     if (!siteId) {
-      console.warn('siteId é undefined, retornando função vazia');
       return () => {};
     }
 
@@ -1006,7 +928,6 @@ export class AdminService {
     callback: (activities: AdminActivity[]) => void
   ) {
     if (!siteId) {
-      console.warn('siteId é undefined, retornando função vazia');
       return () => {};
     }
 
@@ -1041,7 +962,6 @@ export class AdminService {
     callback: (invites: any[]) => void
   ) {
     if (!siteId) {
-      console.warn('siteId é undefined, retornando função vazia');
       return () => {};
     }
 
@@ -1071,7 +991,6 @@ export class AdminService {
     callback: (workers: any[]) => void
   ) {
     if (!siteId) {
-      console.warn('siteId é undefined, retornando função vazia');
       return () => {};
     }
 
@@ -1106,69 +1025,39 @@ export class AdminService {
     attachments?: string[]
   ): Promise<AdminDirectMessage> {
     try {
-      console.log('📤 [sendDirectMessage] Iniciando envio:', {
-        siteId,
-        recipientId,
-        content: content.substring(0, 50) + '...',
+      + '...',
         type,
         clientId,
         attachments: attachments?.length || 0
       });
 
       const currentUser = await AuthService.getCurrentUser();
-      console.log('👤 [sendDirectMessage] Usuário atual:', {
-        id: currentUser?.id,
-        role: currentUser?.role,
-        sites: currentUser?.sites
-      });
-
       if (!currentUser || currentUser.role !== 'admin') {
         const error = 'Apenas administradores podem enviar mensagens';
-        console.error('❌ [sendDirectMessage]', error);
         throw new Error(error);
       }
 
       if (!currentUser.sites?.includes(siteId)) {
         const error = 'Você não tem acesso a esta obra';
-        console.error('❌ [sendDirectMessage]', error, {
-          userSites: currentUser.sites,
-          requestedSite: siteId
-        });
         throw new Error(error);
       }
 
       // Verificar se o destinatário existe
-      console.log('🔍 [sendDirectMessage] Buscando destinatário:', recipientId);
       const recipient = await AuthService.getUserById(recipientId);
-      console.log('👥 [sendDirectMessage] Destinatário encontrado:', {
-        id: recipient?.id,
-        role: recipient?.role,
-        sites: recipient?.sites
-      });
-
       if (!recipient) {
         const error = 'Destinatário não encontrado';
-        console.error('❌ [sendDirectMessage]', error);
         throw new Error(error);
       }
 
       if (recipient.role !== 'admin') {
         const error = 'Destinatário não é um administrador';
-        console.error('❌ [sendDirectMessage]', error);
         throw new Error(error);
       }
 
       // Verificar se há pelo menos um site em comum entre remetente e destinatário
       const commonSites = currentUser.sites?.filter(site => recipient.sites?.includes(site)) || [];
-      console.log('🔍 [sendDirectMessage] Sites em comum:', {
-        currentUserSites: currentUser.sites,
-        recipientSites: recipient.sites,
-        commonSites: commonSites
-      });
-
       if (commonSites.length === 0) {
         const error = 'Destinatário não compartilha nenhuma obra em comum';
-        console.error('❌ [sendDirectMessage]', error);
         throw new Error(error);
       }
 
@@ -1176,11 +1065,7 @@ export class AdminService {
       let finalSiteId = siteId;
       if (!recipient.sites?.includes(siteId)) {
         finalSiteId = commonSites[0];
-        console.log('⚠️ [sendDirectMessage] Destinatário não tem acesso ao site atual, usando site comum:', {
-          siteOriginal: siteId,
-          siteComum: finalSiteId
-        });
-      }
+        }
 
       const messageData: Omit<AdminDirectMessage, 'id'> & { clientId?: string } = {
         siteId: finalSiteId,
@@ -1199,11 +1084,7 @@ export class AdminService {
         ...(clientId ? { clientId } : {}),
       };
 
-      console.log('💾 [sendDirectMessage] Salvando no Firestore:', {
-        collection: 'adminDirectMessages',
-        data: {
-          ...messageData,
-          content: messageData.content.substring(0, 50) + '...'
+      + '...'
         }
       });
 
@@ -1212,10 +1093,7 @@ export class AdminService {
         messageData
       );
 
-      console.log('✅ [sendDirectMessage] Documento criado:', docRef.id);
-
       // Atualizar ou criar sessão
-      console.log('🔄 [sendDirectMessage] Atualizando sessão de chat...');
       await this.updateChatSession(
         finalSiteId,
         currentUser.id,
@@ -1228,16 +1106,8 @@ export class AdminService {
         ...messageData,
       };
 
-      console.log('✅ [sendDirectMessage] Mensagem enviada com sucesso:', result.id);
       return result;
     } catch (error: any) {
-      console.error('❌ [sendDirectMessage] Erro ao enviar mensagem individual:', {
-        error: error.message,
-        code: error.code,
-        stack: error.stack,
-        siteId,
-        recipientId
-      });
       throw error;
     }
   }
@@ -1252,47 +1122,29 @@ export class AdminService {
   ): Promise<AdminDirectMessage[]> {
     const limitCount = options?.limitCount ?? 100; // Aumentando limite padrão para 100
     try {
-      console.log('🔍 [getDirectMessages] Iniciando busca:', { siteId, otherUserId, limitCount });
-
       const currentUser = await AuthService.getCurrentUser();
-      console.log('🔍 [getDirectMessages] Usuário atual:', {
-        id: currentUser?.id,
-        role: currentUser?.role,
-        sites: currentUser?.sites
-      });
-
       if (!currentUser || currentUser.role !== 'admin') {
-        console.log('❌ [getDirectMessages] Usuário não é admin ou não autenticado');
         return [];
       }
 
       if (!currentUser.sites?.includes(siteId)) {
-        console.log('❌ [getDirectMessages] Usuário não tem acesso ao site:', siteId);
         return [];
       }
 
       // DEBUG: Verificar se há mensagens na coleção adminDirectMessages
-      console.log('🔍 [getDirectMessages] Verificando coleção adminDirectMessages...');
       const testQuery = query(
         collection(db, 'adminDirectMessages'),
         limit(50) // Aumentando para 50 para ver mais mensagens
       );
       const testSnapshot = await getDocs(testQuery);
-      console.log('🔍 [getDirectMessages] Total de documentos na coleção (primeiros 50):', testSnapshot.size);
+      :', testSnapshot.size);
 
       // Contar total de documentos na coleção
       const countQuery = query(collection(db, 'adminDirectMessages'));
       const countSnapshot = await getDocs(countQuery);
-      console.log('🔍 [getDirectMessages] TOTAL REAL de documentos na coleção:', countSnapshot.size);
-
       testSnapshot.docs.forEach((doc, index) => {
         const data = doc.data();
-        console.log(`🔍 [getDirectMessages] Documento ${index + 1}:`, {
-          id: doc.id,
-          siteId: data.siteId,
-          senderId: data.senderId,
-          recipientId: data.recipientId,
-          content: data.content?.substring(0, 50) || data.message?.substring(0, 50) || 'sem conteúdo',
+        || data.message?.substring(0, 50) || 'sem conteúdo',
           createdAt: data.createdAt
         });
       });
@@ -1300,20 +1152,12 @@ export class AdminService {
       // Buscar informações do outro usuário para encontrar sites compartilhados
       const otherUser = await AuthService.getUserById(otherUserId);
       if (!otherUser) {
-        console.log('❌ [getDirectMessages] Outro usuário não encontrado');
         return [];
       }
 
       // Encontrar sites compartilhados
       const sharedSites = currentUser.sites?.filter(site => otherUser.sites?.includes(site)) || [];
-      console.log('🔍 [getDirectMessages] Sites compartilhados:', {
-        currentUserSites: currentUser.sites,
-        otherUserSites: otherUser.sites,
-        sharedSites: sharedSites
-      });
-
       if (sharedSites.length === 0) {
-        console.log('❌ [getDirectMessages] Nenhum site compartilhado encontrado');
         return [];
       }
 
@@ -1344,17 +1188,11 @@ export class AdminService {
         allQueries.push(getDocs(q1), getDocs(q2));
       }
 
-      console.log('🔍 [getDirectMessages] Executando', allQueries.length, 'queries em', sharedSites.length, 'sites');
       const queryResults = await Promise.all(allQueries);
 
       let totalMessages = 0;
       queryResults.forEach(snapshot => {
         totalMessages += snapshot.size;
-      });
-
-      console.log('🔍 [getDirectMessages] Resultados das queries:', {
-        totalQueries: allQueries.length,
-        totalMessages: totalMessages
       });
 
       // Processar mensagens de todos os resultados
@@ -1369,12 +1207,10 @@ export class AdminService {
           if (!processedData.content && processedData.message) {
             // Migrar campo 'message' para 'content'
             processedData.content = processedData.message;
-            console.log('🔄 [getDirectMessages] Migrando campo message para content:', doc.id);
-          } else if (!processedData.content && !processedData.message) {
+            } else if (!processedData.content && !processedData.message) {
             // Mensagem sem conteúdo
             processedData.content = '[Mensagem sem conteúdo]';
-            console.log('⚠️ [getDirectMessages] Mensagem sem conteúdo encontrada:', doc.id);
-          }
+            }
 
           // Determinar o tipo correto baseado nos attachments
           if (!processedData.type) {
@@ -1383,15 +1219,12 @@ export class AdminService {
               if (firstAttachment.includes('.jpg') || firstAttachment.includes('.jpeg') ||
                   firstAttachment.includes('.png') || firstAttachment.includes('.gif')) {
                 processedData.type = 'image';
-                console.log('🖼️ [getDirectMessages] Definindo tipo como image para:', doc.id);
-              } else if (firstAttachment.includes('.mp4') || firstAttachment.includes('.mov') ||
+                } else if (firstAttachment.includes('.mp4') || firstAttachment.includes('.mov') ||
                          firstAttachment.includes('.avi')) {
                 processedData.type = 'video';
-                console.log('🎥 [getDirectMessages] Definindo tipo como video para:', doc.id);
-              } else {
+                } else {
                 processedData.type = 'file';
-                console.log('📎 [getDirectMessages] Definindo tipo como file para:', doc.id);
-              }
+                }
             } else {
               processedData.type = 'text';
             }
@@ -1402,10 +1235,6 @@ export class AdminService {
             ...processedData,
           } as AdminDirectMessage);
         });
-      });
-
-      console.log('🔍 [getDirectMessages] Mensagens processadas:', {
-        totalMessages: allMessages.length
       });
 
       // Remover duplicatas (caso existam mensagens duplicadas entre sites)
@@ -1427,11 +1256,6 @@ export class AdminService {
       // Aplicar limite se necessário
       const finalMessages = uniqueMessages.slice(0, limitCount);
 
-      console.log('🔍 [getDirectMessages] Total de mensagens após ordenação e limite:', {
-        uniqueMessages: uniqueMessages.length,
-        finalMessages: finalMessages.length
-      });
-
       // Marcar mensagens como lidas
       const unreadMessages = finalMessages.filter(
         (msg) =>
@@ -1439,16 +1263,12 @@ export class AdminService {
           !msg.readBy.includes(currentUser.id)
       );
 
-      console.log('🔍 [getDirectMessages] Mensagens não lidas para marcar:', unreadMessages.length);
-
       for (const msg of unreadMessages) {
         await this.markDirectMessageAsRead(msg.id);
       }
 
-      console.log('✅ [getDirectMessages] Busca concluída com sucesso:', finalMessages.length, 'mensagens');
       return finalMessages;
     } catch (error) {
-      console.error('❌ [getDirectMessages] Erro ao buscar mensagens individuais:', error);
       return [];
     }
   }
@@ -1483,7 +1303,6 @@ export class AdminService {
           } as AdminChatSession)
       );
     } catch (error) {
-      console.error('Erro ao buscar sessões de chat:', error);
       return [];
     }
   }
@@ -1540,8 +1359,7 @@ export class AdminService {
         await setDoc(sessionRef, sessionData);
       }
     } catch (error) {
-      console.error('Erro ao atualizar sessão de chat:', error);
-    }
+      }
   }
 
   /**
@@ -1574,8 +1392,7 @@ export class AdminService {
         }
       }
     } catch (error) {
-      console.error('Erro ao marcar mensagem individual como lida:', error);
-    }
+      }
   }
 
   /**
@@ -1602,7 +1419,6 @@ export class AdminService {
 
       await deleteDoc(messageRef);
     } catch (error) {
-      console.error('Erro ao deletar mensagem individual:', error);
       throw error;
     }
   }
@@ -1624,20 +1440,12 @@ export class AdminService {
       // Buscar informações do outro usuário para encontrar sites compartilhados
       const otherUser = await AuthService.getUserById(otherUserId);
       if (!otherUser) {
-        console.log('❌ [subscribeToDirectMessages] Outro usuário não encontrado');
         return () => {};
       }
 
       // Encontrar sites compartilhados
       const sharedSites = currentUser.sites?.filter(site => otherUser.sites?.includes(site)) || [];
-      console.log('🔍 [subscribeToDirectMessages] Sites compartilhados:', {
-        currentUserSites: currentUser.sites,
-        otherUserSites: otherUser.sites,
-        sharedSites: sharedSites
-      });
-
       if (sharedSites.length === 0) {
-        console.log('❌ [subscribeToDirectMessages] Nenhum site compartilhado encontrado');
         return () => {};
       }
 
@@ -1677,12 +1485,10 @@ export class AdminService {
               if (!processedData.content && processedData.message) {
                 // Migrar campo 'message' para 'content'
                 processedData.content = processedData.message;
-                console.log('🔄 [subscribeToDirectMessages] Migrando campo message para content:', doc.id);
-              } else if (!processedData.content && !processedData.message) {
+                } else if (!processedData.content && !processedData.message) {
                 // Mensagem sem conteúdo
                 processedData.content = '[Mensagem sem conteúdo]';
-                console.log('⚠️ [subscribeToDirectMessages] Mensagem sem conteúdo encontrada:', doc.id);
-              }
+                }
 
               // Garantir que o tipo existe
               if (!processedData.type) {
@@ -1724,7 +1530,6 @@ export class AdminService {
         unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
       };
     } catch (error) {
-      console.error('❌ Erro ao inscrever-se para mensagens individuais:', error);
       return () => {};
     }
   }
@@ -1753,7 +1558,6 @@ export class AdminService {
       const querySnapshot = await getDocs(q);
       return querySnapshot.size;
     } catch (error) {
-      console.error('Erro ao contar mensagens não lidas:', error);
       return 0;
     }
   }
@@ -1820,7 +1624,6 @@ export class AdminService {
         callback(sessions);
       });
     } catch (error) {
-      console.error('Erro ao inscrever-se para sessões de chat:', error);
       return () => {};
     }
   }
@@ -1842,7 +1645,6 @@ export class AdminService {
       snapshot.forEach((docSnap) => batch.delete(docSnap.ref));
       await batch.commit();
     } catch (error) {
-      console.error('Erro ao deletar mensagens da sessão:', error);
       throw error;
     }
   }
@@ -1852,7 +1654,6 @@ export class AdminService {
     try {
       await deleteDoc(doc(db, 'adminChatSessions', sessionId));
     } catch (error) {
-      console.error('Erro ao deletar sessão de chat:', error);
       throw error;
     }
   }
@@ -1896,7 +1697,6 @@ export class AdminService {
 
       return messages;
     } catch (error) {
-      console.error('Erro ao buscar mensagens diretas do admin:', error);
       throw error;
     }
   }
@@ -1969,7 +1769,6 @@ export class AdminService {
     try {
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser || currentUser.role !== 'admin') {
-        console.warn('Apenas administradores podem buscar todas as obras');
         return [];
       }
 
@@ -1986,7 +1785,6 @@ export class AdminService {
 
       return sites;
     } catch (error) {
-      console.error('Erro ao buscar todas as obras:', error);
       return [];
     }
   }
@@ -2016,13 +1814,11 @@ export class AdminService {
             } as Site);
           }
         } catch (error) {
-          console.error(`Erro ao buscar obra ${siteId}:`, error);
-        }
+          }
       }
 
       return sites;
     } catch (error) {
-      console.error('Erro ao buscar obras do usuário:', error);
       return [];
     }
   }
@@ -2033,11 +1829,8 @@ export class AdminService {
    */
   static async migrateOldDirectMessages(): Promise<void> {
     try {
-      console.log('🔄 [migrateOldDirectMessages] Iniciando migração de mensagens antigas...');
-
       const currentUser = await AuthService.getCurrentUser();
       if (!currentUser || currentUser.role !== 'admin') {
-        console.warn('❌ [migrateOldDirectMessages] Usuário não é admin');
         return;
       }
 
@@ -2048,8 +1841,6 @@ export class AdminService {
       );
 
       const querySnapshot = await getDocs(q);
-      console.log('🔍 [migrateOldDirectMessages] Encontradas', querySnapshot.size, 'mensagens para migrar');
-
       const batch = writeBatch(db);
       let updatedCount = 0;
 
@@ -2078,13 +1869,10 @@ export class AdminService {
 
       if (updatedCount > 0) {
         await batch.commit();
-        console.log('✅ [migrateOldDirectMessages] Migradas', updatedCount, 'mensagens');
-      } else {
-        console.log('ℹ️ [migrateOldDirectMessages] Nenhuma mensagem precisa ser migrada');
-      }
+        } else {
+        }
     } catch (error) {
-      console.error('❌ [migrateOldDirectMessages] Erro na migração:', error);
-    }
+      }
   }
 }
 

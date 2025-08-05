@@ -266,8 +266,7 @@ export default function LoginScreen() {
         try {
           await AuthService.startPresenceMonitoring();
         } catch (presenceError) {
-          console.error('Erro ao iniciar monitoramento de presença:', presenceError);
-        }
+          }
 
         const user = await AuthService.getCurrentUser();
         if (user && user.role === 'worker') {
@@ -717,9 +716,7 @@ export default function LoginScreen() {
           </View>
         </Animated.View>
 
-
        </ScrollView>
-
 
      </SafeAreaView>
    );

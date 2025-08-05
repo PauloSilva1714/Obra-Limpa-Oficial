@@ -99,8 +99,6 @@ export default function ForgotPasswordScreen() {
       await AuthService.sendPasswordResetEmail(email.trim());
       setEmailSent(true);
     } catch (error: any) {
-      console.error('Erro ao enviar email de recuperação:', error);
-      
       let errorMessage = 'Erro ao enviar email de recuperação. Tente novamente.';
       
       if (error.message === 'Email não encontrado no sistema') {
@@ -128,7 +126,6 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleBackToLogin = () => {
-    console.log('Navegando para login...');
     // Navegar para a tela de login
     router.push('/(auth)/login');
   };

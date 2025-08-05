@@ -43,8 +43,7 @@ export default function AdminChatSessions({
         await setupRealtimeListener();
         AuthService.getCurrentUser().then(setCurrentUser);
       } catch (error) {
-        console.error('Erro ao inicializar sessões de chat:', error);
-      }
+        }
     };
 
     initializeComponent();
@@ -54,8 +53,7 @@ export default function AdminChatSessions({
         try {
           unsubscribeSessions.current();
         } catch (error) {
-          console.error('Erro ao desinscrever sessões:', error);
-        }
+          }
       }
     };
   }, [siteId]);
@@ -84,8 +82,7 @@ export default function AdminChatSessions({
       );
       unsubscribeSessions.current = unsubscribe;
     } catch (error) {
-      console.error('Erro ao configurar listener em tempo real:', error);
-    }
+      }
   };
 
   const onRefresh = () => {
