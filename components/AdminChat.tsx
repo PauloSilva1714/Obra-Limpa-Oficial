@@ -129,9 +129,7 @@ export default function AdminChat({ siteId, style }: AdminChatProps) {
       setMessages(sortMessages(messagesData));
       setNotifications(notificationsData);
     } catch (error) {
-      - Erro ao carregar dados iniciais:',
-        error
-      );
+      console.log('AdminChat.loadInitialData - Erro ao carregar dados iniciais:', error);
       Alert.alert('Erro', 'Não foi possível carregar as mensagens');
     } finally {
       setLoading(false);

@@ -68,7 +68,7 @@ export default function AdminSearch({
       // Filtrar o usuário atual
       const currentUser = await AuthService.getCurrentUser();
       const filteredAdmins = currentUser ? allAdmins.filter(admin => admin.id !== currentUser.id) : allAdmins;
-      :', filteredAdmins.length, filteredAdmins);
+      console.log('AdminSearch.loadAdmins - Admins filtrados:', filteredAdmins.length, filteredAdmins);
       
       setAdmins(filteredAdmins);
       setFilteredAdmins(filteredAdmins);

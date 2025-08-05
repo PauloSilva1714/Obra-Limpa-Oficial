@@ -24,14 +24,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUser() {
     try {
-      
+
       // Aguarda o Firebase restaurar a sessão
       const firebaseUser = await AuthService.waitForFirebaseAuth();
-      
+
       if (firebaseUser) {
         // Garante que o usuário está salvo no AsyncStorage
         let userData = await AuthService.getCurrentUser();
-        
+
         if (!userData) {
           // Busca do Firestore e salva no AsyncStorage
           userData = await AuthService.getUserById(firebaseUser.uid);
@@ -39,9 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await AuthService.saveUserToStorage(userData);
           }
         }
-        
+
         // SINCRONIZAR photoURL DO FIREBASE AUTH
-        
+
         if (userData && firebaseUser.photoURL && firebaseUser.photoURL !== userData.photoURL) {
           await AuthService.updateUserProfilePhoto(userData.id, firebaseUser.photoURL);
           userData.photoURL = firebaseUser.photoURL;
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         } else {
         }
-        
+
         if (userData) {
           setUser(userData);
         }
@@ -88,7 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AuthService.logout(); // Corrigido!
       setUser(null);
     } catch (error) {
-      // }
+      // Handle error
+    }
   }
 
   return (
@@ -104,4 +105,4 @@ export function useAuth() {
     throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
   return context;
-} 
+}

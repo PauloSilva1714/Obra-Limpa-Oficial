@@ -805,7 +805,7 @@ export default function TasksScreen() {
                 )}
               />
             ) : (
-              <View style={[styles.igMedia, { justifyContent: 'center', alignItems: 'center' }]}> 
+              <View style={[styles.igMedia, { justifyContent: 'center', alignItems: 'center' }]}>
                 <Text style={{ color: '#888' }}>Sem mídia</Text>
               </View>
             )}
@@ -850,7 +850,7 @@ export default function TasksScreen() {
                       ]} numberOfLines={6}>
                         {comment.text}
                       </Text>
-                      <Text style={[styles.commentTime, { color: timeColor, fontSize: 12, alignSelf: 'flex-end', marginTop: 4 }]}> 
+                      <Text style={[styles.commentTime, { color: timeColor, fontSize: 12, alignSelf: 'flex-end', marginTop: 4 }]}>
                         {formatCommentDateTime(comment.timestamp)}
                       </Text>
                     </View>

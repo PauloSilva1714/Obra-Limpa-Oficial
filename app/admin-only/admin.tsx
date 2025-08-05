@@ -262,7 +262,6 @@ export default function AdminScreen() {
   const getAllResponsiblesFromTask = async (task: any): Promise<string[]> => {
     try {
       // Log completo da tarefa para debug
-      );
 
       const responsibles: string[] = [];
 

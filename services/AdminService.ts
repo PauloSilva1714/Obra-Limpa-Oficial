@@ -183,23 +183,19 @@ export class AdminService {
     const limitCount = options?.limitCount ?? 50;
     try {
       if (!siteId) {
-        - siteId é undefined, retornando array vazio'
-        );
+        console.log('AdminService.getMessages - siteId é undefined, retornando array vazio');
         return [];
       }
 
       const currentUser = await AuthService.getCurrentUser();
 
       if (!currentUser || currentUser.role !== 'admin') {
-        - Usuário não é admin, retornando array vazio'
-        );
+        console.log('AdminService.getMessages - Usuário não é admin, retornando array vazio');
         return [];
       }
 
       if (!currentUser.sites?.includes(siteId)) {
-        - Usuário não tem acesso ao site:',
-          siteId
-        );
+        console.log('AdminService.getMessages - Usuário não tem acesso ao site:', siteId);
         return [];
       }
 
@@ -227,12 +223,8 @@ export class AdminService {
 
       return messages;
     } catch (error) {
-      - Erro ao buscar mensagens:',
-        error
-      );
-      - Stack trace:',
-        error instanceof Error ? error.stack : 'N/A'
-      );
+      console.log('AdminService.getMessages - Erro ao buscar mensagens:', error);
+      console.log('AdminService.getMessages - Stack trace:', error instanceof Error ? error.stack : 'N/A');
       return [];
     }
   }
@@ -283,14 +275,12 @@ export class AdminService {
       const currentUser = await AuthService.getCurrentUser();
 
       if (!currentUser) {
-        - Usuário não autenticado, retornando array vazio'
-        );
+        console.log('AdminService.getNotifications - Usuário não autenticado, retornando array vazio');
         return [];
       }
 
       if (currentUser.role !== 'admin') {
-        - Usuário não é admin, retornando array vazio'
-        );
+        console.log('AdminService.getNotifications - Usuário não é admin, retornando array vazio');
         return [];
       }
 
@@ -315,17 +305,12 @@ export class AdminService {
     } catch (error: any) {
       // Verificar se é erro de permissão específico
       if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
-        - Permissões insuficientes para acessar notificações. Verifique as regras do Firestore.'
-        );
+        console.log('AdminService.getNotifications - Permissões insuficientes para acessar notificações. Verifique as regras do Firestore.');
         return [];
       }
 
-      - Erro ao buscar notificações:',
-        error
-      );
-      - Stack trace:',
-        error instanceof Error ? error.stack : 'N/A'
-      );
+      console.log('AdminService.getNotifications - Erro ao buscar notificações:', error);
+      console.log('AdminService.getNotifications - Stack trace:', error instanceof Error ? error.stack : 'N/A');
       return [];
     }
   }
@@ -1025,7 +1010,10 @@ export class AdminService {
     attachments?: string[]
   ): Promise<AdminDirectMessage> {
     try {
-      + '...',
+      console.log('AdminService.sendDirectMessage - Enviando mensagem:', {
+        siteId,
+        recipientId,
+        content: content.substring(0, 50) + '...',
         type,
         clientId,
         attachments: attachments?.length || 0
@@ -1084,8 +1072,10 @@ export class AdminService {
         ...(clientId ? { clientId } : {}),
       };
 
-      + '...'
-        }
+      console.log('AdminService.sendDirectMessage - Dados da mensagem preparados:', {
+        siteId: finalSiteId,
+        senderId: currentUser.id,
+        recipientId
       });
 
       const docRef = await addDoc(
@@ -1137,14 +1127,16 @@ export class AdminService {
         limit(50) // Aumentando para 50 para ver mais mensagens
       );
       const testSnapshot = await getDocs(testQuery);
-      :', testSnapshot.size);
+      console.log('AdminService.getDirectMessages - Total de mensagens encontradas:', testSnapshot.size);
 
       // Contar total de documentos na coleção
       const countQuery = query(collection(db, 'adminDirectMessages'));
       const countSnapshot = await getDocs(countQuery);
       testSnapshot.docs.forEach((doc, index) => {
         const data = doc.data();
-        || data.message?.substring(0, 50) || 'sem conteúdo',
+        console.log(`Mensagem ${index + 1}:`, {
+          id: doc.id,
+          content: data.content?.substring(0, 50) || data.message?.substring(0, 50) || 'sem conteúdo',
           createdAt: data.createdAt
         });
       });

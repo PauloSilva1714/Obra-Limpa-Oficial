@@ -292,7 +292,6 @@ export default function ChatScreen() {
         if (user && user.id) {
           filteredAdmins = allAdmins.filter(admin => {
             const shouldInclude = admin.id !== user.id;
-            : ${shouldInclude ? 'INCLUÍDO' : 'FILTRADO'}`);
             return shouldInclude;
           });
 
@@ -302,8 +301,6 @@ export default function ChatScreen() {
             filteredAdmins = filteredAdmins.filter(admin => admin.id !== user.id);
           }
         }
-
-        ));
 
         setAdmins(filteredAdmins);
         setFilteredAdmins(filteredAdmins);
@@ -361,7 +358,6 @@ export default function ChatScreen() {
       }
 
       setAdminOnlineStatus(statusMap);
-      .length);
     } catch (error) {
       }
   };
@@ -428,8 +424,6 @@ export default function ChatScreen() {
 
   const sendGroupMessage = async () => {
     if (!groupMessageText.trim()) return;
-
-    );
 
     try {
       const currentSite = await AuthService.getCurrentSite();
@@ -501,11 +495,8 @@ export default function ChatScreen() {
         admin.email.toLowerCase().includes(query.toLowerCase())
       );
 
-      ));
-
       // Garantir que o usuário atual não está na lista de busca
       const finalFiltered = filtered.filter(admin => admin.id !== currentUser?.id);
-      ));
 
       setFilteredAdmins(finalFiltered);
     }
@@ -865,7 +856,6 @@ export default function ChatScreen() {
     const onlineStatus = adminOnlineStatus[item.id];
 
     // Log de debug para verificar se está renderizando o usuário atual
-    - É usuário atual? ${item.id === currentUser?.id}`);
 
     // Formatar status online
     const getOnlineStatusText = () => {

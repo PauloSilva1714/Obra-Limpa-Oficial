@@ -58,10 +58,10 @@ class AddressService {
   async testApiConnection(): Promise<any> {
     try {
       const testUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=test&key=${getApiKey()}`;
-      
+
       const response = await fetch(testUrl);
       const data = await response.json();
-      
+
       return data;
     } catch (error) {
       return null;
@@ -81,7 +81,7 @@ class AddressService {
     }
 
     try {
-      
+
       // Tentativa 1: Busca padrão
       let params: { input: string; language: string; components: string; types?: string } = {
         input: query,
@@ -101,7 +101,7 @@ class AddressService {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       let data = await response.json();
 
       if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
@@ -124,7 +124,7 @@ class AddressService {
       };
 
       url = getPlacesApiUrl('autocomplete', params);
-      
+
       response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -135,7 +135,7 @@ class AddressService {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       data = await response.json();
 
       if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
@@ -151,9 +151,6 @@ class AddressService {
 
       return [];
     } catch (error) {
-      ,
-        apiKey: getApiKey() ? 'Configurada' : 'Não configurada'
-      });
       // Fallback para dados simulados em caso de erro
       return this.getMockSearchResults(query);
     }
@@ -175,7 +172,7 @@ class AddressService {
       };
 
       const url = getPlacesApiUrl('details', params);
-      
+
       const response = await fetch(url);
       const data = await response.json();
 
@@ -221,7 +218,7 @@ class AddressService {
 
       // Geocodificação reversa para obter o endereço
       const address = await this.reverseGeocode(location.coords.latitude, location.coords.longitude);
-      
+
       if (address) {
         return {
           id: 'current_location',
@@ -265,7 +262,7 @@ class AddressService {
       };
 
       const url = getGeocodingApiUrl(params);
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -297,10 +294,10 @@ class AddressService {
   async saveToRecent(address: AddressResult): Promise<void> {
     try {
       const recentAddresses = await this.getRecentAddresses();
-      
+
       // Remover se já existe
       const filtered = recentAddresses.filter(addr => addr.address !== address.address);
-      
+
       // Adicionar no início com timestamp
       const newRecent = {
         ...address,
@@ -308,9 +305,9 @@ class AddressService {
         type: 'recent' as const,
         timestamp: Date.now(),
       };
-      
+
       const updated = [newRecent, ...filtered].slice(0, 10); // Manter apenas 10 recentes
-      
+
       await AsyncStorage.setItem(this.RECENT_ADDRESSES_KEY, JSON.stringify(updated));
     } catch (error) {
       }
@@ -340,20 +337,20 @@ class AddressService {
   async addToFavorites(address: AddressResult): Promise<void> {
     try {
       const favorites = await this.getFavoriteAddresses();
-      
+
       // Verificar se já existe
       const exists = favorites.some(fav => fav.address === address.address);
       if (exists) {
         return;
       }
-      
+
       const newFavorite = {
         ...address,
         id: `favorite_${Date.now()}`,
         type: 'saved' as const,
         timestamp: Date.now(),
       };
-      
+
       const updated = [newFavorite, ...favorites];
       await AsyncStorage.setItem(this.FAVORITE_ADDRESSES_KEY, JSON.stringify(updated));
     } catch (error) {
@@ -464,7 +461,7 @@ class AddressService {
     ];
 
     // Filtrar resultados baseado na query
-    return mockResults.filter(result => 
+    return mockResults.filter(result =>
       result.title.toLowerCase().includes(query.toLowerCase()) ||
       result.subtitle.toLowerCase().includes(query.toLowerCase())
     );
@@ -495,4 +492,4 @@ class AddressService {
   }
 }
 
-export default AddressService.getInstance(); 
+export default AddressService.getInstance();
