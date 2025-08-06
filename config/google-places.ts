@@ -2,15 +2,17 @@
 // Chave real configurada para o projeto Obra Limpa
 import Constants from 'expo-constants';
 
-// INTERCEPTADOR GLOBAL - FORÇA PROXY EM TODAS AS CHAMADAS
+// INTERCEPTADOR GLOBAL - PERMITE JAVASCRIPT API, INTERCEPTA APENAS REST API
 if (typeof window !== 'undefined') {
   const originalFetch = window.fetch;
   window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     
-    // Se for uma chamada para Google Maps API, redireciona para o proxy
-    if (url.includes('maps.googleapis.com')) {
-      console.log('🚫 INTERCEPTANDO CHAMADA DIRETA PARA GOOGLE MAPS:', url);
+    // Se for uma chamada para Google Maps REST API (não JavaScript API), redireciona para o proxy
+    if (url.includes('maps.googleapis.com') && 
+        (url.includes('/place/') || url.includes('/geocode/')) &&
+        !url.includes('js?')) {
+      console.log('🚫 INTERCEPTANDO CHAMADA REST PARA GOOGLE MAPS:', url);
       
       // Extrair parâmetros da URL original
       const urlObj = new URL(url);
@@ -42,7 +44,7 @@ if (typeof window !== 'undefined') {
     return originalFetch(input, init);
   };
   
-  console.log('🔧 INTERCEPTADOR DE FETCH INSTALADO - Todas as chamadas para Google Maps serão redirecionadas para o proxy');
+  console.log('🔧 INTERCEPTADOR DE FETCH INSTALADO - Chamadas REST para Google Maps serão redirecionadas para o proxy');
 }
 
 export const GOOGLE_PLACES_CONFIG = {

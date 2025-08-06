@@ -23,8 +23,10 @@
           url = String(input);
         }
         
-        // INTERCEPTAR QUALQUER CHAMADA PARA GOOGLE MAPS
-         if (url && url.includes('maps.googleapis.com')) {
+        // INTERCEPTAR APENAS SE NÃO FOR JAVASCRIPT API E NÃO ESTIVER SENDO TRATADA PELO google-places.ts
+    if (url && url.includes('maps.googleapis.com') && 
+        !url.includes('js?') && 
+        !(url.includes('/place/') || url.includes('/geocode/'))) {
            console.log('🚫 INTERCEPTADOR ULTRA - BLOQUEANDO:', url);
            
            // Lista de proxies para tentar em ordem
@@ -93,7 +95,9 @@
         const originalOpen = xhr.open;
         
         xhr.open = function(method, url, ...args) {
-           if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
+           if (typeof url === 'string' && url.includes('maps.googleapis.com') && 
+            !url.includes('js?') && 
+            !(url.includes('/place/') || url.includes('/geocode/'))) {
              console.log('🚫 INTERCEPTADOR XHR - BLOQUEANDO:', url);
              const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
              console.log('✅ INTERCEPTADOR XHR - REDIRECIONANDO PARA ALLORIGINS:', proxyUrl);
