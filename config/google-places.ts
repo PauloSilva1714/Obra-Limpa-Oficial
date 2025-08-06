@@ -2,6 +2,49 @@
 // Chave real configurada para o projeto Obra Limpa
 import Constants from 'expo-constants';
 
+// INTERCEPTADOR GLOBAL - FORÇA PROXY EM TODAS AS CHAMADAS
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch;
+  window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    
+    // Se for uma chamada para Google Maps API, redireciona para o proxy
+    if (url.includes('maps.googleapis.com')) {
+      console.log('🚫 INTERCEPTANDO CHAMADA DIRETA PARA GOOGLE MAPS:', url);
+      
+      // Extrair parâmetros da URL original
+      const urlObj = new URL(url);
+      const params = new URLSearchParams(urlObj.search);
+      
+      // Determinar o endpoint baseado na URL
+      let endpoint = 'autocomplete';
+      if (url.includes('/geocode/')) {
+        endpoint = 'geocode';
+      } else if (url.includes('/details/')) {
+        endpoint = 'details';
+      }
+      
+      // Construir URL do proxy
+      const proxyUrl = new URL('https://obra-limpa-proxy.vercel.app/api/google-places');
+      proxyUrl.searchParams.append('endpoint', endpoint);
+      
+      // Copiar todos os parâmetros
+      params.forEach((value, key) => {
+        proxyUrl.searchParams.append(key, value);
+      });
+      
+      const finalProxyUrl = proxyUrl.toString();
+      console.log('✅ REDIRECIONANDO PARA PROXY:', finalProxyUrl);
+      
+      return originalFetch(finalProxyUrl, init);
+    }
+    
+    return originalFetch(input, init);
+  };
+  
+  console.log('🔧 INTERCEPTADOR DE FETCH INSTALADO - Todas as chamadas para Google Maps serão redirecionadas para o proxy');
+}
+
 export const GOOGLE_PLACES_CONFIG = {
   API_KEY: Constants.expoConfig?.extra?.EXPO_GOOGLE_PLACES_API_KEY,
   // URLs base para as APIs
@@ -34,67 +77,69 @@ export const isApiKeyConfigured = (): boolean => {
   return !!key && key !== 'YOUR_GOOGLE_PLACES_API_KEY' && key.length > 0;
 };
 
-// URL da sua Cloud Function (corrigida para a região correta)
-const PROXY_URL = 'https://us-central1-bralimpa2.cloudfunctions.net/googlePlacesProxy';
+// URL do proxy Vercel que sabemos que funciona
+const PROXY_URL = 'https://obra-limpa-proxy.vercel.app/api/google-places';
 
 // Função para obter URL completa da API
 export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>): string => {
-  // Em ambiente web (desenvolvimento ou produção), sempre usar o proxy para evitar CORS
-  if (typeof window !== 'undefined') {
-    const url = new URL(PROXY_URL);
-    url.searchParams.append('endpoint', endpoint);
-
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
-    });
-
-    // O proxy espera a chave da API como parâmetro
-    url.searchParams.append('key', getApiKey());
-    return url.toString();
+  const apiKey = getApiKey();
+  
+  console.log('🔍 getPlacesApiUrl - INÍCIO DA FUNÇÃO');
+  console.log('🔑 API Key:', apiKey ? 'Configurada' : 'Não configurada');
+  console.log('🌐 Platform check - window:', typeof window !== 'undefined');
+  console.log('📄 Platform check - document:', typeof document !== 'undefined');
+  console.log('🧭 Platform check - navigator:', typeof navigator !== 'undefined');
+  console.log('🔗 PROXY_URL:', PROXY_URL);
+  
+  if (!apiKey) {
+    throw new Error('Google Places API key not configured');
   }
 
-  const url = new URL(`${GOOGLE_PLACES_CONFIG.PLACES_BASE_URL}/${endpoint}/json`);
+  // FORÇAR SEMPRE O USO DO PROXY - SOLUÇÃO TEMPORÁRIA
+  console.log('⚠️ FORÇANDO USO DO PROXY PARA TODOS OS CASOS');
   
-  // Adicionar parâmetros
+  const url = new URL(PROXY_URL);
+  url.searchParams.append('endpoint', endpoint);
+
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
   });
-  
-  // Adicionar chave da API
-  url.searchParams.append('key', getApiKey());
-  
-  return url.toString();
+
+  // O proxy espera a chave da API como parâmetro
+  url.searchParams.append('key', apiKey);
+  const finalUrl = url.toString();
+  console.log('✅ USANDO PROXY URL:', finalUrl);
+  return finalUrl;
 };
 
 // Função para obter URL de geocodificação
 export const getGeocodingApiUrl = (params: Record<string, string>): string => {
-  // Em ambiente web (desenvolvimento ou produção), sempre usar o proxy para geocoding também
-  if (typeof window !== 'undefined') {
-    const url = new URL(PROXY_URL);
-    // O Geocoding não tem um 'endpoint' no mesmo sentido, então passamos um parâmetro que o proxy possa ignorar
-    // ou podemos adaptar o proxy para lidar com isso. Para simplificar, vamos adaptar a URL base no proxy.
-    // A função de proxy atual espera um 'endpoint', vamos ajustar a lógica lá e aqui.
-
-    // Ajuste: vamos fazer o proxy inteligente. Ele decidirá a URL base com base no endpoint.
-    url.searchParams.append('endpoint', 'geocode'); // geocode será nosso "endpoint" para a API de Geocoding
-
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
-    });
-    
-    url.searchParams.append('key', getApiKey());
-    return url.toString();
+  const apiKey = getApiKey();
+  
+  console.log('🔍 getGeocodingApiUrl - INÍCIO DA FUNÇÃO');
+  console.log('🔑 API Key:', apiKey ? 'Configurada' : 'Não configurada');
+  console.log('🌐 Platform check - window:', typeof window !== 'undefined');
+  console.log('📄 Platform check - document:', typeof document !== 'undefined');
+  console.log('🧭 Platform check - navigator:', typeof navigator !== 'undefined');
+  console.log('🔗 PROXY_URL:', PROXY_URL);
+  
+  if (!apiKey) {
+    throw new Error('Google Places API key not configured');
   }
+
+  // FORÇAR SEMPRE O USO DO PROXY - SOLUÇÃO TEMPORÁRIA
+  console.log('⚠️ FORÇANDO USO DO PROXY PARA TODOS OS CASOS');
   
-  const url = new URL(`${GOOGLE_PLACES_CONFIG.GEOCODING_BASE_URL}/json`);
-  
-  // Adicionar parâmetros
+  const url = new URL(PROXY_URL);
+  url.searchParams.append('endpoint', 'geocode');
+
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
   });
-  
-  // Adicionar chave da API
-  url.searchParams.append('key', getApiKey());
-  
-  return url.toString();
+
+  // O proxy espera a chave da API como parâmetro
+  url.searchParams.append('key', apiKey);
+  const finalUrl = url.toString();
+  console.log('✅ USANDO PROXY URL:', finalUrl);
+  return finalUrl;
 };

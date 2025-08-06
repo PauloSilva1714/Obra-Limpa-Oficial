@@ -34,17 +34,17 @@
         -moz-osx-font-smoothing: grayscale;
         -ms-overflow-style: scrollbar;
       }
-      
+
       /* Remove completamente o dropdown de rota do Expo Router no rodapé */
       [data-expo-router-root] > div[style*="position: fixed"] {
         display: none !important;
       }
-      
+
       /* Remove qualquer elemento fixo no rodapé (dropdown de rotas do Expo Router) */
       div[style*="position: fixed"][style*="bottom"] {
         display: none !important;
       }
-      
+
       /* Remove elementos com classes CSS específicas do Expo Router */
       .css-view-g5y9jx[role="tab"],
       .r-touchAction-1otgn73[role="tab"],
@@ -67,7 +67,7 @@
         left: -9999px !important;
         top: -9999px !important;
       }
-      
+
       /* Remove qualquer elemento que contenha 'admin/chat' no href ou texto */
       a[href*="admin/chat"],
       a[href="/admin/chat"],
@@ -90,17 +90,17 @@
         left: -9999px !important;
         top: -9999px !important;
       }
-      
+
       /* Remove elementos com ícone de seta para baixo (⏷) */
       *:contains("⏷") {
         display: none !important;
       }
-      
+
       /* Remove elementos com texto 'admin/chat' */
       *:contains("admin/chat") {
         display: none !important;
       }
-      
+
       /* Remove especificamente o elemento com as classes CSS do Expo Router */
       .css-view-g5y9jx.r-flex-13awgt0,
       .css-view-g5y9jx.r-touchAction-1otgn73.r-alignItems-1awozwy.r-flexDirection-18u37iz.r-justifyContent-1777fci.r-padding-1uu6nss,
@@ -132,7 +132,7 @@
       .css-view-g5y9jx.r-touchAction-1otgn73.r-alignItems-1awozwy.r-flexDirection-18u37iz.r-justifyContent-1777fci.r-padding-1uu6nss {
         display: none !important;
       }
-      
+
       /* ===== BLOQUEIO COMPLETO DO GOOGLE TRANSLATE ===== */
       /* Remove a barra de tradução do Google que aparece automaticamente */
       #google_translate_element,
@@ -184,7 +184,7 @@
         pointer-events: none !important;
         overflow: hidden !important;
       }
-      
+
       /* Remove qualquer iframe do Google Translate */
       iframe[name*="goog"],
       iframe[id*="goog"],
@@ -192,7 +192,7 @@
         display: none !important;
         visibility: hidden !important;
       }
-      
+
       /* Remove elementos que contenham texto relacionado ao Google Translate */
       *[title*="Google Translate"],
       *[alt*="Google Translate"],
@@ -201,13 +201,13 @@
         display: none !important;
         visibility: hidden !important;
       }
-      
+
       /* Força o body a não ter margin-top que pode ser adicionado pelo Google Translate */
       body {
         margin-top: 0 !important;
         padding-top: 0 !important;
       }
-      
+
       /* Remove qualquer elemento fixo no topo da página */
       body > div:first-child[style*="position: fixed"],
       body > div:first-child[style*="position: absolute"][style*="top: 0"] {
@@ -222,7 +222,7 @@
         const originalCreateElement = document.createElement;
         document.createElement = function(tagName) {
           const element = originalCreateElement.call(this, tagName);
-          
+
           // Bloqueia iframes do Google Translate
           if (tagName.toLowerCase() === 'iframe') {
             const originalSetAttribute = element.setAttribute;
@@ -233,7 +233,7 @@
               return originalSetAttribute.call(this, name, value);
             };
           }
-          
+
           // Bloqueia divs do Google Translate
           if (tagName.toLowerCase() === 'div') {
             const originalSetAttribute = element.setAttribute;
@@ -244,24 +244,24 @@
               return originalSetAttribute.call(this, name, value);
             };
           }
-          
+
           return element;
         };
-        
+
         // Bloqueia scripts do Google Translate
         const originalAppendChild = Node.prototype.appendChild;
         Node.prototype.appendChild = function(child) {
-          if (child.tagName === 'SCRIPT' && child.src && 
+          if (child.tagName === 'SCRIPT' && child.src &&
               (child.src.includes('translate.google') || child.src.includes('translate.googleapis'))) {
             return child; // Não adiciona o script
           }
-          if (child.tagName === 'IFRAME' && child.src && 
+          if (child.tagName === 'IFRAME' && child.src &&
               (child.src.includes('translate.google') || child.src.includes('translate.googleapis'))) {
             return child; // Não adiciona o iframe
           }
           return originalAppendChild.call(this, child);
         };
-        
+
         // Remove elementos do Google Translate que já existem
         function removeGoogleTranslateElements() {
           const selectors = [
@@ -285,7 +285,7 @@
             'span[class*="goog-te"]',
             'select[class*="goog-te"]'
           ];
-          
+
           selectors.forEach(selector => {
             try {
               document.querySelectorAll(selector).forEach(el => {
@@ -297,40 +297,40 @@
               // Ignora erros
             }
           });
-          
+
           // Remove margin-top do body que pode ser adicionado pelo Google Translate
           if (document.body) {
             document.body.style.marginTop = '0px';
             document.body.style.paddingTop = '0px';
           }
         }
-        
+
         // Executa a remoção periodicamente
         setInterval(removeGoogleTranslateElements, 100);
-        
+
         // Executa quando o DOM estiver pronto
         if (document.readyState === 'loading') {
           document.addEventListener('DOMContentLoaded', removeGoogleTranslateElements);
         } else {
           removeGoogleTranslateElements();
         }
-        
+
         // Executa quando a página carregar
         window.addEventListener('load', removeGoogleTranslateElements);
-        
+
         // Bloqueia variáveis globais do Google Translate
         Object.defineProperty(window, 'google', {
           get: function() { return undefined; },
           set: function() { return false; },
           configurable: false
         });
-        
+
         Object.defineProperty(window, 'googleTranslateElementInit', {
           get: function() { return undefined; },
           set: function() { return false; },
           configurable: false
         });
-        
+
         console.log('[Obra Limpa] Google Translate bloqueado completamente');
       })();
     </script>
@@ -341,7 +341,7 @@
         if (typeof window !== 'undefined') {
           // Lista de eventos que devem ser passivos por padrão
           const passiveEvents = ['wheel', 'mousewheel', 'touchstart', 'touchmove', 'touchend', 'scroll'];
-          
+
           // Função para forçar passive em options
           function forcePassiveOptions(type, options) {
             if (passiveEvents.includes(type)) {
@@ -355,14 +355,14 @@
             }
             return options;
           }
-          
+
           // Intercepta addEventListener em EventTarget (mais agressivo)
           if (window.EventTarget && EventTarget.prototype.addEventListener) {
             const originalAddEventListener = EventTarget.prototype.addEventListener;
-            
+
             EventTarget.prototype.addEventListener = function(type, listener, options) {
               const newOptions = forcePassiveOptions(type, options);
-              
+
               // Log para debug específico do VirtualizedList
               if (type === 'wheel' && typeof listener === 'function') {
                 const stack = new Error().stack;
@@ -370,61 +370,61 @@
                   console.log('[Obra Limpa] Interceptando wheel event do VirtualizedList - forçando passive: true');
                 }
               }
-              
+
               return originalAddEventListener.call(this, type, listener, newOptions);
             };
           }
-          
+
           // Intercepta addEventListener em HTMLElement especificamente
           if (window.HTMLElement && HTMLElement.prototype.addEventListener) {
             const originalHTMLAddEventListener = HTMLElement.prototype.addEventListener;
-            
+
             HTMLElement.prototype.addEventListener = function(type, listener, options) {
               const newOptions = forcePassiveOptions(type, options);
               return originalHTMLAddEventListener.call(this, type, listener, newOptions);
             };
           }
-          
+
           // Intercepta addEventListener em Document
           if (window.Document && Document.prototype.addEventListener) {
             const originalDocAddEventListener = Document.prototype.addEventListener;
-            
+
             Document.prototype.addEventListener = function(type, listener, options) {
               const newOptions = forcePassiveOptions(type, options);
               return originalDocAddEventListener.call(this, type, listener, newOptions);
             };
           }
-          
+
           // Intercepta addEventListener em Window
           if (window.addEventListener) {
             const originalWinAddEventListener = window.addEventListener;
-            
+
             window.addEventListener = function(type, listener, options) {
               const newOptions = forcePassiveOptions(type, options);
               return originalWinAddEventListener.call(this, type, listener, newOptions);
             };
           }
-          
+
           // Intercepta addEventListener em Element
           if (window.Element && Element.prototype.addEventListener) {
             const originalElemAddEventListener = Element.prototype.addEventListener;
-            
+
             Element.prototype.addEventListener = function(type, listener, options) {
               const newOptions = forcePassiveOptions(type, options);
               return originalElemAddEventListener.call(this, type, listener, newOptions);
             };
           }
-          
+
           // Interceptação específica para Node (caso o VirtualizedList use)
           if (window.Node && Node.prototype.addEventListener) {
             const originalNodeAddEventListener = Node.prototype.addEventListener;
-            
+
             Node.prototype.addEventListener = function(type, listener, options) {
               const newOptions = forcePassiveOptions(type, options);
               return originalNodeAddEventListener.call(this, type, listener, newOptions);
             };
           }
-          
+
           // Patch adicional para capturar chamadas diretas de addEventListener
           const originalAddEventListener = window.addEventListener;
           if (originalAddEventListener) {
@@ -433,11 +433,11 @@
               return originalAddEventListener.call(this, type, listener, newOptions);
             };
           }
-          
+
           console.log('[Obra Limpa] Event listeners configurados como passivos (versão ultra-robusta)');
         }
       })();
-      
+
       // Script para remover o rodapé de navegação do Expo Router
       function removeAdminChatLink() {
         try {
@@ -445,7 +445,7 @@
           document.querySelectorAll('a[href="/admin/chat"]').forEach(el => {
             if (el.parentElement) el.parentElement.removeChild(el);
           });
-          
+
           // Remove qualquer div que contenha esse link
           document.querySelectorAll('div').forEach(div => {
             if (div.innerHTML && div.innerHTML.includes('/admin/chat')) {
@@ -457,7 +457,7 @@
               div.style.left = '-9999px';
             }
           });
-          
+
           // Remove elementos com classes específicas do Expo Router
           document.querySelectorAll('.css-view-g5y9jx').forEach(el => {
             if (el.innerHTML && el.innerHTML.includes('admin/chat')) {
@@ -465,7 +465,7 @@
               el.style.visibility = 'hidden';
             }
           });
-          
+
           // Remove TODOS os elementos com role="tab" (rodapé completo)
           document.querySelectorAll('[role="tab"]').forEach(el => {
             el.style.display = 'none';
@@ -473,7 +473,7 @@
             el.style.width = '0';
             el.style.height = '0';
           });
-          
+
           // Remove elementos com o ícone ⏷
           document.querySelectorAll('*').forEach(el => {
             if (el.textContent && el.textContent.includes('⏷')) {
@@ -481,12 +481,12 @@
               el.style.visibility = 'hidden';
             }
           });
-          
+
         } catch (error) {
           console.log('Erro ao remover elemento:', error);
         }
       }
-      
+
       // Executa quando o DOM estiver pronto
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
@@ -497,7 +497,7 @@
         removeAdminChatLink();
         setInterval(removeAdminChatLink, 50);
       }
-      
+
       // Executa também quando a página carregar completamente
       window.addEventListener('load', function() {
         removeAdminChatLink();
@@ -512,7 +512,7 @@
         });
       }, 100);
     </script>
-    
+
     <!-- Script para garantir que o elemento root esteja disponível -->
     <script>
       // Garantir que o elemento root existe antes do React tentar renderizar
@@ -523,7 +523,7 @@
           document.body.appendChild(rootDiv);
         }
       });
-      
+
       // Fallback para casos onde o DOMContentLoaded já foi disparado
       if (document.readyState === 'loading') {
         // DOM ainda está carregando
@@ -536,10 +536,15 @@
         }
       }
     </script>
+
+    <!-- Google Places API -->
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR">
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    
+
     <!-- Script adicional para verificar se o root existe após o carregamento -->
     <script>
       window.addEventListener('load', function() {

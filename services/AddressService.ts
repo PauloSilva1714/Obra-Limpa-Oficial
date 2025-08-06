@@ -53,11 +53,69 @@ class AddressService {
   // ===== GOOGLE PLACES API =====
 
   /**
-   * Teste direto da API para debug
+   * Busca endereços usando Google Places JavaScript API (para web)
+   */
+  private async searchAddressesWeb(query: string): Promise<AddressResult[]> {
+    return new Promise((resolve) => {
+      try {
+        // Verificar se a API do Google está disponível
+        if (typeof window === 'undefined' || !window.google || !window.google.maps) {
+          console.log('Google Maps API não está disponível, usando dados simulados');
+          resolve(this.getMockSearchResults(query));
+          return;
+        }
+
+        // Criar o serviço de AutocompleteService
+        const service = new window.google.maps.places.AutocompleteService();
+
+        // Configurar as opções de busca
+        const request = {
+          input: query,
+          componentRestrictions: { country: 'br' },
+          language: 'pt-BR',
+          types: ['address'] // Buscar apenas endereços
+        };
+
+        console.log('Fazendo busca com Google Places JavaScript API:', request);
+
+        // Fazer a busca
+        service.getPlacePredictions(request, (predictions, status) => {
+          console.log('Status da busca:', status);
+          console.log('Predições recebidas:', predictions);
+
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+            const results = predictions.map((prediction, index) => ({
+              id: `web_search_${index}`,
+              title: prediction.structured_formatting.main_text,
+              subtitle: prediction.structured_formatting.secondary_text,
+              address: prediction.description,
+              placeId: prediction.place_id,
+              type: 'search' as const,
+            }));
+
+            console.log('Resultados processados:', results);
+            resolve(results);
+          } else {
+            console.log('Nenhum resultado encontrado ou erro:', status);
+            // Fallback para dados simulados
+            resolve(this.getMockSearchResults(query));
+          }
+        });
+
+      } catch (error) {
+        console.error('Erro ao usar Google Places JavaScript API:', error);
+        // Fallback para dados simulados
+        resolve(this.getMockSearchResults(query));
+      }
+    });
+  }
+
+  /**
+   * Teste da API usando o proxy
    */
   async testApiConnection(): Promise<any> {
     try {
-      const testUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=test&key=${getApiKey()}`;
+      const testUrl = getPlacesApiUrl('autocomplete', { input: 'test', language: 'pt-BR', components: 'country:br' });
 
       const response = await fetch(testUrl);
       const data = await response.json();
@@ -68,19 +126,13 @@ class AddressService {
     }
   }
 
-  /**
+    /**
    * Busca endereços usando Google Places Autocomplete API
    */
   async searchAddresses(query: string): Promise<AddressResult[]> {
     console.log('=== DEBUG AddressService.searchAddresses ===');
     console.log('Query:', query);
     console.log('API Key configurada:', isApiKeyConfigured());
-    console.log('API Key:', getApiKey());
-    
-    if (!isApiKeyConfigured()) {
-      console.log('API Key não configurada, usando dados mock');
-      return this.getMockSearchResults(query);
-    }
 
     if (!query || query.trim().length < 2) {
       console.log('Query muito curta, retornando array vazio');
@@ -89,6 +141,12 @@ class AddressService {
 
     try {
       console.log('Iniciando busca na API do Google Places...');
+
+      // Para web, usar Google Places JavaScript API
+      if (Platform.OS === 'web') {
+        console.log('Executando na web, usando Google Places JavaScript API');
+        return this.searchAddressesWeb(query);
+      }
 
       // Tentativa 1: Busca padrão
       let params: { input: string; language: string; components: string; types?: string } = {
@@ -472,6 +530,33 @@ class AddressService {
         subtitle: 'Moema, São Paulo - SP',
         type: 'search' as const,
         address: `${query}, 654, Moema, São Paulo - SP`,
+        lat: -23.5505,
+        lng: -46.6333,
+      },
+      {
+        id: 'mock6',
+        title: `${query}, 987`,
+        subtitle: 'Jardins, São Paulo - SP',
+        type: 'search' as const,
+        address: `${query}, 987, Jardins, São Paulo - SP`,
+        lat: -23.5505,
+        lng: -46.6333,
+      },
+      {
+        id: 'mock7',
+        title: `${query}, 555`,
+        subtitle: 'Vila Olímpia, São Paulo - SP',
+        type: 'search' as const,
+        address: `${query}, 555, Vila Olímpia, São Paulo - SP`,
+        lat: -23.5505,
+        lng: -46.6333,
+      },
+      {
+        id: 'mock8',
+        title: `${query}, 777`,
+        subtitle: 'Brooklin, São Paulo - SP',
+        type: 'search' as const,
+        address: `${query}, 777, Brooklin, São Paulo - SP`,
         lat: -23.5505,
         lng: -46.6333,
       },
