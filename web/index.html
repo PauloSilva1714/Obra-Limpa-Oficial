@@ -538,8 +538,23 @@
     </script>
 
     <!-- Google Places API -->
+    <script>
+      // Callback para quando a Google Maps API carregar
+      function initGoogleMaps() {
+        console.log('[Obra Limpa] Google Maps API carregada com sucesso!');
+        console.log('[Obra Limpa] window.google:', !!window.google);
+        console.log('[Obra Limpa] window.google.maps:', !!window.google?.maps);
+        console.log('[Obra Limpa] window.google.maps.places:', !!window.google?.maps?.places);
+        
+        // Disparar evento customizado para notificar que a API está pronta
+        window.dispatchEvent(new CustomEvent('googleMapsApiLoaded'));
+      }
+      
+      // Log para debug do carregamento
+      console.log('[Obra Limpa] Iniciando carregamento da Google Maps API...');
+    </script>
     <script async defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR">
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps">
     </script>
   </head>
   <body>

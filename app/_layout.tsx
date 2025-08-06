@@ -95,14 +95,26 @@
         const originalOpen = xhr.open;
         
         xhr.open = function(method, url, ...args) {
-           if (typeof url === 'string' && url.includes('maps.googleapis.com') && 
-            !url.includes('js?') && 
-            !(url.includes('/place/') || url.includes('/geocode/'))) {
-             console.log('🚫 INTERCEPTADOR XHR - BLOQUEANDO:', url);
-             const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-             console.log('✅ INTERCEPTADOR XHR - REDIRECIONANDO PARA ALLORIGINS:', proxyUrl);
-             return originalOpen.call(this, method, proxyUrl, ...args);
+           // Log todas as chamadas para Google Maps para debug
+           if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
+             console.log('🔍 [XHR INTERCEPTADOR] Chamada para Google Maps detectada:', url);
+             console.log('🔍 [XHR INTERCEPTADOR] Contém js?:', url.includes('js?'));
+             console.log('🔍 [XHR INTERCEPTADOR] Contém /place/:', url.includes('/place/'));
+             console.log('🔍 [XHR INTERCEPTADOR] Contém /geocode/:', url.includes('/geocode/'));
            }
+           
+           // Interceptar APENAS chamadas REST API (que contêm /place/ ou /geocode/) e NÃO contêm js?
+           if (typeof url === 'string' && url.includes('maps.googleapis.com') && 
+            (url.includes('/place/') || url.includes('/geocode/')) &&
+            !url.includes('js?')) {
+             console.log('🚫 [XHR INTERCEPTADOR] INTERCEPTANDO CHAMADA REST:', url);
+             const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+             console.log('✅ [XHR INTERCEPTADOR] REDIRECIONANDO PARA ALLORIGINS:', proxyUrl);
+             return originalOpen.call(this, method, proxyUrl, ...args);
+           } else if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
+             console.log('✅ [XHR INTERCEPTADOR] PERMITINDO CHAMADA DIRETA (JavaScript API):', url);
+           }
+           
            return originalOpen.call(this, method, url, ...args);
          };
         

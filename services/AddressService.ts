@@ -53,62 +53,128 @@ class AddressService {
   // ===== GOOGLE PLACES API =====
 
   /**
+   * Aguarda o carregamento da Google Maps API
+   */
+  private waitForGoogleMapsApi(): Promise<boolean> {
+    return new Promise((resolve) => {
+      // Se já está disponível, resolve imediatamente
+      if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
+        console.log('[AddressService] Google Maps API já está disponível');
+        resolve(true);
+        return;
+      }
+
+      console.log('[AddressService] Aguardando carregamento da Google Maps API...');
+      
+      let resolved = false;
+      
+      // Escutar o evento customizado de carregamento
+      const handleApiLoaded = () => {
+        if (!resolved) {
+          resolved = true;
+          console.log('[AddressService] Google Maps API carregada via evento customizado');
+          resolve(true);
+        }
+      };
+      
+      if (typeof window !== 'undefined') {
+        window.addEventListener('googleMapsApiLoaded', handleApiLoaded, { once: true });
+      }
+      
+      // Aguarda até 15 segundos pelo carregamento da API (fallback)
+      let attempts = 0;
+      const maxAttempts = 150; // 15 segundos (150 * 100ms)
+      
+      const checkApi = () => {
+        if (resolved) return;
+        
+        attempts++;
+        
+        if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
+          if (!resolved) {
+            resolved = true;
+            console.log(`[AddressService] Google Maps API carregada após ${attempts * 100}ms (polling)`);
+            resolve(true);
+          }
+          return;
+        }
+        
+        if (attempts >= maxAttempts) {
+          if (!resolved) {
+            resolved = true;
+            console.log('[AddressService] Timeout aguardando Google Maps API');
+            resolve(false);
+          }
+          return;
+        }
+        
+        setTimeout(checkApi, 100);
+      };
+      
+      checkApi();
+    });
+  }
+
+  /**
    * Busca endereços usando Google Places JavaScript API (para web)
    */
   private async searchAddressesWeb(query: string): Promise<AddressResult[]> {
-    return new Promise((resolve) => {
-      try {
-        // Verificar se a API do Google está disponível
-        if (typeof window === 'undefined' || !window.google || !window.google.maps) {
-          console.log('Google Maps API não está disponível, usando dados simulados');
-          resolve(this.getMockSearchResults(query));
-          return;
-        }
+    try {
+      // Aguardar o carregamento da API
+      const apiLoaded = await this.waitForGoogleMapsApi();
+      
+      if (!apiLoaded) {
+         console.log('Google Maps API não carregou a tempo, usando dados simulados');
+         return this.getMockSearchResults(query);
+       }
 
-        // Criar o serviço de AutocompleteService
-        const service = new window.google.maps.places.AutocompleteService();
+       console.log('Google Maps API disponível, iniciando busca...');
 
-        // Configurar as opções de busca
-        const request = {
-          input: query,
-          componentRestrictions: { country: 'br' },
-          language: 'pt-BR',
-          types: ['address'] // Buscar apenas endereços
-        };
+       // Criar o serviço de AutocompleteService
+       const service = new window.google.maps.places.AutocompleteService();
 
-        console.log('Fazendo busca com Google Places JavaScript API:', request);
+       // Configurar as opções de busca
+       const request = {
+         input: query,
+         componentRestrictions: { country: 'br' },
+         language: 'pt-BR',
+         types: ['address'] // Buscar apenas endereços
+       };
 
-        // Fazer a busca
-        service.getPlacePredictions(request, (predictions, status) => {
-          console.log('Status da busca:', status);
-          console.log('Predições recebidas:', predictions);
+       console.log('Fazendo busca com Google Places JavaScript API:', request);
 
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-            const results = predictions.map((prediction, index) => ({
-              id: `web_search_${index}`,
-              title: prediction.structured_formatting.main_text,
-              subtitle: prediction.structured_formatting.secondary_text,
-              address: prediction.description,
-              placeId: prediction.place_id,
-              type: 'search' as const,
-            }));
+       // Fazer a busca usando Promise
+       return new Promise((resolve) => {
+         service.getPlacePredictions(request, (predictions, status) => {
+           console.log('Status da busca:', status);
+           console.log('Predições recebidas:', predictions);
 
-            console.log('Resultados processados:', results);
-            resolve(results);
-          } else {
-            console.log('Nenhum resultado encontrado ou erro:', status);
-            // Fallback para dados simulados
-            resolve(this.getMockSearchResults(query));
-          }
-        });
+           if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+             const results = predictions.map((prediction, index) => ({
+               id: `web_search_${index}`,
+               title: prediction.structured_formatting.main_text,
+               subtitle: prediction.structured_formatting.secondary_text,
+               address: prediction.description,
+               placeId: prediction.place_id,
+               type: 'search' as const,
+             }));
 
-      } catch (error) {
-        console.error('Erro ao usar Google Places JavaScript API:', error);
-        // Fallback para dados simulados
-        resolve(this.getMockSearchResults(query));
-      }
-    });
-  }
+             console.log('Resultados processados:', results);
+             resolve(results);
+           } else {
+             console.log('Nenhum resultado encontrado ou erro:', status);
+             // Fallback para dados simulados
+             resolve(this.getMockSearchResults(query));
+           }
+         });
+       });
+
+     } catch (error) {
+       console.error('Erro ao usar Google Places JavaScript API:', error);
+       // Fallback para dados simulados
+       return this.getMockSearchResults(query);
+     }
+   }
 
   /**
    * Teste da API usando o proxy
