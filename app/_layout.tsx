@@ -111,10 +111,8 @@
              const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
              return originalOpen.call(this, method, proxyUrl, ...args);
            } else if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
-             // Para chamadas JavaScript API, usar proxy diferente
-             console.log('🚫 [XHR INTERCEPTADOR] INTERCEPTANDO CHAMADA JAVASCRIPT:', url);
-             const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-             return originalOpen.call(this, method, proxyUrl, ...args);
+             // Permitir chamadas JavaScript API diretamente
+             console.log('✅ [XHR INTERCEPTADOR] PERMITINDO CHAMADA JAVASCRIPT:', url);
            }
 
            return originalOpen.call(this, method, url, ...args);

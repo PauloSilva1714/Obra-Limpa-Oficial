@@ -92,9 +92,40 @@ class AddressService {
         window.addEventListener('googleMapsApiError', handleApiError, { once: true });
       }
 
-      // Reduzir timeout para 5 segundos (mais rápido)
+      // Tentar forçar o carregamento se não estiver disponível
+      if (typeof window !== 'undefined' && !window.google) {
+        console.log('[AddressService] Tentando forçar carregamento do Google Maps...');
+
+        // Verificar se o script já existe
+        const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+        if (!existingScript) {
+          const script = document.createElement('script');
+          script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR';
+          script.async = true;
+          script.defer = true;
+          script.onload = () => {
+            console.log('[AddressService] Script do Google Maps carregado via fallback');
+            // Aguardar um pouco para a API inicializar
+            setTimeout(() => {
+              if (window.google && window.google.maps && window.google.maps.places) {
+                console.log('[AddressService] Google Maps API carregada via fallback');
+                if (!resolved) {
+                  resolved = true;
+                  resolve(true);
+                }
+              }
+            }, 1000);
+          };
+          script.onerror = () => {
+            console.error('[AddressService] Erro ao carregar script do Google Maps via fallback');
+          };
+          document.head.appendChild(script);
+        }
+      }
+
+      // Aumentar timeout para 15 segundos para dar mais tempo
       let attempts = 0;
-      const maxAttempts = 50; // 5 segundos (50 * 100ms)
+      const maxAttempts = 150; // 15 segundos (150 * 100ms)
 
       const checkApi = () => {
         if (resolved) return;
@@ -113,7 +144,7 @@ class AddressService {
         if (attempts >= maxAttempts) {
           if (!resolved) {
             resolved = true;
-            console.log('[AddressService] Timeout aguardando Google Maps API (5s)');
+            console.log('[AddressService] Timeout aguardando Google Maps API (15s)');
             resolve(false);
           }
           return;
@@ -137,7 +168,38 @@ class AddressService {
       const apiLoaded = await this.waitForGoogleMapsApi();
 
       if (!apiLoaded) {
-         console.error('[AddressService.searchAddressesWeb] Google Maps API não carregou, usando dados simulados');
+         console.error('[AddressService.searchAddressesWeb] Google Maps API não carregou, tentando carregamento manual...');
+
+         // Tentar carregar manualmente
+         if (typeof window !== 'undefined' && !window.google) {
+           console.log('[AddressService.searchAddressesWeb] Tentando carregamento manual do Google Maps...');
+
+           const script = document.createElement('script');
+           script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR';
+           script.async = true;
+           script.defer = true;
+
+           return new Promise((resolve) => {
+             script.onload = () => {
+               console.log('[AddressService.searchAddressesWeb] Script carregado, aguardando inicialização...');
+               setTimeout(() => {
+                 if (window.google && window.google.maps && window.google.maps.places) {
+                   console.log('[AddressService.searchAddressesWeb] Google Maps API carregada manualmente, continuando busca...');
+                   this.searchAddressesWeb(query).then(resolve);
+                 } else {
+                   console.error('[AddressService.searchAddressesWeb] Google Maps API não inicializou, usando dados simulados');
+                   resolve(this.getMockSearchResults(query));
+                 }
+               }, 2000);
+             };
+             script.onerror = () => {
+               console.error('[AddressService.searchAddressesWeb] Erro ao carregar script manualmente, usando dados simulados');
+               resolve(this.getMockSearchResults(query));
+             };
+             document.head.appendChild(script);
+           });
+         }
+
          return this.getMockSearchResults(query);
        }
 
