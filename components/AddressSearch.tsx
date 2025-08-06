@@ -43,7 +43,7 @@ export default function AddressSearch({
   const [searchResults, setSearchResults] = useState<AddressResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -63,7 +63,7 @@ export default function AddressSearch({
         AddressService.getRecentAddresses(),
         AddressService.getFavoriteAddresses()
       ]);
-      
+
       setRecentAddresses(recent);
       setFavoriteAddresses(favorites);
     } catch (error) {
@@ -101,12 +101,12 @@ export default function AddressSearch({
 
   const handleSearch = async (text: string) => {
     setSearchText(text);
-    
+
     // Limpar timeout anterior
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     if (!text.trim() || text.length < 3) {
       setSearchResults([]);
       return;
@@ -142,15 +142,15 @@ export default function AddressSearch({
 
       // Salvar nos recentes
       await AddressService.saveToRecent(address);
-      
+
       // Atualizar o campo
       onChangeText(address.address);
       onAddressSelect(address.address, address.lat, address.lng);
-      
+
       // Fechar modal
       setShowModal(false);
       setIsFocused(false);
-      
+
       // Recarregar dados salvos
       await loadSavedAddresses();
     } catch (error) {
@@ -162,7 +162,7 @@ export default function AddressSearch({
     setIsLoadingLocation(true);
     try {
       const currentLocation = await AddressService.getCurrentLocation();
-      
+
       if (currentLocation) {
         await handleAddressSelect(currentLocation);
       } else {
@@ -175,10 +175,83 @@ export default function AddressSearch({
     }
   };
 
+    const handleDiagnoseApi = async () => {
+    console.log('🔧 [Diagnóstico] Iniciando diagnóstico da Google Places API');
+
+    // Primeiro, verificar se window.google existe
+    console.log('🔧 [Diagnóstico] window.google existe?', !!window.google);
+    console.log('🔧 [Diagnóstico] window.google.maps existe?', !!(window.google && window.google.maps));
+    console.log('🔧 [Diagnóstico] window.google.maps.places existe?', !!(window.google && window.google.maps && window.google.maps.places));
+
+    Alert.alert(
+      '🔧 Diagnóstico da Google Places API',
+      'Executando testes para identificar problemas...',
+      [
+        {
+          text: 'OK',
+          onPress: async () => {
+            try {
+              console.log('🔧 [Diagnóstico] Iniciando teste completo...');
+
+              // Testar a API JavaScript do Google Maps
+              const testResult = await AddressService.testGoogleMapsJavaScriptApi();
+
+              console.log('🔧 [Diagnóstico] Resultado do teste:', testResult);
+
+              let message = '';
+              if (testResult.success) {
+                message = `✅ API FUNCIONANDO!\n\nDetalhes:\n• Status: ${testResult.details.status}\n• Resultados encontrados: ${testResult.details.predictionsCount}\n• Primeiro resultado: ${testResult.details.firstResult}`;
+              } else {
+                message = `❌ PROBLEMA DETECTADO!\n\nDetalhes do erro:\n${testResult.details.error || 'Erro desconhecido'}`;
+
+                if (testResult.details.possibleIssues) {
+                  message += `\n\nPossíveis causas:\n${testResult.details.possibleIssues.map((issue: string) => `• ${issue}`).join('\n')}`;
+                }
+              }
+
+              Alert.alert(
+                '🔧 Resultado do Diagnóstico',
+                message,
+                [
+                  {
+                    text: 'Fechar',
+                    style: 'default'
+                  },
+                  {
+                    text: 'Ver Console',
+                    onPress: () => {
+                      console.log('🔧 [Diagnóstico] RESULTADO COMPLETO:', testResult);
+                      console.log('🔧 [Diagnóstico] Estado do window.google:', {
+                        hasGoogle: !!window.google,
+                        hasMaps: !!(window.google && window.google.maps),
+                        hasPlaces: !!(window.google && window.google.maps && window.google.maps.places)
+                      });
+                    }
+                  }
+                ]
+              );
+
+            } catch (error: any) {
+              console.error('🔧 [Diagnóstico] Erro durante o diagnóstico:', error);
+              Alert.alert(
+                '❌ Erro no Diagnóstico',
+                `Não foi possível executar o diagnóstico:\n\n${error.message || 'Erro desconhecido'}`
+              );
+            }
+          }
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+
   const handleToggleFavorite = async (address: AddressResult) => {
     try {
       const isFavorite = await AddressService.isFavorite(address.address);
-      
+
       if (isFavorite) {
         await AddressService.removeFromFavorites(address.id);
         Alert.alert('Sucesso', 'Endereço removido dos favoritos');
@@ -186,7 +259,7 @@ export default function AddressSearch({
         await AddressService.addToFavorites(address);
         Alert.alert('Sucesso', 'Endereço adicionado aos favoritos');
       }
-      
+
       // Recarregar favoritos
       const favorites = await AddressService.getFavoriteAddresses();
       setFavoriteAddresses(favorites);
@@ -197,7 +270,7 @@ export default function AddressSearch({
 
   const renderAddressItem = ({ item }: { item: AddressResult }) => {
     const isFavorite = favoriteAddresses.some(fav => fav.address === item.address);
-    
+
     return (
       <TouchableOpacity
         style={[styles.addressItem, { borderBottomColor: colors.border }]}
@@ -250,12 +323,12 @@ export default function AddressSearch({
     if (searchText) {
       return searchResults;
     }
-    
+
     const allData = [
       ...favoriteAddresses,
       ...recentAddresses.filter(addr => !favoriteAddresses.some(fav => fav.address === addr.address))
     ];
-    
+
     return allData;
   };
 
@@ -312,6 +385,18 @@ export default function AddressSearch({
         </Text>
       </TouchableOpacity>
 
+      {/* Botão de diagnóstico temporário */}
+      <TouchableOpacity
+        style={[styles.diagnosticButton, { borderColor: '#EF4444', backgroundColor: '#FEF2F2' }]}
+        onPress={handleDiagnoseApi}
+        activeOpacity={0.7}
+      >
+        <Search size={20} color="#EF4444" />
+        <Text style={[styles.diagnosticText, { color: '#EF4444' }]}>
+          🔧 Diagnosticar Google Places API
+        </Text>
+      </TouchableOpacity>
+
       {/* Lista de resultados */}
       <FlatList
         data={getDisplayData()}
@@ -357,9 +442,9 @@ export default function AddressSearch({
       <TouchableOpacity
         style={[
           styles.inputContainer,
-          { 
-            borderColor: isFocused ? colors.primary : colors.border, 
-            backgroundColor: colors.surface 
+          {
+            borderColor: isFocused ? colors.primary : colors.border,
+            backgroundColor: colors.surface
           },
           style
         ]}
@@ -397,7 +482,7 @@ export default function AddressSearch({
           },
         })}
       >
-        <View 
+        <View
           style={styles.modalOverlay}
           {...Platform.select({
             web: {
@@ -506,11 +591,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 16,
     backgroundColor: '#F9FAFB',
     borderColor: '#E5E7EB',
   },
   currentLocationText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    marginLeft: 12,
+  },
+  diagnosticButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  diagnosticText: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
     marginLeft: 12,
