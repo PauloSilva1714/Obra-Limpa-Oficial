@@ -24,30 +24,57 @@
         }
         
         // INTERCEPTAR QUALQUER CHAMADA PARA GOOGLE MAPS
-        if (url && url.includes('maps.googleapis.com')) {
-          console.log('🚫 INTERCEPTADOR ULTRA - BLOQUEANDO:', url);
-          
-          try {
-            // Usar proxy público que funciona com Expo
-            const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + url;
-            
-            console.log('✅ INTERCEPTADOR ULTRA - REDIRECIONANDO PARA CORS-ANYWHERE:', proxyUrl);
-            
-            return originalFetch(proxyUrl, {
-              ...init,
-              headers: {
-                ...init?.headers,
-                'X-Requested-With': 'XMLHttpRequest'
-              }
-            });
-          } catch (error) {
-            console.error('❌ ERRO NO INTERCEPTADOR:', error);
-            // Em caso de erro, tentar proxy alternativo
-            const altProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-            console.log('🔄 FALLBACK PARA ALLORIGINS:', altProxy);
-            return originalFetch(altProxy, init);
-          }
-        }
+         if (url && url.includes('maps.googleapis.com')) {
+           console.log('🚫 INTERCEPTADOR ULTRA - BLOQUEANDO:', url);
+           
+           // Lista de proxies para tentar em ordem
+           const proxies = [
+             'https://corsproxy.io/?',
+             'https://api.allorigins.win/raw?url=',
+             'https://cors-proxy.htmldriven.com/?url=',
+             'https://thingproxy.freeboard.io/fetch/'
+           ];
+           
+           // Função para tentar cada proxy
+           const tryProxy = async (proxyIndex = 0) => {
+             if (proxyIndex >= proxies.length) {
+               throw new Error('Todos os proxies falharam');
+             }
+             
+             const proxy = proxies[proxyIndex];
+             let proxyUrl;
+             
+             if (proxy.includes('allorigins') || proxy.includes('corsproxy.io') || proxy.includes('htmldriven')) {
+               proxyUrl = proxy + encodeURIComponent(url);
+             } else {
+               proxyUrl = proxy + url;
+             }
+             
+             console.log(`✅ TENTANDO PROXY ${proxyIndex + 1}/${proxies.length}:`, proxyUrl);
+             
+             try {
+               const response = await originalFetch(proxyUrl, {
+                 ...init,
+                 headers: {
+                   ...init?.headers,
+                   'Content-Type': 'application/json'
+                 }
+               });
+               
+               if (response.ok) {
+                 console.log(`✅ PROXY ${proxyIndex + 1} FUNCIONOU!`);
+                 return response;
+               } else {
+                 throw new Error(`Proxy ${proxyIndex + 1} retornou status ${response.status}`);
+               }
+             } catch (error) {
+               console.log(`❌ PROXY ${proxyIndex + 1} FALHOU:`, error.message);
+               return tryProxy(proxyIndex + 1);
+             }
+           };
+           
+           return tryProxy();
+         }
         
         return originalFetch(input, init);
       };
@@ -66,14 +93,14 @@
         const originalOpen = xhr.open;
         
         xhr.open = function(method, url, ...args) {
-          if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
-            console.log('🚫 INTERCEPTADOR XHR - BLOQUEANDO:', url);
-            const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + url;
-            console.log('✅ INTERCEPTADOR XHR - REDIRECIONANDO PARA CORS-ANYWHERE:', proxyUrl);
-            return originalOpen.call(this, method, proxyUrl, ...args);
-          }
-          return originalOpen.call(this, method, url, ...args);
-        };
+           if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
+             console.log('🚫 INTERCEPTADOR XHR - BLOQUEANDO:', url);
+             const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+             console.log('✅ INTERCEPTADOR XHR - REDIRECIONANDO PARA ALLORIGINS:', proxyUrl);
+             return originalOpen.call(this, method, proxyUrl, ...args);
+           }
+           return originalOpen.call(this, method, url, ...args);
+         };
         
         return xhr;
       };
