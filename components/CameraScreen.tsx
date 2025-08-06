@@ -322,7 +322,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
       try {
         let processedImageUri = capturedPhoto;
 
-        ===');
         // Se há crop aplicado, processar a imagem
         if (appliedEdits.crop) {
           // Obter dimensões da imagem original
@@ -395,8 +394,7 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
           );
 
           processedImageUri = croppedImage.uri;
-        } else {
-          }
+        }
 
         // Detectar se é vídeo pela URI
         const isVideoFile = capturedPhoto.toLowerCase().includes('.mp4') ||
@@ -511,7 +509,6 @@ export default function CameraScreen({ visible, onClose, onPhotoTaken, onVideoTa
 
   const applyCrop = async () => {
     try {
-      );
       // Aplicar o corte
       setAppliedEdits(prev => ({
         ...prev,
