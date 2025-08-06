@@ -109,14 +109,16 @@
             !url.includes('js?')) {
              console.log('🚫 [XHR INTERCEPTADOR] INTERCEPTANDO CHAMADA REST:', url);
              const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-             console.log('✅ [XHR INTERCEPTADOR] REDIRECIONANDO PARA ALLORIGINS:', proxyUrl);
              return originalOpen.call(this, method, proxyUrl, ...args);
            } else if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
-             console.log('✅ [XHR INTERCEPTADOR] PERMITINDO CHAMADA DIRETA (JavaScript API):', url);
+             // Para chamadas JavaScript API, usar proxy diferente
+             console.log('🚫 [XHR INTERCEPTADOR] INTERCEPTANDO CHAMADA JAVASCRIPT:', url);
+             const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+             return originalOpen.call(this, method, proxyUrl, ...args);
            }
 
            return originalOpen.call(this, method, url, ...args);
-         };
+        };
 
         return xhr;
       };
@@ -125,82 +127,11 @@
     }
   }
 
-  // Executar imediatamente
+  // Configurar interceptadores
   setupFetchInterceptor();
   setupXHRInterceptor();
 
-  // Também executar quando o DOM estiver pronto
-  if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', function() {
-        setupFetchInterceptor();
-        setupXHRInterceptor();
-      });
-    }
-  }
-
-  // E também quando a janela carregar
-  if (typeof window !== 'undefined') {
-    window.addEventListener('load', function() {
-      setupFetchInterceptor();
-      setupXHRInterceptor();
-    });
-  }
-
   console.log('✅ INTERCEPTADOR ULTRA AGRESSIVO CONFIGURADO');
-})();
-
-// 🗺️ CARREGAMENTO DIRETO DA GOOGLE MAPS API
-(function() {
-  'use strict';
-
-  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-    console.log('🗺️ [GoogleMaps] Iniciando carregamento direto da Google Maps API...');
-
-    // Remover scripts existentes do Google Maps (se houver)
-    const existingScripts = document.querySelectorAll('script[src*="maps.googleapis.com"]');
-    existingScripts.forEach(script => {
-      console.log('🗺️ [GoogleMaps] Removendo script existente:', script.src);
-      script.remove();
-    });
-
-    // Função callback para quando a API carregar
-    window.initGoogleMaps = function() {
-      console.log('🗺️ [GoogleMaps] ✅ Google Maps API carregada com sucesso!');
-      console.log('🗺️ [GoogleMaps] window.google:', !!window.google);
-      console.log('🗺️ [GoogleMaps] window.google.maps:', !!window.google?.maps);
-      console.log('🗺️ [GoogleMaps] window.google.maps.places:', !!window.google?.maps?.places);
-
-      // Disparar evento customizado
-      window.dispatchEvent(new CustomEvent('googleMapsApiLoaded', {
-        detail: { ready: !!(window.google && window.google.maps && window.google.maps.places) }
-      }));
-    };
-
-    // Callback de erro
-    window.handleGoogleMapsError = function() {
-      console.error('🗺️ [GoogleMaps] ❌ ERRO ao carregar Google Maps API');
-      window.dispatchEvent(new CustomEvent('googleMapsApiError'));
-    };
-
-    // Criar e inserir script da Google Maps API
-    const script = document.createElement('script');
-    script.async = true;
-    script.defer = true;
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps';
-    script.onerror = window.handleGoogleMapsError;
-
-    console.log('🗺️ [GoogleMaps] Inserindo script:', script.src);
-    document.head.appendChild(script);
-
-    // Monitor de timeout
-    setTimeout(() => {
-      if (!window.google || !window.google.maps || !window.google.maps.places) {
-        console.error('🗺️ [GoogleMaps] ⏰ TIMEOUT: API não carregou em 10 segundos');
-        window.handleGoogleMapsError();
-      }
-    }, 10000);
-  }
 })();
 
 import '@/config/pointer-events-fix';

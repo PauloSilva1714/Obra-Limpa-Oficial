@@ -40,22 +40,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // SINCRONIZAR photoURL DO FIREBASE AUTH
-
-        if (userData && firebaseUser.photoURL && firebaseUser.photoURL !== userData.photoURL) {
-          await AuthService.updateUserProfilePhoto(userData.id, firebaseUser.photoURL);
-          userData.photoURL = firebaseUser.photoURL;
-          await AuthService.saveUserToStorage(userData);
-        } else if (userData && !userData.photoURL && firebaseUser.photoURL) {
-          await AuthService.updateUserProfilePhoto(userData.id, firebaseUser.photoURL);
-          userData.photoURL = firebaseUser.photoURL;
-          await AuthService.saveUserToStorage(userData);
-        } else if (userData && firebaseUser.photoURL === null && userData.photoURL) {
-          try {
-            await AuthService.syncPhotoURLToFirebaseAuth(userData.photoURL);
-          } catch (error) {
+        // SINCRONIZAR photoURL DO FIREBASE AUTH COM FIRESTORE
+        if (userData) {
+          // Se o Firebase Auth tem photoURL mas o Firestore não tem
+          if (firebaseUser.photoURL && !userData.photoURL) {
+            await AuthService.updateUserProfilePhoto(userData.id, firebaseUser.photoURL);
+            userData.photoURL = firebaseUser.photoURL;
+            await AuthService.saveUserToStorage(userData);
+          }
+          // Se o Firestore tem photoURL mas o Firebase Auth não tem
+          else if (userData.photoURL && !firebaseUser.photoURL) {
+            try {
+              await AuthService.syncPhotoURLToFirebaseAuth(userData.photoURL);
+            } catch (error) {
+              console.log('Erro ao sincronizar photoURL para Firebase Auth:', error);
             }
-        } else {
+          }
+          // Se ambos têm photoURL mas são diferentes
+          else if (firebaseUser.photoURL && userData.photoURL && firebaseUser.photoURL !== userData.photoURL) {
+            // Priorizar o Firebase Auth (mais recente)
+            await AuthService.updateUserProfilePhoto(userData.id, firebaseUser.photoURL);
+            userData.photoURL = firebaseUser.photoURL;
+            await AuthService.saveUserToStorage(userData);
+          }
         }
 
         if (userData) {

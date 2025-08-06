@@ -538,77 +538,82 @@
       }
     </script>
 
-        <!-- Google Places API -->
+    <!-- Google Places API -->
     <script>
-      // Callback para quando a Google Maps API carregar
-      function initGoogleMaps() {
-        console.log('[Obra Limpa] 🎯 Google Maps API carregada com sucesso!');
-        console.log('[Obra Limpa] window.google:', !!window.google);
-        console.log('[Obra Limpa] window.google.maps:', !!window.google?.maps);
-        console.log('[Obra Limpa] window.google.maps.places:', !!window.google?.maps?.places);
+      // Verificar se o Google Maps já foi carregado para evitar duplicação
+      if (window.google && window.google.maps && window.google.maps.places) {
+        console.log('[Obra Limpa] Google Maps API já carregada, pulando carregamento duplicado');
+      } else {
+        // Callback para quando a Google Maps API carregar
+        function initGoogleMaps() {
+          console.log('[Obra Limpa] 🎯 Google Maps API carregada com sucesso!');
+          console.log('[Obra Limpa] window.google:', !!window.google);
+          console.log('[Obra Limpa] window.google.maps:', !!window.google?.maps);
+          console.log('[Obra Limpa] window.google.maps.places:', !!window.google?.maps?.places);
 
-        // Validar se a API está realmente funcionando
-        if (window.google && window.google.maps && window.google.maps.places) {
-          console.log('[Obra Limpa] ✅ Google Maps Places API totalmente carregada e funcional');
+          // Validar se a API está realmente funcionando
+          if (window.google && window.google.maps && window.google.maps.places) {
+            console.log('[Obra Limpa] ✅ Google Maps Places API totalmente carregada e funcional');
 
-          // Teste básico do AutocompleteService
-          try {
-            const service = new window.google.maps.places.AutocompleteService();
-            console.log('[Obra Limpa] ✅ AutocompleteService criado com sucesso');
-          } catch (error) {
-            console.error('[Obra Limpa] ❌ Erro ao criar AutocompleteService:', error);
+            // Teste básico do AutocompleteService
+            try {
+              const service = new window.google.maps.places.AutocompleteService();
+              console.log('[Obra Limpa] ✅ AutocompleteService criado com sucesso');
+            } catch (error) {
+              console.error('[Obra Limpa] ❌ Erro ao criar AutocompleteService:', error);
+            }
+          } else {
+            console.error('[Obra Limpa] ❌ Google Maps API carregou mas Places não está disponível');
           }
-        } else {
-          console.error('[Obra Limpa] ❌ Google Maps API carregou mas Places não está disponível');
+
+          // Disparar evento customizado para notificar que a API está pronta
+          window.dispatchEvent(new CustomEvent('googleMapsApiLoaded', {
+            detail: {
+              ready: !!(window.google && window.google.maps && window.google.maps.places)
+            }
+          }));
         }
 
-        // Disparar evento customizado para notificar que a API está pronta
-        window.dispatchEvent(new CustomEvent('googleMapsApiLoaded', {
-          detail: {
-            ready: !!(window.google && window.google.maps && window.google.maps.places)
-          }
-        }));
-      }
+        // Callback para lidar com erros de carregamento
+        function handleGoogleMapsError() {
+          console.error('[Obra Limpa] ❌ ERRO CRÍTICO: Falha ao carregar Google Maps API');
+          console.error('[Obra Limpa] URL tentada: https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps');
+          console.error('[Obra Limpa] Possíveis causas:');
+          console.error('[Obra Limpa] 1. API Key inválida ou sem permissões');
+          console.error('[Obra Limpa] 2. Cota da API excedida');
+          console.error('[Obra Limpa] 3. Problemas de rede ou bloqueio de domínio');
+          console.error('[Obra Limpa] 4. Configuração incorreta no Google Cloud Console');
 
-      // Callback para lidar com erros de carregamento
-      function handleGoogleMapsError() {
-        console.error('[Obra Limpa] ❌ ERRO CRÍTICO: Falha ao carregar Google Maps API');
-        console.error('[Obra Limpa] URL tentada: https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps');
-        console.error('[Obra Limpa] Possíveis causas:');
-        console.error('[Obra Limpa] 1. API Key inválida ou sem permissões');
-        console.error('[Obra Limpa] 2. Cota da API excedida');
-        console.error('[Obra Limpa] 3. Problemas de rede ou bloqueio de domínio');
-        console.error('[Obra Limpa] 4. Configuração incorreta no Google Cloud Console');
-
-        // Disparar evento de erro
-        window.dispatchEvent(new CustomEvent('googleMapsApiError'));
-      }
-
-      // Monitoramento avançado do carregamento
-      console.log('[Obra Limpa] 🚀 INICIANDO carregamento da Google Maps API...');
-      console.log('[Obra Limpa] 🔑 API Key sendo usada: AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA');
-      console.log('[Obra Limpa] 🌐 URL completa:', 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps');
-
-      // Verificar se já existe google no window antes do carregamento
-      console.log('[Obra Limpa] 🔍 Estado inicial do window.google:', !!window.google);
-
-      // Monitor de timeout personalizado
-      const loadingTimeout = setTimeout(() => {
-        if (!window.google || !window.google.maps || !window.google.maps.places) {
-          console.error('[Obra Limpa] ⏰ TIMEOUT: Google Maps API não carregou em 15 segundos');
-          console.error('[Obra Limpa] 📊 Estado atual:');
-          console.error('[Obra Limpa]   - window.google:', !!window.google);
-          console.error('[Obra Limpa]   - window.google.maps:', !!(window.google && window.google.maps));
-          console.error('[Obra Limpa]   - window.google.maps.places:', !!(window.google && window.google.maps && window.google.maps.places));
-          handleGoogleMapsError();
+          // Disparar evento de erro
+          window.dispatchEvent(new CustomEvent('googleMapsApiError'));
         }
-      }, 15000);
 
-      // Limpar timeout se carregou com sucesso
-      window.addEventListener('googleMapsApiLoaded', () => {
-        clearTimeout(loadingTimeout);
-        console.log('[Obra Limpa] ✅ Timeout cancelado - API carregou com sucesso');
-      });
+        // Monitoramento avançado do carregamento
+        console.log('[Obra Limpa] 🚀 INICIANDO carregamento da Google Maps API...');
+        console.log('[Obra Limpa] 🔑 API Key sendo usada: AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA');
+        console.log('[Obra Limpa] 🌐 URL completa:', 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps');
+
+        // Verificar se já existe google no window antes do carregamento
+        console.log('[Obra Limpa] 🔍 Estado inicial do window.google:', !!window.google);
+
+        // Monitor de timeout personalizado
+        const loadingTimeout = setTimeout(() => {
+          if (!window.google || !window.google.maps || !window.google.maps.places) {
+            console.error('[Obra Limpa] ⏰ TIMEOUT: Google Maps API não carregou em 15 segundos');
+            console.error('[Obra Limpa] 📊 Estado atual:');
+            console.error('[Obra Limpa]   - window.google:', !!window.google);
+            console.error('[Obra Limpa]   - window.google.maps:', !!(window.google && window.google.maps));
+            console.error('[Obra Limpa]   - window.google.maps.places:', !!(window.google && window.google.maps && window.google.maps.places));
+            handleGoogleMapsError();
+          }
+        }, 15000);
+
+        // Limpar timeout se carregou com sucesso
+        window.addEventListener('googleMapsApiLoaded', () => {
+          clearTimeout(loadingTimeout);
+          console.log('[Obra Limpa] ✅ Timeout cancelado - API carregou com sucesso');
+        });
+      }
     </script>
     <script async defer
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps"

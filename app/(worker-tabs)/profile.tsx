@@ -6,6 +6,8 @@ import { User, Building2, LogOut, Settings, Bell, Shield, CircleHelp as HelpCirc
 import { AuthService, User as UserData } from '@/services/AuthService';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadProfilePhoto } from '@/services/PhotoService';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TextInput as RNTextInput } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,6 +65,32 @@ export default function ProfileScreen() {
     };
     fetchUser();
   }, []);
+
+  // Listener para mudanças no usuário (atualização em tempo real)
+  useEffect(() => {
+    // Só criar o listener se userData?.id existir e for válido
+    if (!userData?.id || userData.id.trim() === '') {
+      console.log('[ProfileScreen] userData?.id não disponível, pulando listener');
+      return;
+    }
+
+    console.log('[ProfileScreen] Criando listener para usuário:', userData.id);
+
+    const unsubscribe = onSnapshot(doc(db, 'users', userData.id), (doc) => {
+      if (doc.exists()) {
+        const updatedUser = { id: doc.id, ...doc.data() } as UserData;
+        setUserData(updatedUser);
+        console.log('[ProfileScreen] Dados do usuário atualizados via listener');
+      }
+    }, (error) => {
+      console.error('[ProfileScreen] Erro no listener do Firestore:', error);
+    });
+
+    return () => {
+      console.log('[ProfileScreen] Removendo listener do Firestore');
+      unsubscribe();
+    };
+  }, [userData?.id]);
 
   useEffect(() => {
     if (userData?.photoURL && userData.photoURL !== prevPhotoURL.current) {
@@ -192,11 +220,11 @@ export default function ProfileScreen() {
       Alert.alert('Permissão necessária', 'Permita o acesso à galeria para escolher uma foto.');
       return;
     }
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({ 
-      mediaTypes: 'images', 
-      allowsEditing: true, 
-      aspect: [1, 1], 
-      quality: 0.7 
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7
     });
     if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
       await handleUploadImage(pickerResult.assets[0].uri);
@@ -261,14 +289,14 @@ export default function ProfileScreen() {
     </View>
   );
 
-  const MenuItem = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
-    showSwitch = false, 
-    switchValue = false, 
-    onSwitchChange 
+  const MenuItem = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    showSwitch = false,
+    switchValue = false,
+    onSwitchChange
   }: {
     icon: React.ReactNode;
     title: string;
@@ -278,8 +306,8 @@ export default function ProfileScreen() {
     switchValue?: boolean;
     onSwitchChange?: (value: boolean) => void;
   }) => (
-    <TouchableOpacity 
-      style={styles.menuItem} 
+    <TouchableOpacity
+      style={styles.menuItem}
       onPress={onPress}
       disabled={showSwitch}
     >
@@ -502,7 +530,7 @@ export default function ProfileScreen() {
             <Settings size={24} color="#111827" />
             <Text style={styles.sectionTitle}>Configurações do Sistema</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.settingRow}
             onPress={() => router.push('/admin/settings')}
           >

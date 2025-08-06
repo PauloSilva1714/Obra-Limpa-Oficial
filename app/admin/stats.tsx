@@ -78,7 +78,12 @@ export default function StatsScreen() {
   const { colors, isDarkMode } = useTheme();
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
-  const isSmallScreen = windowWidth < 600;
+
+  // Melhor responsividade baseada no tamanho da tela
+  const isSmallScreen = windowWidth < 480;
+  const isMediumScreen = windowWidth >= 480 && windowWidth < 768;
+  const isLargeScreen = windowWidth >= 768;
+
   // Animação de entrada
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
@@ -185,13 +190,38 @@ export default function StatsScreen() {
   };
 
   const StatCard = ({ icon: Icon, value, title, color, onPress }: { icon: any; value: number; title: string; color: string; onPress?: () => void }) => (
-    <Animated.View style={[styles.statCard, { backgroundColor: isDarkMode ? '#23272F' : '#fff', borderColor: color, opacity: fadeAnim }]}
+    <Animated.View style={[
+      styles.statCard,
+      {
+        backgroundColor: isDarkMode ? '#23272F' : '#fff',
+        borderColor: color,
+        opacity: fadeAnim,
+        // Responsividade dinâmica baseada no tamanho da tela
+        width: isSmallScreen ? '100%' : isMediumScreen ? '48%' : '30%',
+        minWidth: isSmallScreen ? 280 : isMediumScreen ? 200 : 220,
+        maxWidth: isSmallScreen ? 400 : isMediumScreen ? 250 : 300,
+        padding: isSmallScreen ? 20 : isMediumScreen ? 16 : 24,
+        marginBottom: isSmallScreen ? 12 : isMediumScreen ? 10 : 16,
+      }
+    ]}
       accessible accessibilityLabel={`${title}: ${value}`}
     >
       <TouchableOpacity style={{ alignItems: 'center' }} onPress={onPress} activeOpacity={0.8}>
-        <Icon size={36} color={color} style={{ marginBottom: 4 }} />
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-        <Text style={[styles.statTitle, { color }]}>{title}</Text>
+        <Icon size={isSmallScreen ? 32 : isMediumScreen ? 28 : 36} color={color} style={{ marginBottom: 4 }} />
+        <Text style={[
+          styles.statValue,
+          {
+            color,
+            fontSize: isSmallScreen ? 28 : isMediumScreen ? 24 : 32,
+          }
+        ]}>{value}</Text>
+        <Text style={[
+          styles.statTitle,
+          {
+            color,
+            fontSize: isSmallScreen ? 13 : isMediumScreen ? 12 : 16,
+          }
+        ]}>{title}</Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -220,7 +250,15 @@ export default function StatsScreen() {
         >
           <View style={styles.content}>
             <Text style={styles.sectionTitle}>Colaboradores</Text>
-            <View style={styles.statsGrid}>
+            <View style={[
+              styles.statsGrid,
+              {
+                flexDirection: isSmallScreen ? 'column' : 'row',
+                justifyContent: isSmallScreen ? 'center' : 'space-between',
+                alignItems: isSmallScreen ? 'center' : 'stretch',
+                gap: isSmallScreen ? 12 : isMediumScreen ? 10 : 16,
+              }
+            ]}>
               <StatCard
                 icon={Users}
                 value={stats.totalWorkers}
@@ -237,7 +275,15 @@ export default function StatsScreen() {
               />
             </View>
             <Text style={styles.sectionTitle}>Administradores</Text>
-            <View style={styles.statsGrid}>
+            <View style={[
+              styles.statsGrid,
+              {
+                flexDirection: isSmallScreen ? 'column' : 'row',
+                justifyContent: isSmallScreen ? 'center' : 'space-between',
+                alignItems: isSmallScreen ? 'center' : 'stretch',
+                gap: isSmallScreen ? 12 : isMediumScreen ? 10 : 16,
+              }
+            ]}>
               <StatCard
                 icon={Users}
                 value={stats.totalAdmins}
@@ -254,7 +300,16 @@ export default function StatsScreen() {
               />
             </View>
             <Text style={styles.sectionTitle}>Tarefas</Text>
-            <View style={[styles.statsGrid, isSmallScreen && { flexDirection: 'column', alignItems: 'center' }]}>
+            <View style={[
+              styles.statsGrid,
+              {
+                flexDirection: isSmallScreen ? 'column' : isMediumScreen ? 'row' : 'row',
+                flexWrap: isMediumScreen ? 'wrap' : 'nowrap',
+                justifyContent: isSmallScreen ? 'center' : 'space-between',
+                alignItems: isSmallScreen ? 'center' : 'stretch',
+                gap: isSmallScreen ? 12 : isMediumScreen ? 10 : 16,
+              }
+            ]}>
               <StatCard
                 icon={ClipboardCheck}
                 value={stats.totalTasks}
@@ -303,23 +358,52 @@ export default function StatsScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, minWidth: 320, maxWidth: 400, maxHeight: '80%' }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>{modalTitle}</Text>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 16,
+            padding: isSmallScreen ? 20 : 24,
+            minWidth: isSmallScreen ? 280 : 320,
+            maxWidth: isSmallScreen ? '90%' : 400,
+            maxHeight: '80%'
+          }}>
+            <Text style={{
+              fontSize: isSmallScreen ? 18 : 20,
+              fontWeight: 'bold',
+              marginBottom: 16,
+              textAlign: 'center'
+            }}>{modalTitle}</Text>
             {modalUsers.length === 0 ? (
               <Text style={{ color: '#888', textAlign: 'center' }}>Nenhum usuário encontrado.</Text>
             ) : (
               <ScrollView style={{ maxHeight: 350 }}>
                 {modalUsers.map((user, idx) => (
-                  <View key={user.id || idx} style={{ borderBottomWidth: idx < modalUsers.length - 1 ? 1 : 0, borderBottomColor: '#eee', paddingVertical: 10 }}>
-                    <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{user.name}</Text>
-                    <Text style={{ color: '#666', fontSize: 14 }}>{user.role === 'admin' ? 'Administrador' : 'Colaborador'}{user.funcao ? ` - ${user.funcao}` : ''}</Text>
-                    {Boolean(user.company) && <Text style={{ color: '#888', fontSize: 13 }}>Empresa: {user.company}</Text>}
+                  <View key={user.id || idx} style={{
+                    borderBottomWidth: idx < modalUsers.length - 1 ? 1 : 0,
+                    borderBottomColor: '#eee',
+                    paddingVertical: 10
+                  }}>
+                    <Text style={{
+                      fontWeight: 'bold',
+                      fontSize: isSmallScreen ? 14 : 16
+                    }}>{user.name}</Text>
+                    <Text style={{
+                      color: '#666',
+                      fontSize: isSmallScreen ? 12 : 14
+                    }}>{user.role === 'admin' ? 'Administrador' : 'Colaborador'}{user.funcao ? ` - ${user.funcao}` : ''}</Text>
+                    {Boolean(user.company) && <Text style={{
+                      color: '#888',
+                      fontSize: isSmallScreen ? 11 : 13
+                    }}>Empresa: {user.company}</Text>}
                   </View>
                 ))}
               </ScrollView>
             )}
             <TouchableOpacity style={{ marginTop: 18, alignSelf: 'center' }} onPress={() => setModalVisible(false)}>
-              <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 16 }}>Fechar</Text>
+              <Text style={{
+                color: '#2563EB',
+                fontWeight: 'bold',
+                fontSize: isSmallScreen ? 14 : 16
+              }}>Fechar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -363,15 +447,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: screenWidth < 400 ? 8 : 12,
+    gap: 12,
   },
   statCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: screenWidth < 400 ? 16 : 20,
-    marginBottom: screenWidth < 400 ? 8 : 12,
-    width: screenWidth < 400 ? '48%' : '48%',
-    minWidth: screenWidth < 400 ? 140 : 180,
+    padding: 20,
+    marginBottom: 12,
     alignItems: 'center',
     ...Platform.select({
       web: {
@@ -384,13 +466,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   statValue: {
-    fontSize: screenWidth < 400 ? 24 : 32,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#2196F3',
     marginTop: 8,
   },
   statTitle: {
-    fontSize: screenWidth < 400 ? 14 : 16,
+    fontSize: 16,
     color: '#444',
     marginTop: 4,
     textAlign: 'center',

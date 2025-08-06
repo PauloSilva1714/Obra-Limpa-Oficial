@@ -1224,8 +1224,18 @@ export class AuthService {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (!userDoc.exists()) return null;
-      return { id: userDoc.id, ...userDoc.data() } as User;
+
+      const userData = { id: userDoc.id, ...userDoc.data() } as User;
+
+      // Garantir que a photoURL está sempre atualizada
+      if (userData.photoURL) {
+        // Verificar se a URL ainda é válida (opcional)
+        console.log('Carregando usuário com photoURL:', userData.photoURL);
+      }
+
+      return userData;
     } catch (error) {
+      console.error('Erro ao buscar usuário por ID:', error);
       return null;
     }
   }
@@ -1985,14 +1995,27 @@ export class AuthService {
 
   static async updateUserProfilePhoto(userId: string, photoURL: string): Promise<void> {
     try {
+      console.log('Atualizando photoURL para usuário:', userId, 'URL:', photoURL);
+
+      // Atualizar no Firestore
       await updateDoc(doc(db, 'users', userId), { photoURL });
+
+      // Sincronizar com Firebase Auth
+      try {
+        await AuthService.syncPhotoURLToFirebaseAuth(photoURL);
+      } catch (authError) {
+        console.log('Erro ao sincronizar com Firebase Auth:', authError);
+      }
+
       // Buscar usuário atualizado e salvar no AsyncStorage
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
         await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(userData));
+        console.log('PhotoURL salva no AsyncStorage');
       }
     } catch (error) {
+      console.error('Erro ao atualizar photoURL:', error);
       throw error;
     }
   }
