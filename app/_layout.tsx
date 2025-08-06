@@ -1,3 +1,83 @@
+// 🚨 INTERCEPTADOR ULTRA AGRESSIVO - EXECUÇÃO IMEDIATA
+(function() {
+  'use strict';
+  
+  if (typeof window !== 'undefined' && window.fetch) {
+    console.log('🔥 INTERCEPTADOR ULTRA AGRESSIVO - INICIANDO');
+    
+    const originalFetch = window.fetch;
+    
+    window.fetch = function(input, init) {
+      let url;
+      
+      // Extrair URL de diferentes tipos de input
+      if (typeof input === 'string') {
+        url = input;
+      } else if (input instanceof URL) {
+        url = input.toString();
+      } else if (input instanceof Request) {
+        url = input.url;
+      } else {
+        url = String(input);
+      }
+      
+      // INTERCEPTAR QUALQUER CHAMADA PARA GOOGLE MAPS
+      if (url && url.includes('maps.googleapis.com')) {
+        console.log('🚫 INTERCEPTADOR ULTRA - BLOQUEANDO:', url);
+        
+        try {
+          const urlObj = new URL(url);
+          const searchParams = urlObj.searchParams;
+          
+          // Determinar endpoint
+          let endpoint = 'autocomplete';
+          if (url.includes('/geocode/')) endpoint = 'geocode';
+          if (url.includes('/details/')) endpoint = 'details';
+          if (url.includes('/place/autocomplete/')) endpoint = 'autocomplete';
+          
+          // Usar proxy público que funciona com Expo
+          const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + url;
+          
+          console.log('✅ INTERCEPTADOR ULTRA - REDIRECIONANDO PARA CORS-ANYWHERE:', proxyUrl);
+          
+          return originalFetch(proxyUrl, init);
+        } catch (error) {
+          console.error('❌ ERRO NO INTERCEPTADOR:', error);
+          // Em caso de erro, tentar proxy alternativo
+          const altProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+          console.log('🔄 FALLBACK PARA ALLORIGINS:', altProxy);
+          return originalFetch(altProxy, init);
+        }
+      }
+      
+      return originalFetch(input, init);
+    };
+    
+    console.log('✅ INTERCEPTADOR ULTRA AGRESSIVO INSTALADO');
+    
+    // Também interceptar XMLHttpRequest para máxima cobertura
+    const originalXHR = window.XMLHttpRequest;
+    window.XMLHttpRequest = function() {
+      const xhr = new originalXHR();
+      const originalOpen = xhr.open;
+      
+      xhr.open = function(method, url, ...args) {
+          if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
+            console.log('🚫 INTERCEPTADOR XHR - BLOQUEANDO:', url);
+            const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + url;
+            console.log('✅ INTERCEPTADOR XHR - REDIRECIONANDO PARA CORS-ANYWHERE:', proxyUrl);
+            return originalOpen.call(this, method, proxyUrl, ...args);
+          }
+          return originalOpen.call(this, method, url, ...args);
+        };
+      
+      return xhr;
+    };
+    
+    console.log('✅ INTERCEPTADOR XHR INSTALADO');
+  }
+})();
+
 import '@/config/pointer-events-fix';
 import '@/config/passive-events';
 import '@/config/console';
