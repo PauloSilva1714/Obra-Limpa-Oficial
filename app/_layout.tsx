@@ -2,66 +2,70 @@
 (function() {
   'use strict';
   
-  if (typeof window !== 'undefined' && window.fetch) {
-    console.log('🔥 INTERCEPTADOR ULTRA AGRESSIVO - INICIANDO');
-    
-    const originalFetch = window.fetch;
-    
-    window.fetch = function(input, init) {
-      let url;
+  console.log('🔥 INTERCEPTADOR ULTRA AGRESSIVO - INICIANDO');
+  
+  // Função para interceptar fetch
+  function setupFetchInterceptor() {
+    if (typeof window !== 'undefined' && window.fetch) {
+      const originalFetch = window.fetch;
       
-      // Extrair URL de diferentes tipos de input
-      if (typeof input === 'string') {
-        url = input;
-      } else if (input instanceof URL) {
-        url = input.toString();
-      } else if (input instanceof Request) {
-        url = input.url;
-      } else {
-        url = String(input);
-      }
-      
-      // INTERCEPTAR QUALQUER CHAMADA PARA GOOGLE MAPS
-      if (url && url.includes('maps.googleapis.com')) {
-        console.log('🚫 INTERCEPTADOR ULTRA - BLOQUEANDO:', url);
+      window.fetch = function(input, init) {
+        let url;
         
-        try {
-          const urlObj = new URL(url);
-          const searchParams = urlObj.searchParams;
-          
-          // Determinar endpoint
-          let endpoint = 'autocomplete';
-          if (url.includes('/geocode/')) endpoint = 'geocode';
-          if (url.includes('/details/')) endpoint = 'details';
-          if (url.includes('/place/autocomplete/')) endpoint = 'autocomplete';
-          
-          // Usar proxy público que funciona com Expo
-          const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + url;
-          
-          console.log('✅ INTERCEPTADOR ULTRA - REDIRECIONANDO PARA CORS-ANYWHERE:', proxyUrl);
-          
-          return originalFetch(proxyUrl, init);
-        } catch (error) {
-          console.error('❌ ERRO NO INTERCEPTADOR:', error);
-          // Em caso de erro, tentar proxy alternativo
-          const altProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-          console.log('🔄 FALLBACK PARA ALLORIGINS:', altProxy);
-          return originalFetch(altProxy, init);
+        // Extrair URL de diferentes tipos de input
+        if (typeof input === 'string') {
+          url = input;
+        } else if (input instanceof URL) {
+          url = input.toString();
+        } else if (input instanceof Request) {
+          url = input.url;
+        } else {
+          url = String(input);
         }
-      }
+        
+        // INTERCEPTAR QUALQUER CHAMADA PARA GOOGLE MAPS
+        if (url && url.includes('maps.googleapis.com')) {
+          console.log('🚫 INTERCEPTADOR ULTRA - BLOQUEANDO:', url);
+          
+          try {
+            // Usar proxy público que funciona com Expo
+            const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + url;
+            
+            console.log('✅ INTERCEPTADOR ULTRA - REDIRECIONANDO PARA CORS-ANYWHERE:', proxyUrl);
+            
+            return originalFetch(proxyUrl, {
+              ...init,
+              headers: {
+                ...init?.headers,
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+          } catch (error) {
+            console.error('❌ ERRO NO INTERCEPTADOR:', error);
+            // Em caso de erro, tentar proxy alternativo
+            const altProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+            console.log('🔄 FALLBACK PARA ALLORIGINS:', altProxy);
+            return originalFetch(altProxy, init);
+          }
+        }
+        
+        return originalFetch(input, init);
+      };
       
-      return originalFetch(input, init);
-    };
-    
-    console.log('✅ INTERCEPTADOR ULTRA AGRESSIVO INSTALADO');
-    
-    // Também interceptar XMLHttpRequest para máxima cobertura
-    const originalXHR = window.XMLHttpRequest;
-    window.XMLHttpRequest = function() {
-      const xhr = new originalXHR();
-      const originalOpen = xhr.open;
+      console.log('✅ INTERCEPTADOR FETCH INSTALADO');
+    }
+  }
+  
+  // Função para interceptar XMLHttpRequest
+  function setupXHRInterceptor() {
+    if (typeof window !== 'undefined' && window.XMLHttpRequest) {
+      const originalXHR = window.XMLHttpRequest;
       
-      xhr.open = function(method, url, ...args) {
+      window.XMLHttpRequest = function() {
+        const xhr = new originalXHR();
+        const originalOpen = xhr.open;
+        
+        xhr.open = function(method, url, ...args) {
           if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
             console.log('🚫 INTERCEPTADOR XHR - BLOQUEANDO:', url);
             const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + url;
@@ -70,12 +74,37 @@
           }
           return originalOpen.call(this, method, url, ...args);
         };
+        
+        return xhr;
+      };
       
-      return xhr;
-    };
-    
-    console.log('✅ INTERCEPTADOR XHR INSTALADO');
+      console.log('✅ INTERCEPTADOR XHR INSTALADO');
+    }
   }
+  
+  // Executar imediatamente
+  setupFetchInterceptor();
+  setupXHRInterceptor();
+  
+  // Também executar quando o DOM estiver pronto
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        setupFetchInterceptor();
+        setupXHRInterceptor();
+      });
+    }
+  }
+  
+  // E também quando a janela carregar
+  if (typeof window !== 'undefined') {
+    window.addEventListener('load', function() {
+      setupFetchInterceptor();
+      setupXHRInterceptor();
+    });
+  }
+  
+  console.log('✅ INTERCEPTADOR ULTRA AGRESSIVO CONFIGURADO');
 })();
 
 import '@/config/pointer-events-fix';
@@ -84,7 +113,6 @@ import '@/config/console';
 import '@/config/react-native-web';
 import '@/config/expo-router';
 import '@/config/expo-notifications';
-import '@/config/google-places'; // INTERCEPTADOR GLOBAL PARA GOOGLE MAPS
 import { useEffect, useState } from 'react';
 import { Stack, Slot } from 'expo-router';
 import Head from 'expo-router/head';
