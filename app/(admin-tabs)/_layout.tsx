@@ -18,20 +18,23 @@ export default function AdminTabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarShowLabel: true,
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 70 + insets.bottom,
-          paddingBottom: 10 + insets.bottom,
-          paddingTop: 10,
+          height: 80 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
+          paddingTop: 8,
+          minHeight: 80,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-          marginTop: 4,
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
+          display: 'flex',
         },
         tabBarIconStyle: {
           marginBottom: 2,
@@ -89,4 +92,4 @@ export default function AdminTabLayout() {
       />
     </Tabs>
   );
-} 
+}

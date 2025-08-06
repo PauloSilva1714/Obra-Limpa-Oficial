@@ -162,12 +162,13 @@ class AddressService {
        // Configurar as opções de busca
        const request = {
          input: query,
-         componentRestrictions: { country: 'br' },
-         language: 'pt-BR',
-         types: ['address'] // Buscar apenas endereços
+         language: 'pt-BR'
+         // Removendo types para buscar todos os tipos de lugares
        };
 
        console.log('[AddressService.searchAddressesWeb] Fazendo busca com Google Places JavaScript API:', request);
+       console.log('[AddressService.searchAddressesWeb] API Key configurada:', !!getApiKey());
+       console.log('[AddressService.searchAddressesWeb] API Key (primeiros 10 chars):', getApiKey().substring(0, 10) + '...');
 
        // Fazer a busca usando Promise com timeout
        return new Promise((resolve) => {
