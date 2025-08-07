@@ -1,64 +1,11 @@
 // Configuração do Google Places API
 // Chave real configurada para o projeto Obra Limpa
 import Constants from 'expo-constants';
-
-// INTERCEPTADOR GLOBAL - PERMITE JAVASCRIPT API, INTERCEPTA APENAS REST API
-if (typeof window !== 'undefined') {
-  const originalFetch = window.fetch;
-  window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-    
-    // Log todas as chamadas para Google Maps para debug
-    if (url.includes('maps.googleapis.com')) {
-      console.log('🔍 [INTERCEPTADOR] Chamada para Google Maps detectada:', url);
-      console.log('🔍 [INTERCEPTADOR] Contém /place/:', url.includes('/place/'));
-      console.log('🔍 [INTERCEPTADOR] Contém /geocode/:', url.includes('/geocode/'));
-      console.log('🔍 [INTERCEPTADOR] Contém js?:', url.includes('js?'));
-    }
-    
-    // Se for uma chamada para Google Maps REST API (não JavaScript API), redireciona para o proxy
-    if (url.includes('maps.googleapis.com') && 
-        (url.includes('/place/') || url.includes('/geocode/')) &&
-        !url.includes('js?')) {
-      console.log('🚫 [INTERCEPTADOR] INTERCEPTANDO CHAMADA REST PARA GOOGLE MAPS:', url);
-      
-      // Extrair parâmetros da URL original
-      const urlObj = new URL(url);
-      const params = new URLSearchParams(urlObj.search);
-      
-      // Determinar o endpoint baseado na URL
-      let endpoint = 'autocomplete';
-      if (url.includes('/geocode/')) {
-        endpoint = 'geocode';
-      } else if (url.includes('/details/')) {
-        endpoint = 'details';
-      }
-      
-      // Construir URL do proxy
-      const proxyUrl = new URL('https://obra-limpa-proxy.vercel.app/api/google-places');
-      proxyUrl.searchParams.append('endpoint', endpoint);
-      
-      // Copiar todos os parâmetros
-      params.forEach((value, key) => {
-        proxyUrl.searchParams.append(key, value);
-      });
-      
-      const finalProxyUrl = proxyUrl.toString();
-      console.log('✅ [INTERCEPTADOR] REDIRECIONANDO PARA PROXY:', finalProxyUrl);
-      
-      return originalFetch(finalProxyUrl, init);
-    } else if (url.includes('maps.googleapis.com')) {
-      console.log('✅ [INTERCEPTADOR] PERMITINDO CHAMADA DIRETA (JavaScript API):', url);
-    }
-    
-    return originalFetch(input, init);
-  };
-  
-  console.log('🔧 [INTERCEPTADOR] INTERCEPTADOR DE FETCH INSTALADO - Chamadas REST para Google Maps serão redirecionadas para o proxy');
-}
+import { Platform } from 'react-native';
 
 export const GOOGLE_PLACES_CONFIG = {
   API_KEY: Constants.expoConfig?.extra?.EXPO_GOOGLE_PLACES_API_KEY,
+  API_KEY_ANDROID: Constants.expoConfig?.extra?.EXPO_GOOGLE_PLACES_API_KEY_ANDROID,
   // URLs base para as APIs
   PLACES_BASE_URL: 'https://maps.googleapis.com/maps/api/place',
   GEOCODING_BASE_URL: 'https://maps.googleapis.com/maps/api/geocode',
@@ -74,13 +21,19 @@ export const GOOGLE_PLACES_CONFIG = {
 
 // Função para obter a chave da API (permite diferentes chaves para diferentes ambientes)
 export const getApiKey = (): string => {
-  // Em produção, você pode usar variáveis de ambiente
-  if (__DEV__) {
-    return GOOGLE_PLACES_CONFIG.API_KEY ?? '';
+  // Usar chave específica para Android quando estiver na plataforma Android
+  if (Platform.OS === 'android') {
+    const androidKey = GOOGLE_PLACES_CONFIG.API_KEY_ANDROID;
+    if (androidKey) {
+      console.log('🤖 Usando chave da API específica para Android');
+      return androidKey;
+    }
   }
   
-  // Para produção, use uma chave diferente se necessário
-  return GOOGLE_PLACES_CONFIG.API_KEY ?? '';
+  // Para web e iOS, ou fallback se não houver chave específica para Android
+  const webKey = GOOGLE_PLACES_CONFIG.API_KEY;
+  console.log(`🌐 Usando chave da API para ${Platform.OS}`);
+  return webKey ?? '';
 };
 
 // Função para validar se a chave está configurada
@@ -89,38 +42,44 @@ export const isApiKeyConfigured = (): boolean => {
   return !!key && key !== 'YOUR_GOOGLE_PLACES_API_KEY' && key.length > 0;
 };
 
-// URL do proxy Vercel que sabemos que funciona
-const PROXY_URL = 'https://obra-limpa-proxy.vercel.app/api/google-places';
-
 // Função para obter URL completa da API
 export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>): string => {
   const apiKey = getApiKey();
   
   console.log('🔍 getPlacesApiUrl - INÍCIO DA FUNÇÃO');
   console.log('🔑 API Key:', apiKey ? 'Configurada' : 'Não configurada');
-  console.log('🌐 Platform check - window:', typeof window !== 'undefined');
-  console.log('📄 Platform check - document:', typeof document !== 'undefined');
-  console.log('🧭 Platform check - navigator:', typeof navigator !== 'undefined');
-  console.log('🔗 PROXY_URL:', PROXY_URL);
+  console.log('🌐 Platform:', Platform.OS);
   
   if (!apiKey) {
     throw new Error('Google Places API key not configured');
   }
 
-  // FORÇAR SEMPRE O USO DO PROXY - SOLUÇÃO TEMPORÁRIA
-  console.log('⚠️ FORÇANDO USO DO PROXY PARA TODOS OS CASOS');
+  // Usar diretamente a API do Google Places
+  let baseUrl = '';
   
-  const url = new URL(PROXY_URL);
-  url.searchParams.append('endpoint', endpoint);
+  switch (endpoint) {
+    case 'autocomplete':
+      baseUrl = `${GOOGLE_PLACES_CONFIG.PLACES_BASE_URL}/autocomplete/json`;
+      break;
+    case 'details':
+      baseUrl = `${GOOGLE_PLACES_CONFIG.PLACES_BASE_URL}/details/json`;
+      break;
+    default:
+      throw new Error(`Endpoint não suportado: ${endpoint}`);
+  }
 
+  const url = new URL(baseUrl);
+  
+  // Adicionar parâmetros
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
   });
 
-  // O proxy espera a chave da API como parâmetro
+  // Adicionar chave da API
   url.searchParams.append('key', apiKey);
+  
   const finalUrl = url.toString();
-  console.log('✅ USANDO PROXY URL:', finalUrl);
+  console.log('✅ USANDO URL DIRETA DA API:', finalUrl);
   return finalUrl;
 };
 
@@ -130,28 +89,24 @@ export const getGeocodingApiUrl = (params: Record<string, string>): string => {
   
   console.log('🔍 getGeocodingApiUrl - INÍCIO DA FUNÇÃO');
   console.log('🔑 API Key:', apiKey ? 'Configurada' : 'Não configurada');
-  console.log('🌐 Platform check - window:', typeof window !== 'undefined');
-  console.log('📄 Platform check - document:', typeof document !== 'undefined');
-  console.log('🧭 Platform check - navigator:', typeof navigator !== 'undefined');
-  console.log('🔗 PROXY_URL:', PROXY_URL);
+  console.log('🌐 Platform:', Platform.OS);
   
   if (!apiKey) {
     throw new Error('Google Places API key not configured');
   }
 
-  // FORÇAR SEMPRE O USO DO PROXY - SOLUÇÃO TEMPORÁRIA
-  console.log('⚠️ FORÇANDO USO DO PROXY PARA TODOS OS CASOS');
-  
-  const url = new URL(PROXY_URL);
-  url.searchParams.append('endpoint', 'geocode');
+  // Usar diretamente a API de Geocodificação do Google
+  const url = new URL(`${GOOGLE_PLACES_CONFIG.GEOCODING_BASE_URL}/json`);
 
+  // Adicionar parâmetros
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
   });
 
-  // O proxy espera a chave da API como parâmetro
+  // Adicionar chave da API
   url.searchParams.append('key', apiKey);
+  
   const finalUrl = url.toString();
-  console.log('✅ USANDO PROXY URL:', finalUrl);
+  console.log('✅ USANDO URL DIRETA DA API DE GEOCODIFICAÇÃO:', finalUrl);
   return finalUrl;
 };

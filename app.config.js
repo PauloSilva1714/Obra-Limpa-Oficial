@@ -94,6 +94,7 @@ module.exports = {
       appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
     },
     EXPO_GOOGLE_PLACES_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
+    EXPO_GOOGLE_PLACES_API_KEY_ANDROID: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY_ANDROID,
     eas: {
       projectId: "daa03d49-e8d2-40c2-a009-ebd5176ff283"
     }

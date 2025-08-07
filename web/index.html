@@ -583,11 +583,13 @@
         console.log('[Obra Limpa] 🚀 INICIANDO carregamento da Google Maps API...');
         
         // Obter a chave da API das variáveis de ambiente
-        const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+        const apiKey = '%EXPO_PUBLIC_GOOGLE_PLACES_API_KEY%';
         console.log('[Obra Limpa] 🔑 Chave API configurada:', apiKey ? '✅ Sim' : '❌ Não');
+        console.log('[Obra Limpa] 🔑 Valor da chave:', apiKey);
         
-        if (!apiKey) {
-          console.error('[Obra Limpa] ❌ ERRO: VITE_GOOGLE_PLACES_API_KEY não está definida');
+        if (!apiKey || apiKey === '%EXPO_PUBLIC_GOOGLE_PLACES_API_KEY%') {
+          console.error('[Obra Limpa] ❌ ERRO: EXPO_PUBLIC_GOOGLE_PLACES_API_KEY não foi substituída corretamente');
+          console.error('[Obra Limpa] ❌ Valor atual:', apiKey);
           return;
         }
 
