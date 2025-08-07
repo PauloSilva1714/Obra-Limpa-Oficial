@@ -364,14 +364,6 @@
             EventTarget.prototype.addEventListener = function(type, listener, options) {
               const newOptions = forcePassiveOptions(type, options);
 
-              // Log para debug específico do VirtualizedList
-              if (type === 'wheel' && typeof listener === 'function') {
-                const stack = new Error().stack;
-                if (stack && stack.includes('VirtualizedList')) {
-                  console.log('[Obra Limpa] Interceptando wheel event do VirtualizedList - forçando passive: true');
-                }
-              }
-
               return originalAddEventListener.call(this, type, listener, newOptions);
             };
           }
@@ -435,7 +427,6 @@
             };
           }
 
-          console.log('[Obra Limpa] Event listeners configurados como passivos (versão ultra-robusta)');
         }
       })();
 
@@ -484,7 +475,7 @@
           });
 
         } catch (error) {
-          console.log('Erro ao remover elemento:', error);
+          console.error('Erro ao remover elemento:', error);
         }
       }
 
@@ -632,8 +623,6 @@
           const newRoot = document.createElement('div');
           newRoot.id = 'root';
           document.body.appendChild(newRoot);
-        } else {
-          console.log('Elemento root encontrado com sucesso');
         }
       });
     </script>

@@ -105,8 +105,6 @@ function walkDirectory(dir) {
 }
 
 // Iniciar processamento
-console.log('🧹 Iniciando limpeza avançada de console.log...\n');
-
 const startTime = Date.now();
 walkDirectory('.');
 

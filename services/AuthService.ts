@@ -1230,7 +1230,6 @@ export class AuthService {
       // Garantir que a photoURL está sempre atualizada
       if (userData.photoURL) {
         // Verificar se a URL ainda é válida (opcional)
-        console.log('Carregando usuário com photoURL:', userData.photoURL);
       }
 
       return userData;
@@ -1995,8 +1994,6 @@ export class AuthService {
 
   static async updateUserProfilePhoto(userId: string, photoURL: string): Promise<void> {
     try {
-      console.log('Atualizando photoURL para usuário:', userId, 'URL:', photoURL);
-
       // Atualizar no Firestore
       await updateDoc(doc(db, 'users', userId), { photoURL });
 
@@ -2004,7 +2001,6 @@ export class AuthService {
       try {
         await AuthService.syncPhotoURLToFirebaseAuth(photoURL);
       } catch (authError) {
-        console.log('Erro ao sincronizar com Firebase Auth:', authError);
       }
 
       // Buscar usuário atualizado e salvar no AsyncStorage
@@ -2012,7 +2008,6 @@ export class AuthService {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         await AsyncStorage.setItem(AuthService.USER_KEY, JSON.stringify(userData));
-        console.log('PhotoURL salva no AsyncStorage');
       }
     } catch (error) {
       console.error('Erro ao atualizar photoURL:', error);

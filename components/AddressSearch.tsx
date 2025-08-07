@@ -176,13 +176,6 @@ export default function AddressSearch({
   };
 
     const handleDiagnoseApi = async () => {
-    console.log('🔧 [Diagnóstico] Iniciando diagnóstico da Google Places API');
-
-    // Primeiro, verificar se window.google existe
-    console.log('🔧 [Diagnóstico] window.google existe?', !!window.google);
-    console.log('🔧 [Diagnóstico] window.google.maps existe?', !!(window.google && window.google.maps));
-    console.log('🔧 [Diagnóstico] window.google.maps.places existe?', !!(window.google && window.google.maps && window.google.maps.places));
-
     Alert.alert(
       '🔧 Diagnóstico da Google Places API',
       'Executando testes para identificar problemas...',
@@ -191,12 +184,8 @@ export default function AddressSearch({
           text: 'OK',
           onPress: async () => {
             try {
-              console.log('🔧 [Diagnóstico] Iniciando teste completo...');
-
               // Testar a API JavaScript do Google Maps
               const testResult = await AddressService.testGoogleMapsJavaScriptApi();
-
-              console.log('🔧 [Diagnóstico] Resultado do teste:', testResult);
 
               let message = '';
               if (testResult.success) {
