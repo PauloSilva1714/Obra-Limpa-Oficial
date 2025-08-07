@@ -25,6 +25,7 @@ android/build/
 android/app/build/
 android/.gradle/
 ios/build/
+dist/
 
 # Gradle builds inside node_modules
 node_modules/**/.gradle/
