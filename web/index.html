@@ -568,7 +568,7 @@
         // Callback para lidar com erros de carregamento
         function handleGoogleMapsError() {
           console.error('[Obra Limpa] ❌ ERRO CRÍTICO: Falha ao carregar Google Maps API');
-          console.error('[Obra Limpa] URL tentada: https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps');
+          console.error('[Obra Limpa] URL tentada:', apiUrl);
           console.error('[Obra Limpa] Possíveis causas:');
           console.error('[Obra Limpa] 1. API Key inválida ou sem permissões');
           console.error('[Obra Limpa] 2. Cota da API excedida');
@@ -581,8 +581,19 @@
 
         // Monitoramento avançado do carregamento
         console.log('[Obra Limpa] 🚀 INICIANDO carregamento da Google Maps API...');
-        console.log('[Obra Limpa] 🔑 API Key sendo usada: AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA');
-        console.log('[Obra Limpa] 🌐 URL completa:', 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps');
+        
+        // Obter a chave da API das variáveis de ambiente
+        const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+        console.log('[Obra Limpa] 🔑 Chave API configurada:', apiKey ? '✅ Sim' : '❌ Não');
+        
+        if (!apiKey) {
+          console.error('[Obra Limpa] ❌ ERRO: VITE_GOOGLE_PLACES_API_KEY não está definida');
+          return;
+        }
+
+        // Construir URL da API
+        const apiUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=pt&region=BR&callback=initGoogleMaps`;
+        console.log('[Obra Limpa] 🌐 URL completa:', apiUrl);
 
         // Verificar se já existe google no window antes do carregamento
         console.log('[Obra Limpa] 🔍 Estado inicial do window.google:', !!window.google);
@@ -604,11 +615,15 @@
           clearTimeout(loadingTimeout);
           console.log('[Obra Limpa] ✅ Timeout cancelado - API carregou com sucesso');
         });
+
+        // Criar e inserir o script dinamicamente
+        const script = document.createElement('script');
+        script.async = true;
+        script.defer = true;
+        script.src = apiUrl;
+        script.onerror = handleGoogleMapsError;
+        document.head.appendChild(script);
       }
-    </script>
-    <script async defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR&callback=initGoogleMaps"
-      onerror="handleGoogleMapsError()">
     </script>
   </head>
   <body>

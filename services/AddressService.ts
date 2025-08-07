@@ -93,7 +93,8 @@ class AddressService {
         const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
         if (!existingScript) {
           const script = document.createElement('script');
-          script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR';
+          const apiKey = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY || '';
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=pt&region=BR`;
           script.async = true;
           script.defer = true;
           script.onload = () => {
@@ -158,7 +159,8 @@ class AddressService {
          // Tentar carregar manualmente
          if (typeof window !== 'undefined' && !window.google) {
            const script = document.createElement('script');
-           script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR';
+           const apiKey = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY || '';
+           script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=pt&region=BR`;
            script.async = true;
            script.defer = true;
 

@@ -77,8 +77,11 @@ export class FirebaseErrorHandler {
   private static async handleAuthError(error: any, operation: string): Promise<any> {
     // Redireciona para login se necessário
     if (typeof window !== 'undefined') {
-      // Limpa dados de autenticação locais
-      localStorage.removeItem('firebase:authUser:AIzaSyDHJm219NVmB5KdQcLYRgOrp_coC_KbycQ:[DEFAULT]');
+      // Limpa dados de autenticação locais usando a API key das variáveis de ambiente
+      const apiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '';
+      if (apiKey) {
+        localStorage.removeItem(`firebase:authUser:${apiKey}:[DEFAULT]`);
+      }
       
       // Redireciona para login
       window.location.href = '/login';
@@ -130,4 +133,4 @@ export class FirebaseErrorHandler {
       return false;
     }
   }
-} 
+}
