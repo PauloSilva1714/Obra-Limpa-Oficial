@@ -70,24 +70,19 @@ export default function ProfileScreen() {
   useEffect(() => {
     // Só criar o listener se userData?.id existir e for válido
     if (!userData?.id || userData.id.trim() === '') {
-      console.log('[ProfileScreen] userData?.id não disponível, pulando listener');
       return;
     }
-
-    console.log('[ProfileScreen] Criando listener para usuário:', userData.id);
 
     const unsubscribe = onSnapshot(doc(db, 'users', userData.id), (doc) => {
       if (doc.exists()) {
         const updatedUser = { id: doc.id, ...doc.data() } as UserData;
         setUserData(updatedUser);
-        console.log('[ProfileScreen] Dados do usuário atualizados via listener');
       }
     }, (error) => {
       console.error('[ProfileScreen] Erro no listener do Firestore:', error);
     });
 
     return () => {
-      console.log('[ProfileScreen] Removendo listener do Firestore');
       unsubscribe();
     };
   }, [userData?.id]);
