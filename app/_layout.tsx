@@ -2,8 +2,6 @@
 (function() {
   'use strict';
 
-  console.log('🔥 INTERCEPTADOR ULTRA AGRESSIVO - INICIANDO');
-
   // Função para interceptar fetch
   function setupFetchInterceptor() {
     if (typeof window !== 'undefined' && window.fetch) {
@@ -27,8 +25,6 @@
     if (url && url.includes('maps.googleapis.com') &&
         !url.includes('js?') &&
         !(url.includes('/place/') || url.includes('/geocode/'))) {
-           console.log('🚫 INTERCEPTADOR ULTRA - BLOQUEANDO:', url);
-
            // Lista de proxies para tentar em ordem
            const proxies = [
              'https://corsproxy.io/?',
@@ -52,8 +48,6 @@
                proxyUrl = proxy + url;
              }
 
-             console.log(`✅ TENTANDO PROXY ${proxyIndex + 1}/${proxies.length}:`, proxyUrl);
-
              try {
                const response = await originalFetch(proxyUrl, {
                  ...init,
@@ -64,13 +58,11 @@
                });
 
                if (response.ok) {
-                 console.log(`✅ PROXY ${proxyIndex + 1} FUNCIONOU!`);
                  return response;
                } else {
                  throw new Error(`Proxy ${proxyIndex + 1} retornou status ${response.status}`);
                }
              } catch (error) {
-               console.log(`❌ PROXY ${proxyIndex + 1} FALHOU:`, error.message);
                return tryProxy(proxyIndex + 1);
              }
            };
@@ -80,8 +72,6 @@
 
         return originalFetch(input, init);
       };
-
-      console.log('✅ INTERCEPTADOR FETCH INSTALADO');
     }
   }
 
@@ -95,24 +85,14 @@
         const originalOpen = xhr.open;
 
         xhr.open = function(method, url, ...args) {
-           // Log todas as chamadas para Google Maps para debug
-           if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
-             console.log('🔍 [XHR INTERCEPTADOR] Chamada para Google Maps detectada:', url);
-             console.log('🔍 [XHR INTERCEPTADOR] Contém js?:', url.includes('js?'));
-             console.log('🔍 [XHR INTERCEPTADOR] Contém /place/:', url.includes('/place/'));
-             console.log('🔍 [XHR INTERCEPTADOR] Contém /geocode/:', url.includes('/geocode/'));
-           }
-
            // Interceptar APENAS chamadas REST API (que contêm /place/ ou /geocode/) e NÃO contêm js?
            if (typeof url === 'string' && url.includes('maps.googleapis.com') &&
             (url.includes('/place/') || url.includes('/geocode/')) &&
             !url.includes('js?')) {
-             console.log('🚫 [XHR INTERCEPTADOR] INTERCEPTANDO CHAMADA REST:', url);
              const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
              return originalOpen.call(this, method, proxyUrl, ...args);
            } else if (typeof url === 'string' && url.includes('maps.googleapis.com')) {
              // Permitir chamadas JavaScript API diretamente
-             console.log('✅ [XHR INTERCEPTADOR] PERMITINDO CHAMADA JAVASCRIPT:', url);
            }
 
            return originalOpen.call(this, method, url, ...args);
@@ -120,16 +100,12 @@
 
         return xhr;
       };
-
-      console.log('✅ INTERCEPTADOR XHR INSTALADO');
     }
   }
 
   // Configurar interceptadores
   setupFetchInterceptor();
   setupXHRInterceptor();
-
-  console.log('✅ INTERCEPTADOR ULTRA AGRESSIVO CONFIGURADO');
 })();
 
 import '@/config/pointer-events-fix';

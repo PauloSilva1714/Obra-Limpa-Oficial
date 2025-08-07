@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, useWindowDimensions, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Building2, ChevronRight, MapPin, CheckCircle } from 'lucide-react-native';
+import { Building2, ChevronRight, MapPin, CheckCircle, Plus } from 'lucide-react-native';
 import { AuthService, User } from '../../services/AuthService';
 import { SiteService, SiteWithStats } from '../../services/SiteService';
 
@@ -147,9 +147,20 @@ export default function SiteSelectionScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerSection}>
-          <Text style={[styles.title, isVerySmallScreen && styles.titleSmall]}>
-            Selecionar Obra
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={[styles.title, isVerySmallScreen && styles.titleSmall]}>
+              Selecionar Obra
+            </Text>
+            {user?.role === 'admin' && (
+              <TouchableOpacity
+                style={{ marginLeft: 12, backgroundColor: '#3B82F6', borderRadius: 20, width: 40, height: 40, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 }}
+                onPress={() => router.push('/admin/sites/create')}
+                activeOpacity={0.8}
+              >
+                <Plus size={22} color="#fff" />
+              </TouchableOpacity>
+            )}
+          </View>
           <View style={styles.userInfo}>
             <Text style={[styles.userName, isVerySmallScreen && styles.userNameSmall]}>
               {user?.name}

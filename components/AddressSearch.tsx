@@ -385,18 +385,6 @@ export default function AddressSearch({
         </Text>
       </TouchableOpacity>
 
-      {/* Botão de diagnóstico temporário */}
-      <TouchableOpacity
-        style={[styles.diagnosticButton, { borderColor: '#EF4444', backgroundColor: '#FEF2F2' }]}
-        onPress={handleDiagnoseApi}
-        activeOpacity={0.7}
-      >
-        <Search size={20} color="#EF4444" />
-        <Text style={[styles.diagnosticText, { color: '#EF4444' }]}>
-          🔧 Diagnosticar Google Places API
-        </Text>
-      </TouchableOpacity>
-
       {/* Lista de resultados */}
       <FlatList
         data={getDisplayData()}
