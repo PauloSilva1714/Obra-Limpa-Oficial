@@ -59,12 +59,9 @@ class AddressService {
     return new Promise((resolve) => {
       // Se já está disponível, resolve imediatamente
       if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
-        console.log('[AddressService] Google Maps API já está disponível');
         resolve(true);
         return;
       }
-
-      console.log('[AddressService] Aguardando carregamento da Google Maps API...');
 
       let resolved = false;
 
@@ -72,8 +69,6 @@ class AddressService {
       const handleApiLoaded = (event: any) => {
         if (!resolved) {
           resolved = true;
-          console.log('[AddressService] Google Maps API carregada via evento customizado');
-          console.log('[AddressService] Evento detail:', event.detail);
           resolve(event.detail?.ready !== false);
         }
       };
@@ -94,8 +89,6 @@ class AddressService {
 
       // Tentar forçar o carregamento se não estiver disponível
       if (typeof window !== 'undefined' && !window.google) {
-        console.log('[AddressService] Tentando forçar carregamento do Google Maps...');
-
         // Verificar se o script já existe
         const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
         if (!existingScript) {
@@ -104,11 +97,9 @@ class AddressService {
           script.async = true;
           script.defer = true;
           script.onload = () => {
-            console.log('[AddressService] Script do Google Maps carregado via fallback');
             // Aguardar um pouco para a API inicializar
             setTimeout(() => {
               if (window.google && window.google.maps && window.google.maps.places) {
-                console.log('[AddressService] Google Maps API carregada via fallback');
                 if (!resolved) {
                   resolved = true;
                   resolve(true);
@@ -135,7 +126,6 @@ class AddressService {
         if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
           if (!resolved) {
             resolved = true;
-            console.log(`[AddressService] Google Maps API carregada após ${attempts * 100}ms (polling)`);
             resolve(true);
           }
           return;
@@ -144,7 +134,6 @@ class AddressService {
         if (attempts >= maxAttempts) {
           if (!resolved) {
             resolved = true;
-            console.log('[AddressService] Timeout aguardando Google Maps API (15s)');
             resolve(false);
           }
           return;
@@ -162,18 +151,12 @@ class AddressService {
    */
   private async searchAddressesWeb(query: string): Promise<AddressResult[]> {
     try {
-      console.log('[AddressService.searchAddressesWeb] Iniciando busca para:', query);
-
       // Aguardar o carregamento da API
       const apiLoaded = await this.waitForGoogleMapsApi();
 
       if (!apiLoaded) {
-         console.error('[AddressService.searchAddressesWeb] Google Maps API não carregou, tentando carregamento manual...');
-
          // Tentar carregar manualmente
          if (typeof window !== 'undefined' && !window.google) {
-           console.log('[AddressService.searchAddressesWeb] Tentando carregamento manual do Google Maps...');
-
            const script = document.createElement('script');
            script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBer6x1O4RAlrkHw8HYhh-lRgrbKlnocEA&libraries=places&language=pt&region=BR';
            script.async = true;
@@ -181,10 +164,8 @@ class AddressService {
 
            return new Promise((resolve) => {
              script.onload = () => {
-               console.log('[AddressService.searchAddressesWeb] Script carregado, aguardando inicialização...');
                setTimeout(() => {
                  if (window.google && window.google.maps && window.google.maps.places) {
-                   console.log('[AddressService.searchAddressesWeb] Google Maps API carregada manualmente, continuando busca...');
                    this.searchAddressesWeb(query).then(resolve);
                  } else {
                    console.error('[AddressService.searchAddressesWeb] Google Maps API não inicializou, usando dados simulados');
@@ -203,8 +184,6 @@ class AddressService {
          return this.getMockSearchResults(query);
        }
 
-       console.log('[AddressService.searchAddressesWeb] ✅ Google Maps API disponível, iniciando busca...');
-
        // Validar se a API está realmente disponível
        if (!window.google || !window.google.maps || !window.google.maps.places) {
          console.error('[AddressService.searchAddressesWeb] ❌ Google Maps Places não está disponível');
@@ -215,7 +194,6 @@ class AddressService {
        let service;
        try {
          service = new window.google.maps.places.AutocompleteService();
-         console.log('[AddressService.searchAddressesWeb] ✅ AutocompleteService criado com sucesso');
        } catch (serviceError) {
          console.error('[AddressService.searchAddressesWeb] ❌ Erro ao criar AutocompleteService:', serviceError);
          return this.getMockSearchResults(query);
@@ -228,10 +206,6 @@ class AddressService {
          // Removendo types para buscar todos os tipos de lugares
        };
 
-       console.log('[AddressService.searchAddressesWeb] Fazendo busca com Google Places JavaScript API:', request);
-       console.log('[AddressService.searchAddressesWeb] API Key configurada:', !!getApiKey());
-       console.log('[AddressService.searchAddressesWeb] API Key (primeiros 10 chars):', getApiKey().substring(0, 10) + '...');
-
        // Fazer a busca usando Promise com timeout
        return new Promise((resolve) => {
          const searchTimeout = setTimeout(() => {
@@ -241,9 +215,6 @@ class AddressService {
 
          service.getPlacePredictions(request, (predictions, status) => {
            clearTimeout(searchTimeout);
-
-           console.log('[AddressService.searchAddressesWeb] Status da busca:', status);
-           console.log('[AddressService.searchAddressesWeb] Predições recebidas:', predictions?.length || 0);
 
            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length > 0) {
              const results = predictions.map((prediction, index) => ({
@@ -255,15 +226,9 @@ class AddressService {
                type: 'search' as const,
              }));
 
-             console.log('[AddressService.searchAddressesWeb] ✅ Resultados reais encontrados:', results.length);
              resolve(results);
            } else {
              console.warn('[AddressService.searchAddressesWeb] ⚠️ Nenhum resultado encontrado ou erro:', status);
-             console.warn('[AddressService.searchAddressesWeb] Status detalhado:', {
-               status,
-               hasApiKey: !!getApiKey(),
-               predictionsCount: predictions?.length || 0
-             });
              // Fallback para dados simulados
              resolve(this.getMockSearchResults(query));
            }
@@ -297,8 +262,6 @@ class AddressService {
    * Testa se a Google Maps JavaScript API está funcionando corretamente
    */
   async testGoogleMapsJavaScriptApi(): Promise<{success: boolean, details: any}> {
-    console.log('[AddressService.testGoogleMapsJavaScriptApi] Iniciando teste da JavaScript API...');
-
     try {
       // Verificar se estamos no ambiente web
       if (Platform.OS !== 'web') {
@@ -354,11 +317,7 @@ class AddressService {
           types: ['geocode']
         };
 
-        console.log('[AddressService.testGoogleMapsJavaScriptApi] Fazendo busca de teste:', testRequest);
-
         service.getPlacePredictions(testRequest, (predictions, status) => {
-          console.log('[AddressService.testGoogleMapsJavaScriptApi] Resultado do teste:', { status, count: predictions?.length || 0 });
-
           if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length > 0) {
             resolve({
               success: true,
@@ -411,21 +370,13 @@ class AddressService {
    * Busca endereços usando Google Places Autocomplete API
    */
   async searchAddresses(query: string): Promise<AddressResult[]> {
-    console.log('=== DEBUG AddressService.searchAddresses ===');
-    console.log('Query:', query);
-    console.log('API Key configurada:', isApiKeyConfigured());
-
     if (!query || query.trim().length < 2) {
-      console.log('Query muito curta, retornando array vazio');
       return [];
     }
 
     try {
-      console.log('Iniciando busca na API do Google Places...');
-
       // Para web, usar Google Places JavaScript API
       if (Platform.OS === 'web') {
-        console.log('Executando na web, usando Google Places JavaScript API');
         return this.searchAddressesWeb(query);
       }
 
@@ -437,7 +388,6 @@ class AddressService {
       };
 
       let url = getPlacesApiUrl('autocomplete', params);
-      console.log('URL da API:', url);
 
       let response = await fetch(url, {
         method: 'GET',
@@ -446,19 +396,13 @@ class AddressService {
         },
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
       if (!response.ok) {
-        console.log('Erro HTTP:', response.status);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       let data = await response.json();
-      console.log('Resposta da API:', data);
 
       if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
-        console.log('Resultados encontrados:', data.predictions.length);
         return data.predictions.map((prediction: GooglePlaceResult, index: number) => ({
           id: `search_${index}`,
           title: prediction.structured_formatting.main_text,
@@ -503,10 +447,8 @@ class AddressService {
         }));
       }
 
-      console.log('Nenhum resultado encontrado na primeira tentativa');
       return [];
     } catch (error) {
-      console.log('Erro na busca:', error);
       // Fallback para dados simulados em caso de erro
       return this.getMockSearchResults(query);
     }
