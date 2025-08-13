@@ -37,7 +37,8 @@ if (gmailConfig && gmailConfig.user && gmailConfig.pass) {
     }
   });
 } else {
-  . ' +
+  console.log(
+    'Configurações do Gmail não encontradas. ' +
     'O serviço de e-mail ficará desativado até que as configurações sejam definidas. ' +
     'Execute: firebase functions:config:set gmail.user="..." gmail.pass="..."'
   );

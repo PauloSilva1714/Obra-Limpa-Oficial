@@ -40,7 +40,10 @@ export const isApiKeyConfigured = (): boolean => {
   return !!key && key !== 'YOUR_GOOGLE_PLACES_API_KEY' && key.length > 0;
 };
 
-// Função para obter URL completa da API
+// URL da Firebase Function Proxy
+const FIREBASE_FUNCTION_URL = 'https://us-central1-bralimpa2.cloudfunctions.net/googlePlacesProxy';
+
+// Função para obter URL da Firebase Function (proxy)
 export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>): string => {
   const apiKey = getApiKey();
   
@@ -48,21 +51,11 @@ export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>
     throw new Error('Google Places API key not configured');
   }
 
-  // Usar diretamente a API do Google Places
-  let baseUrl = '';
+  // Usar Firebase Function como proxy
+  const url = new URL(FIREBASE_FUNCTION_URL);
   
-  switch (endpoint) {
-    case 'autocomplete':
-      baseUrl = `${GOOGLE_PLACES_CONFIG.PLACES_BASE_URL}/autocomplete/json`;
-      break;
-    case 'details':
-      baseUrl = `${GOOGLE_PLACES_CONFIG.PLACES_BASE_URL}/details/json`;
-      break;
-    default:
-      throw new Error(`Endpoint não suportado: ${endpoint}`);
-  }
-
-  const url = new URL(baseUrl);
+  // Adicionar endpoint
+  url.searchParams.append('endpoint', endpoint);
   
   // Adicionar parâmetros
   Object.entries(params).forEach(([key, value]) => {
@@ -75,7 +68,7 @@ export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>
   return url.toString();
 };
 
-// Função para obter URL de geocodificação
+// Função para obter URL de geocodificação via Firebase Function
 export const getGeocodingApiUrl = (params: Record<string, string>): string => {
   const apiKey = getApiKey();
   
@@ -83,8 +76,11 @@ export const getGeocodingApiUrl = (params: Record<string, string>): string => {
     throw new Error('Google Places API key not configured');
   }
 
-  // Usar diretamente a API de Geocodificação do Google
-  const url = new URL(`${GOOGLE_PLACES_CONFIG.GEOCODING_BASE_URL}/json`);
+  // Usar Firebase Function como proxy para geocodificação
+  const url = new URL(FIREBASE_FUNCTION_URL);
+  
+  // Para geocoding, usar endpoint 'geocode'
+  url.searchParams.append('endpoint', 'geocode');
 
   // Adicionar parâmetros
   Object.entries(params).forEach(([key, value]) => {

@@ -21,8 +21,6 @@ async function updateUserInFirestore(userId: string, newFuncao: string) {
       return false;
     }
 
-    const userData = userDoc.data();
-
     await userDoc.ref.update({ funcao: newFuncao });
     
     return true;
@@ -46,4 +44,4 @@ updateUserInFirestore(userId, newFuncao)
   .catch((err) => {
     console.error('❌ Erro:', err);
     process.exit(1);
-  }); 
+  });
