@@ -1,7 +1,7 @@
 module.exports = {
   name: 'Obra Limpa',
   slug: 'obra-limpa',
-  version: '1.0.1',
+  version: '1.0.2',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   scheme: 'com.obralimpa.app',
@@ -25,7 +25,7 @@ module.exports = {
       backgroundColor: '#ffffff'
     },
     package: 'com.obralimpa.app',
-    versionCode: 1,
+    versionCode: 2,
     googleServicesFile: './android/app/google-services.json',
     permissions: [
       'android.permission.CAMERA',

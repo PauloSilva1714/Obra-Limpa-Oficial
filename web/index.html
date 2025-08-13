@@ -584,18 +584,14 @@
         
         // Obter a chave da API das variáveis de ambiente
         const apiKey = '%EXPO_PUBLIC_GOOGLE_PLACES_API_KEY%';
-        console.log('[Obra Limpa] 🔑 Chave API configurada:', apiKey ? '✅ Sim' : '❌ Não');
-        console.log('[Obra Limpa] 🔑 Valor da chave:', apiKey);
         
         if (!apiKey || apiKey === '%EXPO_PUBLIC_GOOGLE_PLACES_API_KEY%') {
           console.error('[Obra Limpa] ❌ ERRO: EXPO_PUBLIC_GOOGLE_PLACES_API_KEY não foi substituída corretamente');
-          console.error('[Obra Limpa] ❌ Valor atual:', apiKey);
           return;
         }
 
         // Construir URL da API
         const apiUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=pt&region=BR&callback=initGoogleMaps`;
-        console.log('[Obra Limpa] 🌐 URL completa:', apiUrl);
 
         // Verificar se já existe google no window antes do carregamento
         console.log('[Obra Limpa] 🔍 Estado inicial do window.google:', !!window.google);

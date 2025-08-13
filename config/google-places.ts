@@ -25,14 +25,12 @@ export const getApiKey = (): string => {
   if (Platform.OS === 'android') {
     const androidKey = GOOGLE_PLACES_CONFIG.API_KEY_ANDROID;
     if (androidKey) {
-      console.log('🤖 Usando chave da API específica para Android');
       return androidKey;
     }
   }
   
   // Para web e iOS, ou fallback se não houver chave específica para Android
   const webKey = GOOGLE_PLACES_CONFIG.API_KEY;
-  console.log(`🌐 Usando chave da API para ${Platform.OS}`);
   return webKey ?? '';
 };
 
@@ -45,10 +43,6 @@ export const isApiKeyConfigured = (): boolean => {
 // Função para obter URL completa da API
 export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>): string => {
   const apiKey = getApiKey();
-  
-  console.log('🔍 getPlacesApiUrl - INÍCIO DA FUNÇÃO');
-  console.log('🔑 API Key:', apiKey ? 'Configurada' : 'Não configurada');
-  console.log('🌐 Platform:', Platform.OS);
   
   if (!apiKey) {
     throw new Error('Google Places API key not configured');
@@ -78,18 +72,12 @@ export const getPlacesApiUrl = (endpoint: string, params: Record<string, string>
   // Adicionar chave da API
   url.searchParams.append('key', apiKey);
   
-  const finalUrl = url.toString();
-  console.log('✅ USANDO URL DIRETA DA API:', finalUrl);
-  return finalUrl;
+  return url.toString();
 };
 
 // Função para obter URL de geocodificação
 export const getGeocodingApiUrl = (params: Record<string, string>): string => {
   const apiKey = getApiKey();
-  
-  console.log('🔍 getGeocodingApiUrl - INÍCIO DA FUNÇÃO');
-  console.log('🔑 API Key:', apiKey ? 'Configurada' : 'Não configurada');
-  console.log('🌐 Platform:', Platform.OS);
   
   if (!apiKey) {
     throw new Error('Google Places API key not configured');
@@ -106,7 +94,5 @@ export const getGeocodingApiUrl = (params: Record<string, string>): string => {
   // Adicionar chave da API
   url.searchParams.append('key', apiKey);
   
-  const finalUrl = url.toString();
-  console.log('✅ USANDO URL DIRETA DA API DE GEOCODIFICAÇÃO:', finalUrl);
-  return finalUrl;
+  return url.toString();
 };
