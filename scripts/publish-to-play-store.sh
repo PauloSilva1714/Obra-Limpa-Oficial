@@ -27,10 +27,34 @@ fi
 
 # 4. Atualizar version code
 echo "📝 Atualizando version code..."
-CURRENT_VERSION=$(grep '"versionCode":' app.json | sed 's/.*"versionCode": \([0-9]*\).*/\1/')
-NEW_VERSION=$((CURRENT_VERSION + 1))
-sed -i "s/\"versionCode\": $CURRENT_VERSION/\"versionCode\": $NEW_VERSION/" app.json
-echo "✅ Version code atualizado para: $NEW_VERSION"
+
+# Verificar se existe app.config.js
+if [ -f "app.config.js" ]; then
+    # Extrair o versionCode atual usando grep e regex
+    CURRENT_VERSION=$(grep -oP 'versionCode:\s*\K\d+' app.config.js)
+    
+    if [ -n "$CURRENT_VERSION" ]; then
+        NEW_VERSION=$((CURRENT_VERSION + 1))
+        
+        # Substituir o versionCode no arquivo
+        sed -i "s/versionCode:\s*$CURRENT_VERSION/versionCode: $NEW_VERSION/" app.config.js
+        echo "✅ Version code atualizado para: $NEW_VERSION"
+    else
+        echo "❌ Não foi possível encontrar versionCode em app.config.js"
+        exit 1
+    fi
+else
+    # Fallback para app.json se existir
+    if [ -f "app.json" ]; then
+        CURRENT_VERSION=$(grep '"versionCode":' app.json | sed 's/.*"versionCode": \([0-9]*\).*/\1/')
+        NEW_VERSION=$((CURRENT_VERSION + 1))
+        sed -i "s/\"versionCode\": $CURRENT_VERSION/\"versionCode\": $NEW_VERSION/" app.json
+        echo "✅ Version code atualizado para: $NEW_VERSION"
+    else
+        echo "❌ Não foi possível encontrar app.config.js ou app.json"
+        exit 1
+    fi
+fi
 
 # 5. Gerar build de produção
 echo "🔨 Gerando build de produção..."

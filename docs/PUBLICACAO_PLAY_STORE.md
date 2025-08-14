@@ -31,15 +31,16 @@
 ### **Passo 1: Preparar o Build de Produção**
 
 ```bash
-# 1. Atualizar version code no app.json
-{
-  "expo": {
-    "version": "1.0.0",
-    "android": {
-      "versionCode": 1,
-      "package": "com.obralimpa.app"
-    }
+# 1. Atualizar version code no app.config.js
+module.exports = {
+  // ... outras configurações
+  version: "1.0.0",
+  android: {
+    // ... outras configurações de android
+    package: "com.obralimpa.app",
+    versionCode: 1,
   }
+  // ... resto do arquivo
 }
 
 # 2. Gerar build de produção
@@ -199,53 +200,51 @@ https://obralimpa.com/politica-privacidade
 
 ## 🔧 **Configurações Técnicas**
 
-### **1. Atualizar app.json**
+### **1. Atualizar app.config.js**
 
-```json
-{
-  "expo": {
-    "name": "Obra Limpa",
-    "slug": "obra-limpa",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+```javascript
+module.exports = {
+  name: "Obra Limpa",
+  slug: "obra-limpa",
+  version: "1.0.0",
+  orientation: "portrait",
+  icon: "./assets/icon.png",
+  userInterfaceStyle: "light",
+  splash: {
+    image: "./assets/splash.png",
+    resizeMode: "contain",
+    backgroundColor: "#ffffff"
+  },
+  assetBundlePatterns: [
+    "**/*"
+  ],
+  ios: {
+    supportsTablet: true
+  },
+  android: {
+    adaptiveIcon: {
+      foregroundImage: "./assets/adaptive-icon.png",
+      backgroundColor: "#FFFFFF"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      },
-      "package": "com.obralimpa.app",
-      "versionCode": 1,
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "INTERNET"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-camera",
-      "expo-location",
-      "expo-notifications"
+    package: "com.obralimpa.app",
+    versionCode: 1,
+    permissions: [
+      "android.permission.CAMERA",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.ACCESS_FINE_LOCATION",
+      "android.permission.ACCESS_COARSE_LOCATION",
+      "android.permission.INTERNET"
     ]
-  }
+  },
+  web: {
+    favicon: "./assets/favicon.png"
+  },
+  plugins: [
+    "expo-camera",
+    "expo-location",
+    "expo-notifications"
+  ]
 }
 ```
 
