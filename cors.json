@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["http://localhost:8084", "http://localhost:8085", "http://localhost:19006", "http://127.0.0.1:8084", "http://127.0.0.1:8085", "http://127.0.0.1:19006", "*"],
+    "origin": ["http://localhost:8084", "http://localhost:8085", "http://localhost:19006", "http://127.0.0.1:8084", "http://127.0.0.1:8085", "http://127.0.0.1:19006", "https://bralimpa2.web.app", "*"],
     "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
     "responseHeader": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"],
     "maxAgeSeconds": 3600

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import * as ImagePicker from 'expo-image-picker';
+import { ImagePickerWeb } from '../../config/image-picker-web';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -113,11 +114,25 @@ export default function SettingsScreen() {
       }
 
       // Verificar permissão de câmera
-      const { status: cameraStatus } = await ImagePicker.getCameraPermissionsAsync();
+      let cameraStatus;
+      if (Platform.OS === 'web') {
+        const result = await ImagePickerWeb.getCameraPermissionsAsync();
+        cameraStatus = result.status;
+      } else {
+        const result = await ImagePicker.getCameraPermissionsAsync();
+        cameraStatus = result.status;
+      }
       setCameraPermission(cameraStatus === 'granted');
 
       // Verificar permissão de mídia
-      const { status: mediaStatus } = await ImagePicker.getMediaLibraryPermissionsAsync();
+      let mediaStatus;
+      if (Platform.OS === 'web') {
+        const result = await ImagePickerWeb.getMediaLibraryPermissionsAsync();
+        mediaStatus = result.status;
+      } else {
+        const result = await ImagePicker.getMediaLibraryPermissionsAsync();
+        mediaStatus = result.status;
+      }
       setMediaPermission(mediaStatus === 'granted');
 
       // Verificar permissão de localização
@@ -197,15 +212,27 @@ export default function SettingsScreen() {
 
   const handleCameraPermission = async () => {
     setLoadingPermission('camera');
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    let status;
+    
+    if (Platform.OS === 'web') {
+      const result = await ImagePickerWeb.requestCameraPermissionsAsync();
+      status = result.status;
+    } else {
+      const result = await ImagePicker.requestCameraPermissionsAsync();
+      status = result.status;
+    }
+    
     setCameraPermission(status === 'granted');
     setLoadingPermission(null);
+    
     if (status === 'granted') {
       Alert.alert('Permissão concedida', 'Você pode usar a câmera para tirar fotos das tarefas.');
     } else {
       Alert.alert(
         'Permissão negada',
-        'Permissão negada. Para ativar, acesse as configurações do seu dispositivo.',
+        Platform.OS === 'web' 
+          ? 'Permissão negada. Para ativar, acesse as configurações do seu navegador.'
+          : 'Permissão negada. Para ativar, acesse as configurações do seu dispositivo.',
         [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Abrir configurações', onPress: openAppSettings }
@@ -216,15 +243,27 @@ export default function SettingsScreen() {
 
   const handleMediaPermission = async () => {
     setLoadingPermission('media');
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    let status;
+    
+    if (Platform.OS === 'web') {
+      const result = await ImagePickerWeb.requestMediaLibraryPermissionsAsync();
+      status = result.status;
+    } else {
+      const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      status = result.status;
+    }
+    
     setMediaPermission(status === 'granted');
     setLoadingPermission(null);
+    
     if (status === 'granted') {
       Alert.alert('Permissão concedida', 'Você pode acessar a galeria para selecionar fotos.');
     } else {
       Alert.alert(
         'Permissão negada',
-        'Permissão negada. Para ativar, acesse as configurações do seu dispositivo.',
+        Platform.OS === 'web' 
+          ? 'Permissão negada. Para ativar, acesse as configurações do seu navegador.'
+          : 'Permissão negada. Para ativar, acesse as configurações do seu dispositivo.',
         [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Abrir configurações', onPress: openAppSettings }

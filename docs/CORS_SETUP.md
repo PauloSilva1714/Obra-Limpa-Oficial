@@ -1,9 +1,17 @@
-# 🔧 Configuração CORS - Firebase Storage
+# 🔧 Configuração CORS - Firebase
 
 ## Problema
+
+### Firebase Storage
 Erro de CORS ao fazer upload de imagens para o Firebase Storage:
 ```
 Access to XMLHttpRequest at 'https://firebasestorage.googleapis.com/...' from origin 'http://localhost:8081' has been blocked by CORS policy
+```
+
+### Firebase Functions/API
+Erro de CORS ao fazer requisições para Firebase Functions ou APIs:
+```
+Access to fetch at 'https://us-central1-bralimpa2.cloudfunctions.net/...' from origin 'http://localhost:19006' has been blocked by CORS policy
 ```
 
 ## Solução
@@ -42,14 +50,26 @@ gsutil cors get gs://bralimpa2.firebasestorage.app
 
 ### 4. Arquivos de Configuração
 
-#### storage.cors.json
+#### storage.cors.json (Firebase Storage)
 ```json
 [
   {
-    "origin": ["http://localhost:8081", "http://localhost:3000", "http://localhost:19006", "https://bralimpa2.firebaseapp.com"],
-    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "origin": ["http://localhost:8081", "http://localhost:3000", "http://localhost:19006", "https://bralimpa2.firebaseapp.com", "https://bralimpa2.web.app", "*"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
     "maxAgeSeconds": 3600,
     "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent", "x-goog-resumable"]
+  }
+]
+```
+
+#### cors.json (Firebase Functions/API)
+```json
+[
+  {
+    "origin": ["http://localhost:8084", "http://localhost:8085", "http://localhost:19006", "http://127.0.0.1:8084", "http://127.0.0.1:8085", "http://127.0.0.1:19006", "https://bralimpa2.web.app", "*"],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
+    "responseHeader": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"],
+    "maxAgeSeconds": 3600
   }
 ]
 ```
@@ -101,4 +121,4 @@ O código foi modificado para incluir um fallback em caso de erro de CORS:
 Após a configuração:
 1. Reinicie o servidor de desenvolvimento
 2. Tente fazer upload de uma imagem
-3. Verifique os logs no console para confirmar o sucesso 
+3. Verifique os logs no console para confirmar o sucesso
