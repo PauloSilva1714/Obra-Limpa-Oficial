@@ -77,7 +77,8 @@ export async function uploadImageAsync(
     
     return downloadURL;
   } catch (error) {
-    return typeof uriOrFile === 'string' ? uriOrFile : '';
+    console.error('Erro ao fazer upload da imagem:', error);
+    throw new Error('Falha ao fazer upload da imagem. Verifique sua conexão com a internet.');
   }
 }
 
@@ -114,7 +115,8 @@ export async function uploadVideoAsync(
     
     return downloadURL;
   } catch (error) {
-    return typeof uriOrFile === 'string' ? uriOrFile : '';
+    console.error('Erro ao fazer upload do vídeo:', error);
+    throw new Error('Falha ao fazer upload do vídeo. Verifique sua conexão com a internet.');
   }
 }
 
@@ -139,6 +141,7 @@ export async function uploadProfilePhoto(userId: string, uriOrFile: string | Fil
     const downloadURL = await getDownloadURL(fileRef);
     return downloadURL;
   } catch (error) {
-    return typeof uriOrFile === 'string' ? uriOrFile : '';
+    console.error('Erro ao fazer upload da foto de perfil:', error);
+    throw new Error('Falha ao fazer upload da foto de perfil. Verifique sua conexão com a internet.');
   }
 }

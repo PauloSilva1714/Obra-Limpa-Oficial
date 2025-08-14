@@ -381,7 +381,8 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         }));
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
+      console.error('Erro ao selecionar ou fazer upload da imagem:', error);
+      Alert.alert('Erro', error instanceof Error ? error.message : 'Não foi possível selecionar ou fazer upload da imagem. Verifique sua conexão com a internet.');
     }
   };
 
@@ -433,7 +434,8 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
         }));
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível selecionar o vídeo.');
+      console.error('Erro ao selecionar ou fazer upload do vídeo:', error);
+      Alert.alert('Erro', error instanceof Error ? error.message : 'Não foi possível selecionar ou fazer upload do vídeo. Verifique sua conexão com a internet.');
     }
   };
 

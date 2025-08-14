@@ -250,7 +250,8 @@ export default function ProfileScreen() {
       await reloadUser(); // Força atualização do contexto global
       Alert.alert('Sucesso', 'Foto de perfil atualizada!');
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível atualizar a foto de perfil.');
+      console.error('Erro ao atualizar foto de perfil:', error);
+      Alert.alert('Erro', error instanceof Error ? error.message : 'Não foi possível atualizar a foto de perfil. Verifique sua conexão com a internet.');
     } finally {
       setUploading(false);
     }
