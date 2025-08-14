@@ -18,7 +18,7 @@ module.exports = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.obralimpa.app',
-    googleServicesFile: './GoogleService-Info.plist' // A configuração do iOS não muda
+    googleServicesFile: './GoogleService-Info.plist'
   },
   android: {
     adaptiveIcon: {
@@ -27,7 +27,7 @@ module.exports = {
     },
     package: 'com.obralimpa.app',
     versionCode: 3,
-    googleServicesFile: process.env.GOOGLE_SERVICES_JSON, // <-- AQUI ESTÁ A ÚNICA MUDANÇA!
+    googleServicesFile: './android/app/google-services.json', // <-- LINHA CORRIGIDA
     permissions: [
       'android.permission.CAMERA',
       'android.permission.RECORD_AUDIO',
