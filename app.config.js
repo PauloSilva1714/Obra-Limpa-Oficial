@@ -27,7 +27,7 @@ module.exports = {
     },
     package: 'com.obralimpa.app',
     versionCode: 3,
-    googleServicesFile: './android/app/google-services.json', // <-- LINHA CORRIGIDA
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON || './android/app/google-services.json',
     permissions: [
       'android.permission.CAMERA',
       'android.permission.RECORD_AUDIO',

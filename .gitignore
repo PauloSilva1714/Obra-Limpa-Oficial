@@ -2,6 +2,9 @@
 functions/serviceAccountKey.json
 # GoogleService-Info
 GoogleService-Info.plist
+# Google Services JSON para Android
+google-services.json
+android/app/google-services.json
 # Variáveis de ambiente
 .env
 # Configs sensíveis
