@@ -16,7 +16,8 @@
     "production": {
       "env": {
         "NODE_ENV": "production",
-        "EAS_SKIP_AUTO_FINGERPRINT": "1"
+        "EAS_SKIP_AUTO_FINGERPRINT": "1",
+        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON"
       },
       "android": {
         "buildType": "app-bundle",

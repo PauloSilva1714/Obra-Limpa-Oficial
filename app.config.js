@@ -1,3 +1,4 @@
+
 module.exports = {
   name: 'Obra Limpa',
   slug: 'obra-limpa',
@@ -17,7 +18,7 @@ module.exports = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.obralimpa.app',
-    googleServicesFile: './GoogleService-Info.plist'
+    googleServicesFile: './GoogleService-Info.plist' // A configuração do iOS não muda
   },
   android: {
     adaptiveIcon: {
@@ -26,7 +27,7 @@ module.exports = {
     },
     package: 'com.obralimpa.app',
     versionCode: 3,
-    googleServicesFile: './android/app/google-services.json',
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON, // <-- AQUI ESTÁ A ÚNICA MUDANÇA!
     permissions: [
       'android.permission.CAMERA',
       'android.permission.RECORD_AUDIO',
