@@ -13,7 +13,7 @@
     "strict": false,
     "forceConsistentCasingInFileNames": true,
     "module": "esnext",
-    "moduleResolution": "bundler",  // Alterado de "node" para "bundler"
+    "moduleResolution": "bundler",  // <-- LINHA CORRIGIDA
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,

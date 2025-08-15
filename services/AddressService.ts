@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import { getPlacesApiUrl, getGeocodingApiUrl, isApiKeyConfigured, getApiKey } from '@/config/google-places';
+import { getPlacesApiUrl, getGeocodingApiUrl, isApiKeyConfigured, getApiKey } from '../config/google-places';
 import { Platform } from 'react-native';
 
 export interface AddressResult {
@@ -249,7 +249,11 @@ class AddressService {
    */
   async testApiConnection(): Promise<any> {
     try {
-      const testUrl = getPlacesApiUrl('autocomplete', { input: 'test', language: 'pt-BR', components: 'country:br' });
+      if (!isApiKeyConfigured()) {
+        return { success: false, error: 'API key não configurada' };
+      }
+
+      const testUrl = getPlacesApiUrl('place/autocomplete', { input: 'test', language: 'pt-BR', components: 'country:br' });
 
       const response = await fetch(testUrl);
       const data = await response.json();
@@ -389,7 +393,7 @@ class AddressService {
         components: 'country:br',
       };
 
-      let url = getPlacesApiUrl('autocomplete', params);
+      let url = getPlacesApiUrl('place/autocomplete', params);
 
       let response = await fetch(url, {
         method: 'GET',
@@ -423,7 +427,7 @@ class AddressService {
         types: 'geocode',
       };
 
-      url = getPlacesApiUrl('autocomplete', params);
+      url = getPlacesApiUrl('place/autocomplete', params);
 
       response = await fetch(url, {
         method: 'GET',
@@ -471,7 +475,7 @@ class AddressService {
         language: 'pt-BR',
       };
 
-      const url = getPlacesApiUrl('details', params);
+      const url = getPlacesApiUrl('place/details', params);
 
       const response = await fetch(url);
       const data = await response.json();
