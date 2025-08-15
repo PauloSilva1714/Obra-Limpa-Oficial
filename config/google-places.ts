@@ -1,11 +1,12 @@
-// Configuração do Google Places API
-// Chave real configurada para o projeto Obra Limpa
-import Constants from 'expo-constants';
+/**
+ * Configuração do Google Places API
+ * Chave real configurada para o projeto Obra Limpa
+ */
 import { Platform } from 'react-native';
 
 export const GOOGLE_PLACES_CONFIG = {
-  API_KEY: Constants.expoConfig?.extra?.EXPO_GOOGLE_PLACES_API_KEY,
-  API_KEY_ANDROID: Constants.expoConfig?.extra?.EXPO_GOOGLE_PLACES_API_KEY_ANDROID,
+  API_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY || '',
+  API_KEY_ANDROID: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY_ANDROID || '',
   // URLs base para as APIs
   PLACES_BASE_URL: 'https://maps.googleapis.com/maps/api/place',
   GEOCODING_BASE_URL: 'https://maps.googleapis.com/maps/api/geocode',
