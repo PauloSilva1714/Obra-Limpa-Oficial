@@ -386,6 +386,55 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
     }
   };
 
+  const takePhoto = async () => {
+    try {
+      // Verificar permissão da câmera
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'Precisamos de permissão para acessar sua câmera.');
+        return;
+      }
+      
+      // Lançar a câmera com configurações otimizadas
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false, // Desativar edição para preservar os dados originais
+        aspect: [4, 3],
+        quality: 1.0, // Usar qualidade máxima
+        exif: true, // Garantir que os metadados EXIF sejam preservados
+      });
+      
+      if (!result.canceled && result.assets[0].uri) {
+        const user = await AuthService.getCurrentUser();
+        
+        // Obter o URI da foto
+        const photoUri = result.assets[0].uri;
+        console.log('Foto capturada pela câmera:', photoUri);
+        
+        // Mostrar indicador de carregamento
+        Alert.alert('Processando', 'Fazendo upload da foto...');
+        
+        try {
+          // Fazer upload da imagem
+          const url = await uploadImageAsync(photoUri, user?.id || 'anon');
+          
+          // Adicionar a URL da foto ao estado
+          setFormData(prev => ({
+            ...prev,
+            photos: [...prev.photos, url]
+          }));
+          
+          console.log('Foto da câmera adicionada com sucesso:', url);
+        } catch (uploadError) {
+          console.error('Erro no upload da foto da câmera:', uploadError);
+          Alert.alert('Erro no upload', 'Não foi possível fazer o upload da foto. Tente novamente.');
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao tirar ou fazer upload da foto:', error);
+      Alert.alert('Erro', error instanceof Error ? error.message : 'Não foi possível tirar ou fazer upload da foto. Verifique sua conexão com a internet.');
+    }
+  };
+
   const pickVideo = async () => {
     try {
       if (Platform.OS === 'web') {
@@ -975,7 +1024,15 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                   disabled={!canEdit}
                 >
                   <ImagePlus size={20} color="#4B5563" />
-                  <Text style={styles.mediaButtonText}>Adicionar Foto</Text>
+                  <Text style={styles.mediaButtonText}>Galeria</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.mediaButton, { flex: 1 }]}
+                  onPress={takePhoto}
+                  disabled={!canEdit}
+                >
+                  <ImagePlus size={20} color="#2563EB" />
+                  <Text style={styles.mediaButtonText}>Câmera</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.mediaButton, { flex: 1 }]}
@@ -983,7 +1040,7 @@ export function TaskModal({ visible, task, userRole, onSave, onClose, detailsMod
                   disabled={!canEdit}
                 >
                   <VideoIcon size={20} color="#4B5563" />
-                  <Text style={styles.mediaButtonText}>Adicionar Vídeo</Text>
+                  <Text style={styles.mediaButtonText}>Vídeo</Text>
                 </TouchableOpacity>
               </View>
               {/* Pré-visualização das mídias */}

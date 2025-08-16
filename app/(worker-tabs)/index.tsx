@@ -1332,7 +1332,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Inter_500Medium',
   },
   emptyContainer: {
     flex: 1,
@@ -1342,7 +1342,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Inter_400Regular',
     marginBottom: 16,
   },
   emptyButton: {
@@ -1353,7 +1353,7 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Inter_600SemiBold',
   },
   modalOverlay: {
     flex: 1,
@@ -1375,11 +1375,11 @@ const styles = StyleSheet.create({
   },
   deleteModalTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Inter_600SemiBold',
   },
   deleteModalText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Inter_400Regular',
     lineHeight: 20,
     marginBottom: 24,
   },
@@ -1398,7 +1398,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Inter_600SemiBold',
   },
   confirmButton: {
     backgroundColor: '#EF4444',
@@ -1406,7 +1406,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Inter_600SemiBold',
   },
   ownCommentFull: {
     justifyContent: 'flex-end',

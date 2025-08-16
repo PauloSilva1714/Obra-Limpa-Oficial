@@ -101,10 +101,10 @@ export default function RegisterScreen() {
   };
 
   const [fontsLoaded, fontError] = useFonts({
-    'Inter-Regular': Inter_400Regular,
-    'Inter-Medium': Inter_500Medium,
-    'Inter-SemiBold': Inter_600SemiBold,
-    'Inter-Bold': Inter_700Bold,
+    'Inter_400Regular': Inter_400Regular,
+    'Inter_500Medium': Inter_500Medium,
+    'Inter_600SemiBold': Inter_600SemiBold,
+    'Inter_700Bold': Inter_700Bold,
   });
 
   // Adicione refs para os campos

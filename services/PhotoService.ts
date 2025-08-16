@@ -57,23 +57,45 @@ export async function uploadImageAsync(
 
     if (typeof uriOrFile === 'string') {
       // Mobile: uri
+      // Verificar se é uma foto tirada pela câmera (geralmente começa com file:// em dispositivos móveis)
+      const isCameraPhoto = uriOrFile.startsWith('file://') || 
+                           uriOrFile.includes('Camera') || 
+                           uriOrFile.includes('camera');
+      
+      // Processar a imagem com opções específicas para fotos da câmera
       const response = await fetch(uriOrFile);
       if (!response.ok) {
         throw new Error(`Erro ao buscar imagem: ${response.status}`);
       }
+      
       blob = await response.blob();
-      fileName = `tasks/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+      
+      // Usar um nome de arquivo diferente para fotos da câmera para facilitar o diagnóstico
+      if (isCameraPhoto) {
+        fileName = `tasks/${userId}/camera_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+        console.log('Processando foto da câmera:', fileName);
+      } else {
+        fileName = `tasks/${userId}/gallery_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+      }
     } else {
       // Web: File
       blob = uriOrFile;
-      fileName = `tasks/${userId}/${Date.now()}_${uriOrFile.name}`;
+      fileName = `tasks/${userId}/web_${Date.now()}_${uriOrFile.name}`;
     }
+
+    // Adicionar log para diagnóstico
+    console.log('Fazendo upload de imagem:', { 
+      tipo: typeof uriOrFile === 'string' ? 'URI' : 'File',
+      tamanho: blob.size,
+      fileName
+    });
 
     const fileRef = ref(storage, fileName);
     
     await uploadBytes(fileRef, blob);
     
     const downloadURL = await getDownloadURL(fileRef);
+    console.log('Upload concluído com sucesso:', downloadURL);
     
     return downloadURL;
   } catch (error) {
