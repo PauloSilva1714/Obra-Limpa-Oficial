@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import { getPlacesApiUrl, getGeocodingApiUrl, isApiKeyConfigured, getApiKey } from 'config/google-places';
+import { getPlacesApiUrl, getGeocodingApiUrl, isApiKeyConfigured, getApiKey } from '@config/google-places';
 import { Platform } from 'react-native';
 
 export interface AddressResult {

@@ -1,4 +1,5 @@
 {
+  "extends": "expo/tsconfig.base",  // <-- MOVIDO PARA O TOPO
   "compilerOptions": {
     "target": "es2020",
     "lib": [
@@ -13,40 +14,22 @@
     "strict": false,
     "forceConsistentCasingInFileNames": true,
     "module": "esnext",
-    "moduleResolution": "bundler",  // <-- LINHA CORRIGIDA
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@/components/*": [
-        "./components/*"
-      ],
-      "@/services/*": [
-        "./services/*"
-      ],
-      "@/config/*": [
-        "./config/*"
-      ],
-      "@/contexts/*": [
-        "./contexts/*"
-      ],
-      "@/assets/*": [
-        "./assets/*"
-      ],
-      "@/types/*": [
-        "./types/*"
-      ],
-      "@/utils/*": [
-        "./utils/*"
-      ],
-      "@/hooks/*": [
-        "./hooks/*"
-      ]
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/services/*": ["./services/*"],
+      "@/config/*": ["./config/*"],
+      "@/contexts/*": ["./contexts/*"],
+      "@/assets/*": ["./assets/*"],
+      "@/types/*": ["./types/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/hooks/*": ["./hooks/*"]
     }
   },
   "include": [
@@ -64,33 +47,7 @@
     "expo-env.d.ts"
   ],
   "exclude": [
-    "node_modules",
-    ".expo",
-    "dist",
-    "build",
-    "android",
-    "ios",
-    "web-build",
-    "coverage",
-    ".nyc_output",
-    "lib",
-    "out",
-    "tmp",
-    "temp",
-    "functions",
-    ".firebase",
-    ".vercel",
-    ".bolt",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "**/*.d.ts",
-    "**/node_modules/**",
-    "**/.git/**",
-    "**/*.log",
-    "**/*.tmp",
-    "**/*.temp"
-  ],
-  "extends": "expo/tsconfig.base"
+    "node_modules"
+    
+  ]
 }
