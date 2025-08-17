@@ -1,158 +1,43 @@
 {
-  "java.enabled": false,
-  "java.compile.nullAnalysis.mode": "disabled",
-  "java.errors.incompleteClasspath.severity": "ignore",
-  "java.import.gradle.enabled": false,
-  "java.configuration.checkProjectSettingsExclusions": false,
-  "java.project.sourcePaths": [],
-  "java.project.referencedLibraries": [],
-  "java.autobuild.enabled": false,
-  "java.configuration.updateBuildConfiguration": "disabled",
-  "java.import.gradle.offline.enabled": false,
-  "java.import.gradle.wrapper.enabled": false,
-  "java.import.gradle.java.home": null,
-  "java.server.launchMode": "Standard",
-  "java.jdt.ls.java.home": null,
-  "java.import.exclusions": [
-    "**/android/**",
-    "**/node_modules/**",
-    "**/build/**",
-    "**/.gradle/**"
-  ],
-  "redhat.telemetry.enabled": false,
-  "java.configuration.maven.userSettings": null,
-  "java.eclipse.downloadSources": false,
-  "java.maven.downloadSources": false,
-  "java.gradle.buildServer.enabled": "off",
-  "typescript.preferences.includePackageJsonAutoImports": "off",
-  "typescript.disableAutomaticTypeAcquisition": true,
-  "typescript.updateImportsOnFileMove.enabled": "never",
-  "typescript.suggest.autoImports": false,
-  "typescript.tsc.autoDetect": "off",
-  "typescript.validate.enable": false,
-  "javascript.validate.enable": false,
+  // Formata o código automaticamente toda vez que salvar o arquivo.
+  "editor.formatOnSave": true,
+
+  // Define o "Prettier" como o formatador padrão para manter o código consistente.
+  // Se não tiver a extensão Prettier, o VS Code vai sugerir instalar.
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Garante que o Prettier seja usado para arquivos TypeScript e TSX.
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Oculta arquivos e pastas que geralmente não precisamos mexer.
+  // A pasta 'node_modules' NÃO está aqui, então você continuará vendo ela.
   "files.exclude": {
-    "**/node_modules": true,
-    "**/node_modules/**": true,
     "**/.git": true,
     "**/.svn": true,
     "**/.hg": true,
     "**/CVS": true,
     "**/.DS_Store": true,
     "**/Thumbs.db": true,
-    "**/android/build": true,
-    "**/android/.gradle": true,
-    "**/android/app/build": true,
-    "**/android/.settings": true,
-    "**/android/.project": true,
-    "**/android/.classpath": true,
-    "**/node_modules/**/.gradle": true,
-    "**/node_modules/**/build": true,
     "**/.expo": true,
-    "**/.metro-cache": true,
-    "**/*.tsbuildinfo": true,
-    "**/dist": true,
-    "**/build": true,
-    "**/web-build": true,
-    "**/coverage": true,
-    "**/.nyc_output": true,
-    "**/lib": true,
-    "**/out": true,
-    "**/tmp": true,
-    "**/temp": true,
-    "**/*.log": true,
-    "**/*.tmp": true,
-    "**/*.temp": true,
-    "**/package-lock.json": true,
-    "**/yarn.lock": true,
-    "**/.firebase": true,
-    "**/.vercel": true,
-    "**/.bolt": true
+    "**/build": true
   },
+
+  // Melhora a performance da busca, ignorando pastas muito grandes.
   "search.exclude": {
     "**/node_modules": true,
-    "**/node_modules/**": true,
-    "**/.git": true,
-    "**/.svn": true,
-    "**/.hg": true,
-    "**/CVS": true,
-    "**/.DS_Store": true,
-    "**/Thumbs.db": true,
-    "**/android/build": true,
-    "**/android/.gradle": true,
-    "**/android/app/build": true,
-    "**/android/.settings": true,
-    "**/android/.project": true,
-    "**/android/.classpath": true,
-    "**/node_modules/**/.gradle": true,
-    "**/node_modules/**/build": true,
-    "**/.expo": true,
-    "**/.metro-cache": true,
-    "**/*.tsbuildinfo": true,
-    "**/dist": true,
     "**/build": true,
-    "**/web-build": true,
-    "**/coverage": true,
-    "**/.nyc_output": true,
-    "**/lib": true,
-    "**/out": true,
-    "**/tmp": true,
-    "**/temp": true,
-    "**/*.log": true,
-    "**/*.tmp": true,
-    "**/*.temp": true,
-    "**/package-lock.json": true,
-    "**/yarn.lock": true,
-    "**/.firebase": true,
-    "**/.vercel": true,
-    "**/.bolt": true
+    "**/.expo": true
   },
+
+  // Melhora a performance do VS Code, ignorando mudanças em pastas muito grandes.
   "files.watcherExclude": {
     "**/node_modules/**": true,
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true,
-    "**/node_modules/*/**": true,
-    "**/android/build/**": true,
-    "**/android/.gradle/**": true,
-    "**/android/app/build/**": true,
-    "**/android/.settings/**": true,
-    "**/android/.project/**": true,
-    "**/android/.classpath/**": true,
-    "**/.expo/**": true,
-    "**/.metro-cache/**": true,
-    "**/*.tsbuildinfo": true,
-    "**/dist/**": true,
     "**/build/**": true,
-    "**/web-build/**": true,
-    "**/coverage/**": true,
-    "**/.nyc_output/**": true,
-    "**/lib/**": true,
-    "**/out/**": true,
-    "**/tmp/**": true,
-    "**/temp/**": true,
-    "**/*.log": true,
-    "**/*.tmp": true,
-    "**/*.temp": true,
-    "**/package-lock.json": true,
-    "**/yarn.lock": true,
-    "**/.firebase/**": true,
-    "**/.vercel/**": true,
-    "**/.bolt/**": true,
-    "**/functions/node_modules/**": true,
-    "**/functions/lib/**": true,
-    "**/android/**": true,
-    "**/ios/**": true
-  },
-  "files.associations": {
-    "*.json": "jsonc"
-  },
-  "emmet.includeLanguages": {
-    "javascript": "javascriptreact"
-  },
-  "files.trimTrailingWhitespace": true,
-  "files.insertFinalNewline": true,
-  "editor.formatOnSave": false,
-  "editor.codeActionsOnSave": {},
-  "git.ignoreLimitWarning": true,
-  "extensions.ignoreRecommendations": true
+    "**/.expo/**": true
+  }
 }
