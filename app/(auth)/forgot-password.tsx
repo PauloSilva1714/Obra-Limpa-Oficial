@@ -17,13 +17,8 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Building2, Mail, ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
+// Importando fontes locais em vez de usar @expo-google-fonts/inter
+import { useFonts } from 'expo-font';
 import logo from './obra-limpa-logo.png';
 
 const { width, height } = Dimensions.get('window');
@@ -39,10 +34,10 @@ export default function ForgotPasswordScreen() {
   const [slideAnim] = useState(new Animated.Value(50));
 
   const [fontsLoaded, fontError] = useFonts({
-    'Inter_400Regular': Inter_400Regular,
-    'Inter_500Medium': Inter_500Medium,
-    'Inter_600SemiBold': Inter_600SemiBold,
-    'Inter_700Bold': Inter_700Bold,
+    'Inter_400Regular': require('../../assets/fonts/Inter-Regular.ttf'),
+    'Inter_500Medium': require('../../assets/fonts/Inter-Medium.ttf'),
+    'Inter_600SemiBold': require('../../assets/fonts/Inter-SemiBold.ttf'),
+    'Inter_700Bold': require('../../assets/fonts/Inter-Bold.ttf'),
   });
 
   useEffect(() => {

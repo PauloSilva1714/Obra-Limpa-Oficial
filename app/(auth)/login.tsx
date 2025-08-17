@@ -18,17 +18,13 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Building2, User, Lock, Eye, EyeOff, Mail, ArrowRight, CheckCircle, AlertCircle, Sparkles, Zap } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
+// Importando fontes locais em vez de usar @expo-google-fonts/inter
+import { useFonts } from 'expo-font';
 
 import { shadows } from '../../utils/shadowUtils';
 
-const logo = require('./obra-limpa-logo.png');
+// Importar o logo de forma absoluta para garantir que seja encontrado
+const logo = require('../../assets/icon-64.png');
 
 const { width, height } = Dimensions.get('window');
 
@@ -64,11 +60,12 @@ export default function LoginScreen() {
   const passwordInputRef = useRef<TextInput>(null);
   const emailInputRef = useRef<TextInput>(null);
 
+  // Usando as fontes locais em vez das fontes do Google Fonts
   const [fontsLoaded, fontError] = useFonts({
-    'Inter_400Regular': Inter_400Regular,
-    'Inter_500Medium': Inter_500Medium,
-    'Inter_600SemiBold': Inter_600SemiBold,
-    'Inter_700Bold': Inter_700Bold,
+    'Inter_400Regular': require('../../assets/fonts/Inter-Regular.ttf'),
+    'Inter_500Medium': require('../../assets/fonts/Inter-Medium.ttf'),
+    'Inter_600SemiBold': require('../../assets/fonts/Inter-SemiBold.ttf'),
+    'Inter_700Bold': require('../../assets/fonts/Inter-Bold.ttf'),
   });
 
   useEffect(() => {

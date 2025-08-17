@@ -31,7 +31,6 @@ export default function Index() {
         await errorHandler.saveErrorLog('App iniciado', 'startup');
 
         if (!isMounted) return;
-        setInitStep('Aguardando Firebase...');
 
         // Aguardar mais tempo para garantir que tudo está pronto
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -50,7 +49,7 @@ export default function Index() {
         }
 
         if (!isMounted) return;
-        setInitStep('Verificando Firebase Auth...');
+        setInitStep('Carregando...');
 
         // Verificar autenticação do Firebase com timeout
         let firebaseUser = null;

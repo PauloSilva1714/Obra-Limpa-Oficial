@@ -23,13 +23,8 @@ import { InviteService } from '@/services/InviteService';
 import AddressSearch from '@/components/AddressSearch';
 import { DuplicateAdminModal } from '@/components/DuplicateAdminModal';
 import { DuplicateSiteModal } from '@/components/DuplicateSiteModal';
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
+// Importando fontes locais em vez de usar @expo-google-fonts/inter
+import { useFonts } from 'expo-font';
 import { Picker } from '@react-native-picker/picker';
 import logo from './obra-limpa-logo.png';
 import { getAuth } from 'firebase/auth';
@@ -101,10 +96,10 @@ export default function RegisterScreen() {
   };
 
   const [fontsLoaded, fontError] = useFonts({
-    'Inter_400Regular': Inter_400Regular,
-    'Inter_500Medium': Inter_500Medium,
-    'Inter_600SemiBold': Inter_600SemiBold,
-    'Inter_700Bold': Inter_700Bold,
+    'Inter_400Regular': require('../../assets/fonts/Inter-Regular.ttf'),
+    'Inter_500Medium': require('../../assets/fonts/Inter-Medium.ttf'),
+    'Inter_600SemiBold': require('../../assets/fonts/Inter-SemiBold.ttf'),
+    'Inter_700Bold': require('../../assets/fonts/Inter-Bold.ttf'),
   });
 
   // Adicione refs para os campos
